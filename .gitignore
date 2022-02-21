@@ -1,0 +1,55 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+solve
+solver
+hack
+hacker
+hack_generate
+hack_naive
+
+# Hidden files
+*.h.*
+
+# Dumps
+core
+vgcore*
+output.txt
+answer.txt
+program.txt
+debug.txt
+*.ans
+
+# Instrumentation
+gmon.out
+analysis.txt
+sandbox
+symbols.txt

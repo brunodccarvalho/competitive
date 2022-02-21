@@ -1,0 +1,102 @@
+---
+Language: Cpp
+BasedOnStyle: Google
+#AccessModifierOffset: -1
+AccessModifierOffset: -2
+AlignAfterOpenBracket: Align
+#AlignConsecutiveMacros: false
+AlignConsecutiveMacros: true
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: Left
+AlignOperands: true
+AlignTrailingComments: true
+AllowAllArgumentsOnNextLine: true
+AllowAllConstructorInitializersOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: true
+#AllowShortBlocksOnASingleLine: Never
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: false
+#AllowShortFunctionsOnASingleLine: All
+AllowShortFunctionsOnASingleLine: All
+#AllowShortLambdasOnASingleLine: All
+AllowShortLambdasOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: true
+BinPackParameters: true
+BreakBeforeBinaryOperators: None
+BreakBeforeBraces: Attach # K&R
+BreakInheritanceList: BeforeColon
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeColon
+BreakStringLiterals: true
+#ColumnLimit: 80
+ColumnLimit: 90
+CommentPragmas: "^ IWYU pragma:"
+CompactNamespaces: false
+#ConstructorInitializerAllOnOneLineOrOnePerLine: true
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ConstructorInitializerIndentWidth: 4
+ContinuationIndentWidth: 4
+Cpp11BracedListStyle: true
+DeriveLineEnding: true
+DerivePointerAlignment: true
+DisableFormat: false
+ExperimentalAutoDetectBinPacking: false
+FixNamespaceComments: true
+ForEachMacros:
+    - foreach
+    - Q_FOREACH
+    - BOOST_FOREACH
+    - LOOP_FOR_DURATION
+    - LOOP_FOR_DURATION_OR_RUNS
+    - LOOP_FOR_DURATION_TRACKED
+    - LOOP_FOR_DURATION_TRACKED_RUNS
+    - LOOP_FOR_DURATION_OR_RUNS_TRACKED
+    - FOR_EACH_MASK
+    - FOR_EACH_BIT
+    - FOR_EACH_BIT_NUMBER
+    - FOR_EACH_SUBSET
+    - FOR_EACH_IN_LIST
+    - FOR_EACH_IN_LIST_REVERSE
+    - FOR_EACH_IN_LINKED_LIST
+    - FOR_EACH_IN_LINKED_LIST_REVERSE
+    - FOR_EACH_IN_FORWARD_LIST
+    - FOR_EACH_CHILD_INT_TREE
+    - FOR_EACH_CHILD_INT_TREE_REVERSE
+    - FOR_EACH_NEXT_SIBLING_INT_TREE
+    - FOR_EACH_PREV_SIBLING_INT_TREE
+    - FOR_EACH_ANCESTOR_INT_TREE
+IncludeBlocks: Regroup
+#IndentCaseLabels: true
+IndentCaseLabels: false
+IndentGotoLabels: true
+IndentPPDirectives: None
+IndentWidth: 4
+IndentWrappedFunctionNames: false
+JavaScriptQuotes: Leave
+JavaScriptWrapImports: true
+KeepEmptyLinesAtTheStartOfBlocks: false
+MacroBlockBegin: ""
+MacroBlockEnd: ""
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: None
+PenaltyBreakAssignment: 200
+PenaltyBreakBeforeFirstCallParameter: 100
+PointerAlignment: Left
+ReflowComments: true
+SortIncludes: false
+SortUsingDeclarations: false
+SpacesBeforeTrailingComments: 1
+Standard: Auto
+StatementMacros:
+    - Q_UNUSED
+    - QT_REQUIRE_VERSION
+TabWidth: 4
+UseCRLF: false
+UseTab: Never
+---

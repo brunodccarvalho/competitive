@@ -1,0 +1,23 @@
+# https://developers.google.com/optimization/flow/mincostflow
+# with edges (3, cap=5, cost=0) and (4, cap=15, cost=0) to sink 5
+Google OR example
+6 11 6 0 5
+0 1 15 4
+0 2  8 4
+1 2 20 2
+1 3  4 2
+1 4 10 6
+2 3 15 1
+2 4  4 3
+3 4 20 2
+3 5  5 0
+4 2  5 3
+4 5 15 0
+
+ 1   5
+ 3  15
+ 6  32
+10  62
+15 105
+18 132
+20 150

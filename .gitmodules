@@ -1,0 +1,6 @@
+[submodule "modules/fmt"]
+	path = modules/fmt
+	url = https://github.com/fmtlib/fmt
+[submodule "modules/matplotlib-cpp"]
+	path = modules/matplotlib-cpp
+	url = https://github.com/lava/matplotlib-cpp
