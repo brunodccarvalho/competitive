@@ -227,6 +227,8 @@ struct Ray {
 
     auto operator-() const { return Ray{p, -d}; }
     auto q() const { return p + d; }
+    friend bool operator==(Ray u, Ray v) { return u.p == v.p && u.d == v.d; }
+    friend bool operator!=(Ray u, Ray v) { return u.p == v.p && u.d == v.d; }
 
     friend auto signed_linedist(Pt2 u, Ray l) { return signed_linedist(u, l.p, l.q()); }
     friend auto linedist(Pt2 u, Ray l) { return linedist(u, l.p, l.q()); }

@@ -152,19 +152,18 @@ struct link_cut_tree_path {
  * Query for sum on path
  * Support += on point and path
  */
-template <typename T>
 struct lct_node_path_sum {
     int path_size = 0;
-    T self = 0;
-    T path = 0;
-    T lazy = 0;
+    int64_t self = 0;
+    int64_t path = 0;
+    int64_t lazy = 0;
 
     lct_node_path_sum() = default;
-    lct_node_path_sum(T v) : path_size(1), self(v), path(v) {}
+    lct_node_path_sum(int64_t v) : path_size(1), self(v), path(v) {}
 
-    T path_sum() { return path; }
+    int64_t path_sum() { return path; }
 
-    void add_path(T plus) {
+    void add_path(int64_t plus) {
         if (path_size) {
             self += plus;
             path += plus * path_size;
@@ -192,19 +191,18 @@ struct lct_node_path_sum {
  * Query for maximum on path
  * Support += on point and path
  */
-template <typename T>
 struct lct_node_path_max {
     int path_size = 0;
-    T self = 0;
-    T path = 0;
-    T lazy = 0;
+    int64_t self = 0;
+    int64_t path = 0;
+    int64_t lazy = 0;
 
     lct_node_path_max() = default;
-    lct_node_path_max(T v) : path_size(1), self(v), path(v) {}
+    lct_node_path_max(int64_t v) : path_size(1), self(v), path(v) {}
 
-    T path_max() { return path; }
+    int64_t path_max() { return path; }
 
-    void add_path(T plus) {
+    void add_path(int64_t plus) {
         if (path_size) {
             self += plus;
             path += plus;
@@ -232,19 +230,18 @@ struct lct_node_path_max {
  * Query for minimum on path
  * Support += on point and path
  */
-template <typename T>
 struct lct_node_path_min {
     int path_size = 0;
-    T self = 0;
-    T path = 0;
-    T lazy = 0;
+    int64_t self = 0;
+    int64_t path = 0;
+    int64_t lazy = 0;
 
     lct_node_path_min() = default;
-    lct_node_path_min(T v) : path_size(1), self(v), path(v) {}
+    lct_node_path_min(int64_t v) : path_size(1), self(v), path(v) {}
 
-    T path_min() { return path; }
+    int64_t path_min() { return path; }
 
-    void add_path(T plus) {
+    void add_path(int64_t plus) {
         if (path_size) {
             self += plus;
             path += plus;
@@ -275,16 +272,16 @@ struct lct_node_path_min {
  * Use the returned node to eval directly for a value, or store the node somewhere.
  * Support := on point
  */
-template <typename T>
 struct lct_node_path_affine {
-    using Data = array<T, 2>;
+    using num = int64_t;
+    using Data = array<num, 2>;
     Data self = {};
     Data path[2] = {};
 
     void set(Data fn) { self = path[0] = path[1] = fn; }
 
-    T eval_uv(T x) const { return path[0][0] * x + path[0][1]; }
-    T eval_vu(T x) const { return path[1][0] * x + path[1][1]; }
+    num eval_uv(num x) const { return path[0][0] * x + path[0][1]; }
+    num eval_vu(num x) const { return path[1][0] * x + path[1][1]; }
     Data combine(Data a, Data b) { return Data{a[0] * b[0], a[0] * b[1] + a[1]}; }
 
     void path_flip() { swap(path[0], path[1]); }
@@ -301,20 +298,19 @@ struct lct_node_path_affine {
  * Query returns gcd of all values on path
  * Support += on point and range
  */
-template <typename T>
 struct lct_node_path_gcd {
     int path_size = 0;
-    T self = 0;
-    T diff = 0;
-    T path = 0;
-    T lazy = 0;
+    int64_t self = 0;
+    int64_t diff = 0;
+    int64_t path = 0;
+    int64_t lazy = 0;
 
     lct_node_path_gcd() = default;
-    lct_node_path_gcd(T v) : path_size(1), self(v), path(v) {}
+    lct_node_path_gcd(int64_t v) : path_size(1), self(v), path(v) {}
 
-    T path_gcd() { return path; }
+    int64_t path_gcd() { return path; }
 
-    void add_path(T plus) {
+    void add_path(int64_t plus) {
         if (path_size) {
             self += plus;
             path = gcd(self, diff);
@@ -334,7 +330,7 @@ struct lct_node_path_gcd {
 
     void pushup(const lct_node_path_gcd& lhs, const lct_node_path_gcd& rhs) {
         path_size = 1 + lhs.path_size + rhs.path_size;
-        diff = gcd(gcd(lhs.diff, rhs.diff), lhs.value - self);
+        diff = gcd(gcd(lhs.diff, rhs.diff), lhs.self - self);
         path = gcd(self, diff);
     }
 };

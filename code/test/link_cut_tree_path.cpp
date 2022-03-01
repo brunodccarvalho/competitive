@@ -3,7 +3,7 @@
 #include "lib/slow_tree.hpp"
 #include "lib/tree_action.hpp"
 
-using lct_path = link_cut_tree_path<lct_node_path_sum<long>>;
+using lct_path = link_cut_tree_path<lct_node_path_sum>;
 using namespace tree_testing;
 
 inline namespace detail {

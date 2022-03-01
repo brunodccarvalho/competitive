@@ -115,7 +115,6 @@ struct network_simplex {
     }
 
     // Implementation
-  private:
     enum ArcState : int8_t { STATE_UPPER = -1, STATE_TREE = 0, STATE_LOWER = 1 };
     auto signed_reduced_cost(int e) const { return edge[e].state * reduced_cost(e); }
 

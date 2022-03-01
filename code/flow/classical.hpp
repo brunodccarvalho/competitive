@@ -109,8 +109,9 @@ auto max_segmentation(const vector<int64_t>& A, //
 // eliminated if it cannot win the competition by finishing first, possibly tied.
 // Determine if team k is eliminated. If so, return an elimination set; if not, return
 // an assignment of wins to teams u, that lets team k win the competition.
+// Allow ties for first with strict=false
 auto single_elimination(const vector<int>& wins,
-                        const vector<tuple<int, int, int>>& games, int k) {
+                        const vector<tuple<int, int, int>>& games, int k, bool strict) {
     using Solver = dinitz_flow<int64_t>;
 
     int N = wins.size(), G = games.size();
@@ -118,11 +119,13 @@ auto single_elimination(const vector<int>& wins,
     for (auto [u, v, c] : games) {
         W += u == k || v == k ? c : 0, F += c;
     }
+    int64_t M = strict ? W - 1 : W;
 
     // Are we already beaten by the team currently leading the competition?
-    int M = max_element(begin(wins), end(wins)) - begin(wins);
-    if (W < wins[M]) {
-        return make_tuple(true, vector<int>{M}, vector<int>{});
+    for (int i = 0; i < N; i++) {
+        if (i != k && wins[i] > M) {
+            return make_tuple(true, vector<int>{i}, vector<int>{});
+        }
     }
 
     int s = N + G, t = s + 1;
@@ -136,8 +139,10 @@ auto single_elimination(const vector<int>& wins,
         mf.add(N + g, v, c);
     }
     for (int u = 0; u < N; u++) {
-        if (wins[u] < W) {
+        if (u == k && wins[u] < W) {
             mf.add(u, t, W - wins[u]);
+        } else if (u != k && wins[u] < M) {
+            mf.add(u, t, M - wins[u]);
         }
     }
 

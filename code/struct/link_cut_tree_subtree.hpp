@@ -168,29 +168,29 @@ struct link_cut_tree_subtree {
 /**
  * Maintain sum and size of subtrees and paths
  */
-template <typename T>
 struct lct_node_complete_sum {
     int path_size = 0;
     int subt_size = 0; // size of splay tree below u
     int virt_size = 0; // size of subtree below u
-    T self = 0;        // this node's value
-    T path = 0;
-    T lazy = 0;
-    T subt = 0; // subtree aggregate ~= aggregate of splay + virtuals
-    T virt = 0; // virtual aggregate ~= aggregate of virtuals
+    int64_t self = 0;  // this node's value
+    int64_t path = 0;
+    int64_t lazy = 0;
+    int64_t subt = 0; // subtree aggregate ~= aggregate of splay + virtuals
+    int64_t virt = 0; // virtual aggregate ~= aggregate of virtuals
     // subtree query is self + virt / subtree size query is 1 + virt_size
 
     lct_node_complete_sum() = default;
-    lct_node_complete_sum(T v) : path_size(1), subt_size(1), self(v), path(v), subt(v) {}
+    lct_node_complete_sum(int64_t v)
+        : path_size(1), subt_size(1), self(v), path(v), subt(v) {}
 
-    T subtree_sum() const { return self + virt; }
-    T path_sum() const { return path; }
+    int64_t subtree_sum() const { return self + virt; }
+    int64_t path_sum() const { return path; }
     int subtree_size() const { return 1 + virt_size; }
     int path_length() const { return path_size; }
 
-    void add_node(T value) { self += value; }
+    void add_node(int64_t value) { self += value; }
 
-    void add_path(T plus) {
+    void add_path(int64_t plus) {
         if (path_size) {
             lazy += plus;
             self += plus;
@@ -230,22 +230,21 @@ struct lct_node_complete_sum {
 /**
  * Maintain sum and size of subtrees
  */
-template <typename T>
 struct lct_node_subtree_sum {
     int subt_size = 0; // size of splay tree below u
     int virt_size = 0; // size of subtree below u
-    T self = 0;        // this node's value
-    T subt = 0;        // subtree aggregate ~= aggregate of splay + virtuals
-    T virt = 0;        // virtual aggregate ~= aggregate of virtuals
+    int64_t self = 0;  // this node's value
+    int64_t subt = 0;  // subtree aggregate ~= aggregate of splay + virtuals
+    int64_t virt = 0;  // virtual aggregate ~= aggregate of virtuals
     // subtree query is self + virt / subtree size query is 1 + virt_size
 
     lct_node_subtree_sum() = default;
-    lct_node_subtree_sum(T v) : subt_size(1), self(v), subt(v) {}
+    lct_node_subtree_sum(int64_t v) : subt_size(1), self(v), subt(v) {}
 
-    T subtree_sum() const { return self + virt; }
+    int64_t subtree_sum() const { return self + virt; }
     int subtree_size() const { return 1 + virt_size; }
 
-    void add_node(T value) { self += value, subt += value; }
+    void add_node(int64_t value) { self += value, subt += value; }
 
     void flip_path() {}
 

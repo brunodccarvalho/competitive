@@ -3,7 +3,7 @@
 #include "lib/slow_tree.hpp"
 #include "lib/tree_action.hpp"
 
-using lct_subtree = link_cut_tree_subtree<lct_node_complete_sum<long>>;
+using lct_subtree = link_cut_tree_subtree<lct_node_complete_sum>;
 using namespace tree_testing;
 
 inline namespace detail {

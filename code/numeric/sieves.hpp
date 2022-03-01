@@ -16,8 +16,6 @@ auto classic_sieve(int N) {
         if (isprime[n])
             for (int i = n * n; i <= N; i += 2 * n)
                 isprime[i] = false;
-    if (N > 2)
-        primes.push_back(2);
     for (int n = 3; n <= N; n += 2)
         if (isprime[n])
             primes.push_back(n);

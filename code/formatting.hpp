@@ -275,8 +275,42 @@ string format_tuple_map(const map<tuple<U, V, W>, String>& times, bool label_row
     return build_aligned_string(string_matrix);
 }
 
+template <typename K>
+string format_row_list(const vector<K>& keys, const vector<int>& freqs) {
+    assert(keys.size() == freqs.size());
+    int N = keys.size();
+    if (N == 0) {
+        return "{empty}\n";
+    }
+    long sum = 0;
+    int max_frequency = 0;
+    for (int i = 0; i < N; i++) {
+        sum += freqs[i];
+        max_frequency = max(max_frequency, freqs[i]);
+    }
+    assert(max_frequency > 0);
+    constexpr int BARS = 60;
+    vector<vector<string>> table;
+    for (int i = 0; i < N; i++) {
+        int length = llround(1.0 * freqs[i] / max_frequency * BARS);
+        string bars = string(length, '#') + string(BARS - length, ' ');
+        table.push_back({to_string(keys[i]), to_string(freqs[i]), bars});
+    }
+    return build_aligned_string(table);
+}
+
+string format_row_list(const vector<int>& freqs) {
+    int N = freqs.size();
+    vector<int> keys(N);
+    iota(begin(keys), end(keys), 0);
+    return format_row_list(keys, freqs);
+}
+
 template <typename U>
 string format_histogram(const map<U, int>& hist) {
+    if (hist.empty()) {
+        return "{empty}\n";
+    }
     long sum = 0;
     int max_frequency = 0;
     for (const auto& [key, frequency] : hist) {
@@ -305,11 +339,14 @@ map<T, int> make_histogram(const vector<T>& occurrences) {
 
 template <typename T>
 map<T, int> make_amortized_histogram(const vector<T>& occurrences, int rows) {
+    map<T, int> hist;
+    if (occurrences.empty()) {
+        return hist;
+    }
     T tmin = *min_element(begin(occurrences), end(occurrences));
     T tmax = *max_element(begin(occurrences), end(occurrences));
     T block = (tmax - tmin + rows - 1) / rows;
     block = block > 0 ? block : 1;
-    map<T, int> hist;
     for (long n : occurrences) {
         T b = (n - tmin) / block;
         hist[tmin + block * b]++;
@@ -318,7 +355,7 @@ map<T, int> make_amortized_histogram(const vector<T>& occurrences, int rows) {
 }
 
 template <typename... Ts>
-void debugger(string_view vars, Ts&&... args) {
+void debugger(const char* vars, Ts&&... args) {
     cout.flush(), cerr.flush();
     cerr << ">> [" << vars << "]: ";
     const char* delim = "";
@@ -326,6 +363,93 @@ void debugger(string_view vars, Ts&&... args) {
     cerr << endl;
 }
 #define debug(...) debugger(#__VA_ARGS__, __VA_ARGS__)
+
+template <typename T>
+auto transpose(const vector<vector<T>>& mat) {
+    int n = mat.size(), m = n ? mat[0].size() : 0;
+    vector<vector<T>> tra(m, vector<T>(n));
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            tra[j][i] = mat[i][j];
+        }
+    }
+    return tra;
+}
+
+auto format_hist_grid(const vector<vector<int>>& hist, int x0, int x1, int y0, int y1) {
+    static string labels[] = {" ", "⠂", "⠒", "⠖", "⠶", "⠷", "⠿"};
+    static auto ceildiv = [](int a, int b) { return (a + b - 1) / b; };
+    int N = hist.size(), M = hist[0].size();
+    int high = 0;
+    for (const auto& row : hist) {
+        for (auto v : row) {
+            high = max(high, v);
+        }
+        M = max<int>(M, row.size());
+    }
+    string ytop = to_string(y1), ybot = to_string(y0);
+    string xbot = to_string(x0), xtop = to_string(x1);
+    int ypad = max(ytop.size(), ybot.size());
+    int xspace = max<int>(0, M - xbot.size() - xtop.size());
+    string s;
+    for (int i = 0; i < N; i++) {
+        if (i == 0) {
+            s += ytop + string(ypad - ytop.size(), ' ') + '|';
+        } else if (i == N - 1) {
+            s += ybot + string(ypad - ybot.size(), ' ') + '|';
+        } else {
+            s += string(ypad, ' ') + '|';
+        }
+        for (auto v : hist[i]) {
+            s += labels[ceildiv(6 * v, max(high, 1))];
+        }
+        s += string(M - hist[i].size(), ' ') + '\n';
+    }
+    s += string(ypad + 1, ' ') + xbot + string(xspace, ' ') + xtop + '\n';
+    return s;
+}
+
+auto format_point_hist_grid(const vector<pair<int, int>>& pts, int width, int height) {
+    static auto ceildiv = [](int a, int b) { return (a + b - 1) / b; };
+    int xmin = INT_MAX, ymin = INT_MAX;
+    int xmax = INT_MIN, ymax = INT_MIN;
+    for (auto [x, y] : pts) {
+        xmin = min(xmin, x), ymin = min(ymin, y);
+        xmax = max(xmax, x), ymax = max(ymax, y);
+    }
+    width = max(10, min(xmax - xmin + 1, width));
+    height = max(2, min(ymax - ymin + 1, height));
+    vector<vector<int>> grid(height, vector<int>(width));
+    int wgap = max(1, (xmax - xmin + width) / width);
+    int vgap = max(1, (ymax - ymin + height) / height);
+    int umax = 0, vmax = 0;
+    for (auto [x, y] : pts) {
+        int u = (x - xmin) / wgap;
+        int v = (y - ymin) / vgap;
+        grid[v][u]++;
+        umax = max(umax, u);
+        vmax = max(vmax, v);
+    }
+    width = max(10, min((xmax - xmin) / wgap, width));
+    height = max(2, min((ymax - ymin) / vgap, height));
+    grid.resize(height);
+    for (int i = 0; i < height; i++) {
+        grid[i].resize(width);
+    }
+    reverse(begin(grid), end(grid));
+    return format_hist_grid(grid, xmin, xmax, ymin, ymax);
+}
+
+auto format_point_hist_grid(const vector<int>& x, const vector<int>& y, int width,
+                            int height) {
+    assert(x.size() == y.size());
+    int N = x.size();
+    vector<pair<int, int>> pts(N);
+    for (int i = 0; i < N; i++) {
+        pts[i] = {x[i], y[i]};
+    }
+    return format_point_hist_grid(pts, width, height);
+}
 
 namespace std {
 
@@ -522,7 +646,7 @@ struct stringable {
     stringable(char c) : txt(1, c) {}
 
     friend const string& to_string(const stringable& s) { return s.txt; }
-    operator string const &() const { return txt; }
+    operator string const&() const { return txt; }
 
     bool operator<(const stringable& b) const { return txt < b.txt; }
     bool operator==(const stringable& b) const { return txt == b.txt; }

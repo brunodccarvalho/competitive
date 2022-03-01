@@ -78,6 +78,33 @@ function run_valgrind_tests {
 # Ugly as fuck, but if it works it ain't broken
 function main {
 	case "$ACTION" in
+		hash)
+			zip output/output.zip code.cpp *out
+		;;
+		hashrun)
+			cp code.cpp output/code.cpp
+			run_make debug
+			for file in input/*.in; do
+				valgrind ./solver $file
+			done
+			zip output/output.zip code.cpp *out
+		;;
+		hashfast)
+			cp code.cpp output/code.cpp
+			run_make perfm
+			for file in input/*.in; do
+				./solver $file
+			done
+			zip output/output.zip code.cpp *out
+		;;
+		hashdata)
+			cp code.cpp output/code.cpp
+			run_make perfm
+			for file in input/*.in; do
+				./solver $file | tee "data/${file#input/}"
+			done
+			zip output/output.zip code.cpp *out
+		;;
 		*help*)
 			echo "Usage: $PROG_NAME action [args]..." >&2
 		;;

@@ -3,11 +3,10 @@
 #include "algo/y_combinator.hpp"
 
 struct hld_forest {
-    vector<int> subsize, parent, depth, roots, degree;
+    vector<int> subsize, parent, depth, roots;
     vector<int> heavy; // heavy child of this node, tree[u][0]
     vector<int> head;  // top of heavy path
     vector<int> time;  // index of node in preorder tour with no repetition
-    vector<int> preorder;
 
     explicit hld_forest(vector<vector<int>>& tree, int root = -1) {
         int N = tree.size();
@@ -17,13 +16,10 @@ struct hld_forest {
         depth.assign(N, 0);
         head.assign(N, 0);
         time.assign(N, 0);
-        preorder.assign(N, 0);
-        degree.assign(N, 0);
         int timer = 0;
 
         auto dfs = y_combinator([&](auto self, int u, int p) -> void {
             subsize[u] = 1;
-            degree[u] = p != -1;
             int biggest = 0;
             for (int& v : tree[u]) {
                 if (v != p) {
@@ -31,7 +27,6 @@ struct hld_forest {
                     depth[v] = depth[u] + 1;
                     self(v, u);
                     subsize[u] += subsize[v];
-                    degree[u]++;
                     if (biggest < subsize[v]) {
                         biggest = subsize[v];
                         heavy[u] = v;
@@ -43,7 +38,6 @@ struct hld_forest {
 
         auto decompose = y_combinator([&](auto self, int u, int h) -> void {
             head[u] = h;
-            preorder[timer] = u;
             time[u] = timer++;
             for (int v : tree[u]) {
                 if (v != parent[u]) {
@@ -110,14 +104,12 @@ struct hld_forest {
     }
 
     bool is_above_on_heavy_path(int a, int u) const {
-        return head[a] == head[u] && is_above(a, u);
+        return head[a] == head[u] && time[a] <= time[u];
     }
 
     bool on_path(int x, int u, int v) const {
         return is_above(lca(u, v), x) && (is_above(x, u) || is_above(x, v));
     }
-
-    bool earlier_order(int a, int b) const { return time[a] < time[b]; }
 
     int kth_on_path(int u, int v, int k) const {
         int a = lca(u, v);
@@ -136,36 +128,21 @@ struct hld_forest {
 
     // Split the path from u to v into sorted heavy path segments [l,r), 0<=l<r<=N
     // With merge=true join heavy path segments [l,m) and [m,r) (for efficiency)
-    auto vertex_segments(int u, int v, bool merge = false) const {
+    auto vertex_segments(int u, int v) const {
         vector<array<int, 2>> ranges;
-        if (u == v) {
-            ranges.push_back({time[u], time[u] + 1});
-            return ranges;
-        }
-        if (time[u] > time[v]) {
-            swap(u, v);
-        }
-        int a = lca(u, v);
-        while (depth[head[v]] > depth[a]) {
-            ranges.push_back({time[head[v]], time[v] + 1});
-            v = parent[head[v]];
-        }
-        while (depth[head[u]] > depth[a]) {
-            ranges.push_back({time[head[u]], time[u] + 1});
-            u = parent[head[u]];
-        }
-        ranges.push_back({time[a], time[u == a ? v : u] + 1});
-        reverse(begin(ranges), end(ranges));
-        if (merge) {
-            int R = ranges.size();
-            for (int i = 1, j = 0; i < R; i++) {
-                if (ranges[i][0] == ranges[j][1]) {
-                    ranges[j][1] = ranges[i][1], R--;
-                } else {
-                    ranges[++j] = ranges[i];
-                }
+        while (head[u] != head[v]) {
+            if (depth[head[u]] > depth[head[v]]) {
+                ranges.push_back({time[head[u]], time[u] + 1});
+                u = parent[head[u]];
+            } else {
+                ranges.push_back({time[head[v]], time[v] + 1});
+                v = parent[head[v]];
             }
-            ranges.resize(R);
+        }
+        if (depth[u] < depth[v]) {
+            ranges.push_back({time[u], time[v] + 1});
+        } else {
+            ranges.push_back({time[v], time[u] + 1});
         }
         return ranges;
     }
@@ -173,39 +150,21 @@ struct hld_forest {
     // Split the edge path from u to v into sorted heavy path segments [l,r), 1<=l<r<=N
     // We consider edges here, so that vertex u is responsible for its parent edge
     // With merge=true join heavy path segments [l,m) and [m,r) (for efficiency)
-    auto edge_segments(int u, int v, bool merge = false) const {
+    auto edge_segments(int u, int v) const {
         vector<array<int, 2>> ranges;
-        if (u == v) {
-            return ranges;
-        }
-        if (time[u] > time[v]) {
-            swap(u, v);
-        }
-        int a = lca(u, v);
-        while (depth[head[v]] > depth[a]) {
-            ranges.push_back({time[head[v]], time[v] + 1});
-            v = parent[head[v]];
-        }
-        while (depth[head[u]] > depth[a]) {
-            ranges.push_back({time[head[u]], time[u] + 1});
-            u = parent[head[u]];
-        }
-        if (u != a) {
-            ranges.push_back({time[a] + 1, time[u] + 1});
-        } else if (v != a) {
-            ranges.push_back({time[a] + 1, time[v] + 1});
-        }
-        reverse(begin(ranges), end(ranges));
-        if (merge) {
-            int R = ranges.size();
-            for (int i = 1, j = 0; i < R; i++) {
-                if (ranges[i][0] == ranges[j][1]) {
-                    ranges[j][1] = ranges[i][1], R--;
-                } else {
-                    ranges[++j] = ranges[i];
-                }
+        while (head[u] != head[v]) {
+            if (depth[head[u]] > depth[head[v]]) {
+                ranges.push_back({time[head[u]], time[u] + 1});
+                u = parent[head[u]];
+            } else {
+                ranges.push_back({time[head[v]], time[v] + 1});
+                v = parent[head[v]];
             }
-            ranges.resize(R);
+        }
+        if (depth[u] < depth[v]) {
+            ranges.push_back({time[u] + 1, time[v] + 1});
+        } else if (depth[v] < depth[u]) {
+            ranges.push_back({time[v] + 1, time[u] + 1});
         }
         return ranges;
     }
@@ -213,14 +172,15 @@ struct hld_forest {
     // Compute a minimal subtree that contains all the nodes with at most 2k-1 nodes
     auto compress_tree(vector<int> nodes) const {
         int k = nodes.size();
-        sort(begin(nodes), end(nodes), earlier_order);
+        auto cmp = [&](int a, int b) { return time[a] < time[b]; };
+        sort(begin(nodes), end(nodes), cmp);
 
         for (int i = 0; i < k - 1; i++) {
             nodes.push_back(lca(nodes[i], nodes[i + 1]));
         }
 
-        sort(begin(nodes) + k, end(nodes), earlier_order);
-        inplace_merge(begin(nodes), begin(nodes) + k, end(nodes), earlier_order);
+        sort(begin(nodes) + k, end(nodes), cmp);
+        inplace_merge(begin(nodes), begin(nodes) + k, end(nodes), cmp);
         nodes.erase(unique(begin(nodes), end(nodes)), end(nodes));
         k = nodes.size();
 
