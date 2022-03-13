@@ -109,19 +109,19 @@ struct segtree {
         return visit_downwards(1, 0, n, i, vis);
     }
 
-    template <typename Vis>
+    template <bool rootpath, typename Vis>
     void visit_range_l_to_r(int l, int r, Vis&& vis) {
         assert(0 <= l && l <= r && r <= n);
         if (l < r) {
-            visit_range_l_to_r_dfs(1, 0, n, l, r, vis);
+            visit_range_l_to_r_dfs<rootpath>(1, 0, n, l, r, vis);
         }
     }
 
-    template <typename Vis>
+    template <bool rootpath, typename Vis>
     void visit_range_r_to_l(int l, int r, Vis&& vis) {
         assert(0 <= l && l <= r && r <= n);
         if (l < r) {
-            visit_range_r_to_l_dfs(1, 0, n, l, r, vis);
+            visit_range_r_to_l_dfs<rootpath>(1, 0, n, l, r, vis);
         }
     }
 
@@ -364,10 +364,13 @@ struct segtree {
         }
     }
 
-    template <typename Vis>
+    template <bool rootpath, typename Vis>
     void visit_range_l_to_r_dfs(int u, int L, int R, int ql, int qr, Vis&& vis) {
+        if constexpr (rootpath)
+            vis(node[u], L, R);
         if (ql <= L && R <= qr) {
-            vis(node[u]);
+            if constexpr (!rootpath)
+                vis(node[u], L, R);
             return;
         }
         pushdown(u, R - L);
@@ -383,10 +386,13 @@ struct segtree {
         pushup(u);
     }
 
-    template <typename Vis>
+    template <bool rootpath, typename Vis>
     void visit_range_r_to_l_dfs(int u, int L, int R, int ql, int qr, Vis&& vis) {
+        if constexpr (rootpath)
+            vis(node[u], L, R);
         if (ql <= L && R <= qr) {
-            vis(node[u]);
+            if constexpr (!rootpath)
+                vis(node[u], L, R);
             return;
         }
         pushdown(u, R - L);
@@ -503,6 +509,7 @@ struct Segnode {
 };
 
 struct BeatsSegnode {
+    // Don't forget to use update_beats() for range updates
     static constexpr bool LAZY = true, RANGES = false;
     static constexpr int MIN = numeric_limits<int>::lowest();
     static constexpr int MAX = numeric_limits<int>::max();
@@ -657,6 +664,7 @@ struct setmod_segnode {
     }
 };
 
+// Maintain sum/min/max, support min=, max=, +=, = on point and range
 template <typename T>
 struct fullji_segnode {
     static constexpr bool LAZY = true, RANGES = true;

@@ -80,6 +80,100 @@ struct persistent_segtree {
 
     auto query_all(int version) { return node[roots[version]]; }
 
+    template <typename Vis>
+    auto visit_parents_up(int version, int L, int R, int i, Vis&& vis) {
+        assert(0 <= version && version < versions() && L <= i && i < R);
+        return visit_upwards(roots[version], L, R, i, vis);
+    }
+
+    template <typename Vis>
+    auto visit_parents_down(int version, int L, int R, int i, Vis&& vis) {
+        assert(0 <= version && version < versions() && L <= i && i < R);
+        return visit_downwards(roots[version], L, R, i, vis);
+    }
+
+    template <bool rootpath, typename Vis>
+    void visit_range_l_to_r(int version, int L, int R, int l, int r, Vis&& vis) {
+        assert(0 <= version && version < versions() && L <= l && l <= r && r <= R);
+        if (l < r) {
+            visit_range_l_to_r_dfs<rootpath>(roots[version], L, R, l, r, vis);
+        }
+    }
+
+    template <bool rootpath, typename Vis>
+    void visit_range_r_to_l(int version, int L, int R, int l, int r, Vis&& vis) {
+        assert(0 <= version && version < versions() && L <= l && l <= r && r <= R);
+        if (l < r) {
+            visit_range_r_to_l_dfs<rootpath>(roots[version], L, R, l, r, vis);
+        }
+    }
+
+    // Binary search with Bs(prefix) on the range [0,N) for the False/True split
+    // Aggregates the entire segment tree prefix.  F F F F >T< T T T [N=T)
+    // Returns {index i of first truth, prefix aggregate [0,u)}
+    template <typename Bs>
+    auto prefix_binary_search(int version, int L, int R, Bs&& bs) {
+        assert(0 <= version && version < versions());
+        int u = roots[version];
+        Node prefix = Node();
+        while (L + 1 < R) {
+            pushdown(u, R - L);
+            int M = (L + R) / 2;
+            Node v = combine(prefix, node[u << 1]);
+            if (bs(v)) {
+                u = u << 1, R = M;
+            } else {
+                prefix = move(v);
+                u = u << 1 | 1, L = M;
+            }
+        }
+        Node v = combine(prefix, node[u]);
+        return bs(v) ? make_pair(L, move(prefix)) : make_pair(R, move(v));
+    }
+
+    // Binary search with Bs(suffix) on the range [0,N) for the False/True split
+    // Aggregates the segment tree suffix. F F F F >T< T T T [N=T)
+    // Returns {index i of first truth, suffix aggregate [u,N)}
+    template <typename Bs>
+    auto suffix_binary_search(int version, int L, int R, Bs&& bs) {
+        assert(0 <= version && version < versions());
+        int u = roots[version];
+        Node suffix = Node();
+        while (L + 1 < R) {
+            pushdown(u, R - L);
+            int M = (L + R) / 2;
+            Node v = combine(node[u << 1 | 1], suffix);
+            if (bs(v)) {
+                suffix = move(v);
+                u = u << 1, R = M;
+            } else {
+                u = u << 1 | 1, L = M;
+            }
+        }
+        Node v = combine(node[u], suffix);
+        return bs(v) ? make_pair(L, move(v)) : make_pair(R, move(suffix));
+    }
+
+    // Binary search with Bs(prefix) on the range [l,r) for the False/True split
+    // Aggregate only values within this range. F F F F >T< T T [r=T)
+    // Returns {index i of first truth, prefix aggregate [l,i)}
+    template <typename Bs>
+    auto prefix_range_search(int version, int L, int R, int l, int r, Bs&& bs) {
+        assert(0 <= version && version < versions() && L <= l && l <= r && r <= R);
+        return l == r ? make_pair(r, Node())
+                      : run_prefix_search(roots[version], L, R, l, r, Node(), bs);
+    }
+
+    // Binary search with Bs(suffix) on the range [l,r) for the False/True split
+    // Aggregate only values within this range. F F F F >T< T T [r=T)
+    // Returns {index i of first truth, suffix aggregate [i,r)}
+    template <typename Bs>
+    auto suffix_range_search(int version, int L, int R, int l, int r, Bs&& bs) {
+        assert(0 <= version && version < versions() && L <= l && l <= r && r <= R);
+        return l == r ? make_pair(r, Node())
+                      : run_suffix_search(roots[version], L, R, l, r, Node(), bs);
+    }
+
   private:
     static Node combine(const Node& x, const Node& y) {
         Node ans;

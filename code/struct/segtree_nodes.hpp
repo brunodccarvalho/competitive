@@ -46,7 +46,7 @@ struct polyhash_segnode {
 
     polyhash_segnode() = default;
     polyhash_segnode(T v) : size(1), value(v) {}
-    operator T const &() const { return value; }
+    operator T const&() const { return value; }
 
     void pushup(const polyhash_segnode& lhs, const polyhash_segnode& rhs) {
         size = lhs.size + rhs.size;
@@ -88,7 +88,7 @@ struct maxsubrange_segnode {
 
     maxsubrange_segnode() = default;
     maxsubrange_segnode(int v) : sum(v), pref(v), suff(v), best(v) {}
-    operator int const &() const { return best; }
+    operator int const&() const { return best; }
 
     void pushup(const maxsubrange_segnode& lhs, const maxsubrange_segnode& rhs) {
         assert(lhs.sum != MIN && rhs.sum != MIN);
@@ -111,7 +111,7 @@ struct gcd_segnode {
 
     gcd_segnode() = default;
     gcd_segnode(int v) : value(v) {}
-    operator int const &() const { return g; }
+    operator int const&() const { return g; }
 
     void pushup(const gcd_segnode& lhs, const gcd_segnode& rhs) {
         value = lhs.value;
@@ -195,5 +195,40 @@ struct maxcount_segnode {
     void apply(int add) {
         value += add;
         lazy += add;
+    }
+};
+
+struct rangeset_segnode {
+    static constexpr bool LAZY = false, RANGES = false;
+    static constexpr int MIN = INT_MIN, MAX = INT_MAX;
+    int minimum = MAX, maximum = MIN;
+    multiset<int> nums;
+
+    rangeset_segnode() = default;
+    rangeset_segnode(int v) { nums.insert(v); }
+
+    // Use these to get the actual min/max on the range/point
+    int getmin() const { return min(minimum, nums.empty() ? MAX : *nums.begin()); }
+    int getmax() const { return max(maximum, nums.empty() ? MIN : *nums.rbegin()); }
+
+    void pushup(const rangeset_segnode& a, const rangeset_segnode& b) {
+        minimum = min(a.getmin(), b.getmin());
+        maximum = max(a.getmax(), b.getmax());
+    }
+
+    void apply(bool add, int v) {
+        if (add) {
+            nums.insert(v);
+        } else if (auto it = nums.find(v); it != nums.end()) {
+            nums.erase(it);
+        }
+    }
+
+    static auto visitor(rangeset_segnode& ans) {
+        return [&](const auto& node, int, int) {
+            rangeset_segnode res;
+            res.pushup(ans, node);
+            ans = res;
+        };
     }
 };
