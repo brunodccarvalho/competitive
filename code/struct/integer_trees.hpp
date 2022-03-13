@@ -379,6 +379,9 @@ struct merging_interval_processor : map<array<T, 2>, V> {
         base_t::erase(lo, hi);
         base_t::emplace_hint(hi, intv, color);
     }
+    void write(run_t intv, V color) {
+        write(intv, color, [](auto, const auto&) {});
+    }
 
     template <typename Fn>
     void cut(run_t intv, Fn&& processor) {
@@ -415,6 +418,9 @@ struct merging_interval_processor : map<array<T, 2>, V> {
             processor(it->first, it->second);
         }
         base_t::erase(lo, hi);
+    }
+    void cut(run_t intv) {
+        cut(intv, [](auto, const auto&) {});
     }
 
     optional<run_t> get_run(T x) const {
