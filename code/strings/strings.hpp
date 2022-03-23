@@ -25,7 +25,7 @@ auto build_cyclic_shifts(const Vec& s) {
     int A = M - m + 1;
 
     int C = 0, S = 1; // #classes - 1, sorted width
-    vector<int> cnt(max(A, N), 0), sa(N, 0), clazz(N, 0), perm(N, 0), clazzn(N, 0);
+    vector<int> cnt(max(A, N), 0), sa(N, 0), clazz(N, 0), perm(N, 0);
 
     for (int i = 0; i < N; i++)
         cnt[s[i] - m]++;
@@ -51,16 +51,16 @@ auto build_cyclic_shifts(const Vec& s) {
         if (2 * S >= N)
             break;
 
-        clazzn[sa[0]] = C = 0;
+        perm[sa[0]] = C = 0;
         for (int i = 1; i < N; i++) {
             int j = sa[i] + S;
             int k = sa[i - 1] + S;
             j -= j >= N ? N : 0;
             k -= k >= N ? N : 0;
             C += clazz[k] != clazz[j] || clazz[sa[i]] != clazz[sa[i - 1]];
-            clazzn[sa[i]] = C;
+            perm[sa[i]] = C;
         }
-        swap(clazz, clazzn);
+        swap(clazz, perm);
         S *= 2;
     }
 

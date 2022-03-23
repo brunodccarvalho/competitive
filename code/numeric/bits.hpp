@@ -133,7 +133,7 @@ string dlsbits(unsigned v) {
     return s;
 }
 
-string dmsbits(unsigned v) {
+string dmsbits(uint64_t v) {
     string s;
     while (v > 0) {
         s.push_back('0' + (v & 1));
@@ -143,7 +143,7 @@ string dmsbits(unsigned v) {
     return s;
 }
 
-string lsbits(unsigned v, unsigned bits = 32) {
+string lsbits(uint64_t v, unsigned bits = 64) {
     string s(bits, '0');
     for (unsigned i = 0; i < bits; i++) {
         s[i] = "01"[(v >> i) & 1];
@@ -151,7 +151,7 @@ string lsbits(unsigned v, unsigned bits = 32) {
     return s;
 }
 
-string msbits(unsigned v, unsigned bits = 32) {
+string msbits(uint64_t v, unsigned bits = 64) {
     string s(bits, '0');
     for (unsigned i = 0; i < bits; i++) {
         s[bits - i - 1] = "01"[(v >> i) & 1];

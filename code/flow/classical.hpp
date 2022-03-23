@@ -2,6 +2,7 @@
 
 #include "flow/dinitz_flow.hpp"
 #include "flow/edmonds_karp.hpp"
+#include "flow/network_simplex.hpp"
 #include "matching/bipartite_matching.hpp"
 #include "matching/hopcroft_karp.hpp"
 #include "algo/y_combinator.hpp"
@@ -173,9 +174,12 @@ auto max_weight_closure(const vector<array<int, 2>>& G, const vector<int64_t>& w
     int s = N, t = N + 1;
     Solver mf(N + 2);
 
+    int64_t positive = 0;
+
     for (int u = 0; u < N; u++) {
         if (weight[u] > 0) {
             mf.add(s, u, weight[u]);
+            positive += weight[u];
         } else if (weight[u] < 0) {
             mf.add(u, t, -weight[u]);
         }
@@ -184,7 +188,8 @@ auto max_weight_closure(const vector<array<int, 2>>& G, const vector<int64_t>& w
         mf.add(u, v, Solver::flowinf);
     }
 
-    return mf.maxflow(s, t);
+    auto maxflow = mf.maxflow(s, t);
+    return positive - maxflow;
 }
 
 // Determine maximum number of edge disjoint paths between s and t (sample)
@@ -281,4 +286,89 @@ auto min_bipartite_vertex_cover(int N, int M, const vector<array<int, 2>>& G) {
     }
 
     return make_tuple(m, move(A), move(B), move(bm.mu), move(bm.mv));
+}
+
+// We have a period of N days. On the i-th day we wish to meet demand of demand[i] items.
+// On the i-th day we can produce up to supply[i] items, each for cost[i] dollars.
+// The items stick around for later days, i.e. they can be produced and consumed later.
+// Can we meet all demand? And what is the minimum cost? O(N log N)
+auto unbounded_lot_demand(int N, const vector<int>& demand,
+                                 const vector<int>& supply,
+                                 const vector<int>& cost) {
+    auto compare = [&](int i, int j) {
+        return make_pair(cost[i], i) > make_pair(cost[j], j);
+    };
+
+    priority_queue<int, vector<int>, decltype(compare)> suppliers(compare);
+    vector<int> prod(N);
+
+    for (int i = 0; i < N; i++) {
+        int remaining = demand[i];
+        suppliers.push(i);
+        while (remaining > 0 && !suppliers.empty()) {
+            int j = suppliers.top();
+            int take = min(supply[j] - prod[j], remaining);
+            remaining -= take;
+            prod[j] += take;
+            if (prod[j] == supply[j]) {
+                suppliers.pop();
+            }
+        }
+        if (remaining > 0) {
+            return make_pair(false, move(prod));
+        }
+    }
+
+    return make_pair(true, move(prod));
+}
+
+// We have a period of N days. On the i-th day we wish to meet demand of demand[i] items.
+// We have M workers. The j-th worker can produce daily supply[j] items on each of the
+// days start[j]..end[j] inclusive. It costs the j-th worker cost[j] to produce one item.
+// Can we meet all demand? And what is the minimum cost?
+auto worker_daily_lot_demand(int N, int M, const vector<int>& demand,
+                                           const vector<int>& supply,
+                                           const vector<int>& date,
+                                           const vector<int>& until,
+                                           const vector<int>& cost) {
+    int64_t S = 1 + accumulate(begin(supply), end(supply), 0LL);
+    int64_t D = *max_element(begin(demand), end(demand));
+    if (D >= S) {
+        return make_pair(false, int64_t(0));
+    }
+
+    int K = N + 1;
+    network_simplex<int64_t, int64_t> ns(2 * K + M);
+
+    for (int j = 0; j < M; j++) {
+        ns.add(until[j] + 1, date[j], 0, supply[j], cost[j]);
+    }
+    for (int i = 0; i < N; i++) {
+        ns.add(i, i + K, demand[i], S, 0);
+        ns.add(i + K, i + 1, 0, S, 0);
+    }
+
+    if (ns.mincost_circulation()) {
+        return make_pair(true, ns.get_circulation_cost());
+    } else {
+        return make_pair(false, int64_t(0));
+    }
+}
+
+// Minimum chinese postman tour, i.e. walk visiting every edge, weighted edges
+auto min_chinese_postman(int N, const vector<array<int, 2>>& G, const vector<int>& cost) {
+    network_simplex<int, int64_t> ns(N);
+
+    int E = G.size();
+    for (int e = 0; e < E; e++) {
+        auto [u, v] = G[e];
+        assert(cost[e] > 0);
+        ns.add(u, v, 1, 1e9, cost[e]);
+    }
+
+    if (ns.mincost_circulation()) {
+        return make_pair(true, ns.get_circulation_cost());
+    } else {
+        return make_pair(false, int64_t(0));
+    }
 }
