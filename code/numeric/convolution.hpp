@@ -49,31 +49,6 @@ auto convolve(vector<T> a, vector<T> b) {
     return a;
 }
 
-template <bool inverse, typename T>
-void xor_conv_transform(vector<T>& a) {
-    conv_transform<'^', inverse>(a);
-}
-template <bool inverse, typename T>
-void and_conv_transform(vector<T>& a) {
-    conv_transform<'&', inverse>(a);
-}
-template <bool inverse, typename T>
-void or_conv_transform(vector<T>& a) {
-    conv_transform<'|', inverse>(a);
-}
-template <typename T>
-auto xor_convolution(const vector<T>& a, const vector<T>& b) {
-    return convolve<'^'>(a, b);
-}
-template <typename T>
-auto and_convolution(const vector<T>& a, const vector<T>& b) {
-    return convolve<'&'>(a, b);
-}
-template <typename T>
-auto or_convolution(const vector<T>& a, const vector<T>& b) {
-    return convolve<'|'>(a, b);
-}
-
 /**
  * Given f : [0..2^n) -> T, compute sum over subsets (aka SOS DP)
  * F[i]: SUM f[j], j∈i
@@ -171,8 +146,8 @@ void subset_convolution(int n, const T* f, const T* g, T* S) {
         ghat[__builtin_popcount(mask)][mask] = g[mask];
     }
     for (int i = 0; i <= n; i++) {
-        or_conv_transform<0>(fhat[i]);
-        or_conv_transform<0>(ghat[i]);
+        conv_transform<'|', 0>(fhat[i]);
+        conv_transform<'|', 0>(ghat[i]);
     }
 
     vector<T> h;
@@ -183,7 +158,7 @@ void subset_convolution(int n, const T* f, const T* g, T* S) {
                 h[x] += fhat[j][x] * ghat[i - j][x];
             }
         }
-        or_conv_transform<1>(h);
+        conv_transform<'|', 1>(h);
         for (int x = 0; x < N; x++) {
             if (__builtin_popcount(x) == i) {
                 S[x] = h[x];
@@ -220,7 +195,7 @@ void inverse_subset_convolution(int n, const T* S, const T* g, T* f) {
         ghat[__builtin_popcount(mask)][mask] = g[mask];
     }
     for (int i = 0; i <= n; i++) {
-        or_conv_transform<0>(ghat[i]);
+        conv_transform<'|', 0>(ghat[i]);
     }
 
     for (int i = 0; i <= n; i++) {
@@ -229,7 +204,7 @@ void inverse_subset_convolution(int n, const T* S, const T* g, T* f) {
                 fhat[i][x] += ghat[j][x] * fhat[i - j][x];
             }
         }
-        or_conv_transform<1>(fhat[i]);
+        conv_transform<'|', 1>(fhat[i]);
         for (int x = 0; x < N; x++) {
             if (__builtin_popcount(x) == i) {
                 f[x] = fhat[i][x] = (S[x] - fhat[i][x]) * inv;
@@ -237,7 +212,7 @@ void inverse_subset_convolution(int n, const T* S, const T* g, T* f) {
                 fhat[i][x] = 0;
             }
         }
-        or_conv_transform<0>(fhat[i]);
+        conv_transform<'|', 0>(fhat[i]);
     }
 }
 
@@ -282,4 +257,74 @@ auto log_conv(const vector<T>& f) {
         inverse_subset_convolution(i, f.data() + (1 << i), f.data(), E.data() + (1 << i));
     }
     return E;
+}
+
+template <bool inverse, typename T>
+void lcm_transform(vector<T> &a, const vector<int> &primes) {
+    int n = a.size() - 1;
+    for (int i = 0, P = primes.size(); i < P && primes[i] <= n; i++) {
+        if constexpr (inverse) {
+            for (int p = primes[i], k = n / p; k > 0; k--) {
+                a[k * p] -= a[k];
+            }
+        } else {
+            for (int p = primes[i], k = 1; k <= n / p; k++) {
+                // for (int p = primes[i], k = 1; k <= n / p; k++) {
+                a[k * p] += a[k];
+            }
+        }
+    }
+}
+
+template <bool inverse, typename T>
+void gcd_transform(vector<T> &a, const vector<int> &primes) {
+    int n = a.size() - 1;
+    for (int i = 0, P = primes.size(); i < P && primes[i] <= n; i++) {
+        if constexpr (inverse) {
+            for (int p = primes[i], k = 1; k <= n / p; k++) {
+                a[k] -= a[k * p];
+            }
+        } else {
+            for (int p = primes[i], k = n / p; k > 0; k--) {
+                // for (int p = primes[i], k = 1; k <= n / p; k++) {
+                a[k] += a[k * p];
+            }
+        }
+    }
+}
+
+/**
+ * Given f : [0..n] -> T and g : [0..n] -> T, compute gcd convolution
+ * S[i]: SUM f[a]g[b], gcd(a,b)=i, S[0]=f[0]g[0]
+ * Complexity: O(n log n), https://judge.yosupo.jp/problem/gcd_convolution
+ */
+template <typename T>
+auto gcd_convolution(vector<T> a, vector<T> b, const vector<int> &primes) {
+    int N = max(a.size(), b.size());
+    a.resize(N, 0), b.resize(N, 0);
+    gcd_transform<0>(a, primes);
+    gcd_transform<0>(b, primes);
+    for (int i = 0; i < N; i++) {
+        a[i] = a[i] * b[i];
+    }
+    gcd_transform<1>(a, primes);
+    return a;
+}
+
+/**
+ * Given f : [0..n] -> T and g : [0..n] -> T, compute lcm convolution
+ * S[i]: SUM f[a]g[b], lcm(a,b)=i, S[0]=f[0]g[0]
+ * Complexity: O(n log n), https://judge.yosupo.jp/problem/lcm_convolution
+ */
+template <typename T>
+auto lcm_convolution(vector<T> a, vector<T> b, const vector<int> &primes) {
+    int N = max(a.size(), b.size());
+    a.resize(N, 0), b.resize(N, 0);
+    lcm_transform<0>(a, primes);
+    lcm_transform<0>(b, primes);
+    for (int i = 0; i < N; i++) {
+        a[i] = a[i] * b[i];
+    }
+    lcm_transform<1>(a, primes);
+    return a;
 }

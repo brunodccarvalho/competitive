@@ -1,6 +1,7 @@
 #include "test_utils.hpp"
 #include "numeric/convolution.hpp"
 #include "numeric/modnum.hpp"
+#include "numeric/sieves.hpp"
 
 template <typename T>
 auto naive_sos_subsets(const vector<T>& f) {
@@ -127,13 +128,62 @@ auto naive_exp(const vector<T>& f) {
     return E;
 }
 
+template <typename T>
+auto naive_gcd_convolution(const vector<T>& a, const vector<T>& b) {
+    int N = a.size(), M = b.size();
+    vector<T> c(N);
+    c[0] = a[0] * b[0];
+    for (int i = 1; i < N; i++)
+        for (int j = 1; j < M; j++)
+            c[gcd(i, j)] += a[i] * b[j];
+    return c;
+}
+
+template <typename T>
+auto naive_lcm_convolution(const vector<T>& a, const vector<T>& b) {
+    int N = a.size(), M = b.size();
+    vector<T> c(N);
+    c[0] = a[0] * b[0];
+    for (int i = 1; i < N; i++)
+        for (int j = 1; j < M; j++)
+            if (auto l = lcm(i, j); l < N)
+                c[lcm(i, j)] += a[i] * b[j];
+    return c;
+}
+
+template <bool inverse, typename T>
+void xor_conv_transform(vector<T>& a) {
+    conv_transform<'^', inverse>(a);
+}
+template <bool inverse, typename T>
+void and_conv_transform(vector<T>& a) {
+    conv_transform<'&', inverse>(a);
+}
+template <bool inverse, typename T>
+void or_conv_transform(vector<T>& a) {
+    conv_transform<'|', inverse>(a);
+}
+template <typename T>
+auto xor_convolution(const vector<T>& a, const vector<T>& b) {
+    return convolve<'^'>(a, b);
+}
+template <typename T>
+auto and_convolution(const vector<T>& a, const vector<T>& b) {
+    return convolve<'&'>(a, b);
+}
+template <typename T>
+auto or_convolution(const vector<T>& a, const vector<T>& b) {
+    return convolve<'|'>(a, b);
+}
+
 void stress_test_convolution() {
     using num = modnum<998244353>;
+    auto primes = classic_sieve(50000);
 
     LOOP_FOR_DURATION_OR_RUNS_TRACKED (20s, now, 10000, runs) {
         print_time(now, 20s, "stress convolution ({} runs)", runs);
 
-        int n = 1 << rand_unif<int>(0, 13);
+        int n = 1 << rand_unif<int>(0, 4);
         vector<num> a = rands_unif<int, num>(n, 0, 5000);
         vector<num> b = rands_unif<int, num>(n, 0, 5000);
         b[0] = 1;
@@ -162,6 +212,9 @@ void stress_test_convolution() {
         assert(a == naive_mobius_supersets(naive_sos_supersets(a)));
         assert(a == mobius_subsets(sos_subsets(a)));
         assert(a == mobius_supersets(sos_supersets(a)));
+
+        assert(naive_gcd_convolution(a, b) == gcd_convolution(a, b, primes));
+        assert(naive_lcm_convolution(a, b) == lcm_convolution(a, b, primes));
     }
 }
 
@@ -180,8 +233,10 @@ void speed_test_convolution() {
     for (int N : inputs) {
         START_ACC5(xor, and, or, sos_subsets, sos_supersets);
         START_ACC4(subset, inverse, exp, log);
+        START_ACC2(gcd, lcm);
+        auto primes = classic_sieve(N);
 
-        LOOP_FOR_DURATION_OR_RUNS_TRACKED (runtime, now, 1000, runs) {
+        LOOP_FOR_DURATION_OR_RUNS_TRACKED (runtime, now, 200, runs) {
             print_time(now, runtime, "speed convolution N={} ({} runs)", N, runs);
 
             auto a = rands_unif<int, num>(N, 0, 500'000'000);
@@ -199,6 +254,8 @@ void speed_test_convolution() {
             ADD_TIME_BLOCK(inverse) { inverse_subset_convolution(a, b); }
             ADD_TIME_BLOCK(exp) { exp_conv(b); }
             ADD_TIME_BLOCK(log) { log_conv(b); }
+            ADD_TIME_BLOCK(gcd) { gcd_convolution(a, b, primes); }
+            ADD_TIME_BLOCK(lcm) { lcm_convolution(a, b, primes); }
         }
 
         table[{"xor", N}] = FORMAT_EACH(xor, runs);
@@ -210,6 +267,8 @@ void speed_test_convolution() {
         table[{"inverse", N}] = FORMAT_EACH(inverse, runs);
         table[{"exp", N}] = FORMAT_EACH(exp, runs);
         table[{"log", N}] = FORMAT_EACH(log, runs);
+        table[{"gcd", N}] = FORMAT_EACH(gcd, runs);
+        table[{"lcm", N}] = FORMAT_EACH(lcm, runs);
     }
 
     print_time_table(table, "Convolution");

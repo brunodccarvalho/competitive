@@ -301,6 +301,7 @@ auto unbounded_lot_demand(int N, const vector<int>& demand,
 
     priority_queue<int, vector<int>, decltype(compare)> suppliers(compare);
     vector<int> prod(N);
+    int64_t total = 0;
 
     for (int i = 0; i < N; i++) {
         int remaining = demand[i];
@@ -310,16 +311,17 @@ auto unbounded_lot_demand(int N, const vector<int>& demand,
             int take = min(supply[j] - prod[j], remaining);
             remaining -= take;
             prod[j] += take;
+            total += 1LL * take * cost[j];
             if (prod[j] == supply[j]) {
                 suppliers.pop();
             }
         }
         if (remaining > 0) {
-            return make_pair(false, move(prod));
+            return make_tuple(false, total, move(prod));
         }
     }
 
-    return make_pair(true, move(prod));
+    return make_tuple(true, total, move(prod));
 }
 
 // We have a period of N days. On the i-th day we wish to meet demand of demand[i] items.
@@ -363,7 +365,7 @@ auto min_chinese_postman(int N, const vector<array<int, 2>>& G, const vector<int
     for (int e = 0; e < E; e++) {
         auto [u, v] = G[e];
         assert(cost[e] > 0);
-        ns.add(u, v, 1, 1e9, cost[e]);
+        ns.add(u, v, 1, 2 * N, cost[e]);
     }
 
     if (ns.mincost_circulation()) {
