@@ -48,39 +48,37 @@ struct mcmflow {
         prev.assign(V, -1);
         dist[s] = 0;
 
-        vector<int> deg(V), bfs(V);
-        bfs[0] = s;
+        vector<int> deg(V), topo(V);
+        int B = 0;
 
-        for (int i = 0, S = 1; i < S; i++) {
-            int u = bfs[i];
-            for (int e : res[u]) {
-                if (e % 2 == 0) { // forward edge
-                    int v = edge[e].node[1];
-                    if (deg[v] == 0) {
-                        bfs[S++] = v;
-                    }
-                    deg[v]++;
-                }
+        for (int e = 0; e < E; e += 2) {
+            int v = edge[e].node[1];
+            deg[v]++;
+        }
+        for (int u = 0; u < V; u++) {
+            if (deg[u] == 0) {
+                topo[B++] = u;
             }
         }
-        for (int i = 0, S = 1; i < S && bfs[i] != t; i++) {
-            int u = bfs[i];
+        for (int i = 0; i < B; i++) {
+            int u = topo[i];
             for (int e : res[u]) {
                 if (e % 2 == 0) { // forward edge
                     int v = edge[e].node[1];
-                    CostSum w = edge[e].cost;
-                    if (edge[e].flow < edge[e].cap && dist[v] > dist[u] + w) {
-                        dist[v] = dist[u] + w;
+                    CostSum w = dist[u] + edge[e].cost;
+                    if (edge[e].flow < edge[e].cap && dist[v] > w) {
+                        dist[v] = w;
                         prev[v] = e;
                     }
                     if (--deg[v] == 0) {
-                        bfs[S++] = v;
+                        topo[B++] = v;
                     }
                 }
             }
         }
+        assert(B == V);
 
-        reprice(t);
+        reprice();
         return prev[t] != -1;
     }
 
@@ -100,9 +98,9 @@ struct mcmflow {
 
             for (auto e : res[u]) {
                 int v = edge[e].node[1];
-                CostSum w = edge[e].cost;
-                if (edge[e].flow < edge[e].cap && dist[v] > dist[u] + w) {
-                    dist[v] = dist[u] + w;
+                CostSum w = dist[u] + edge[e].cost;
+                if (edge[e].flow < edge[e].cap && dist[v] > w) {
+                    dist[v] = w;
                     prev[v] = e;
                     if (!in_queue[v]) {
                         if (Q.empty() || dist[v] <= dist[Q.front()]) {
@@ -116,7 +114,7 @@ struct mcmflow {
             }
         } while (!Q.empty());
 
-        reprice(t);
+        reprice();
         return prev[t] != -1;
     }
 
@@ -142,13 +140,13 @@ struct mcmflow {
         } while (!heap.empty() && heap.top() != t);
 
         heap.clear();
-        reprice(t);
+        reprice();
         return prev[t] != -1;
     }
 
-    void reprice(int t) {
+    void reprice() {
         for (int u = 0; u < V; u++) {
-            pi[u] += min(dist[u], dist[t]);
+            pi[u] = min(dist[u] + pi[u], costsuminf);
         }
     }
 

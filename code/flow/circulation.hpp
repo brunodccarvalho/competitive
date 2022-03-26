@@ -22,6 +22,7 @@ struct circulation {
     void add_supply(int u, FlowSum supply) { this->supply[u] += supply; }
     void add_demand(int u, FlowSum demand) { this->supply[u] -= demand; }
     void set_supply(int u, FlowSum supply) { this->supply[u] = supply; }
+    auto get_flow(int e) const { return mf.get_flow(e) + edges[e].lower; }
 
     // Run for feasibility: return true if a feasible circulation exists
     auto feasible_circulation() {
@@ -52,9 +53,10 @@ struct circulation {
     };
     vector<Edge> edges;
     vector<FlowSum> supply;
+    MaxflowSolver mf;
 
-    auto run() const {
-        MaxflowSolver mf(V + 2);
+    auto run() {
+        mf = MaxflowSolver(V + 2);
         int s = V, t = V + 1;
 
         vector<FlowSum> excess = supply;

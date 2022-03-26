@@ -119,8 +119,8 @@ function main {
 			fi
 		;;
 		fbvalid)
-			echo "COPY:" $DOWNLOADS/*validation_input.txt
-			mv $DOWNLOADS/*validation_input.txt .
+			echo "COPY:" $DOWNLOADS/*input.txt
+			mv $DOWNLOADS/*input.txt .
 		;;
 		fbfinal)
 			echo "COPY:" $DOWNLOADS/*input.zip

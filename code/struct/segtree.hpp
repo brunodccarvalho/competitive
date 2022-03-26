@@ -45,8 +45,8 @@ struct segtree {
             }
         }
         apply(u, 1, update...);
-        for (int B = dfs.size(), i = B - 1; i >= 0; i--) {
-            pushup(dfs[i]);
+        for (int B = dfs.size(), j = B - 1; j >= 0; j--) {
+            pushup(dfs[j]);
         }
         dfs.clear();
     }
@@ -224,7 +224,7 @@ struct segtree {
         if constexpr (Node::RANGES) {
             node[u].apply(update..., s);
         } else {
-            node[u].apply(update...);
+            node[u].apply(update...), (void)s;
         }
     }
 
@@ -236,7 +236,7 @@ struct segtree {
         } else if constexpr (Node::RANGES) {
             node[u].pushdown(node[u << 1], node[u << 1 | 1], s / 2, (s + 1) / 2);
         } else {
-            node[u].pushdown(node[u << 1], node[u << 1 | 1]);
+            node[u].pushdown(node[u << 1], node[u << 1 | 1]), (void)s;
         }
     }
 

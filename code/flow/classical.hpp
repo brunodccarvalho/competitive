@@ -3,9 +3,108 @@
 #include "flow/dinitz_flow.hpp"
 #include "flow/edmonds_karp.hpp"
 #include "flow/network_simplex.hpp"
-#include "matching/bipartite_matching.hpp"
 #include "matching/hopcroft_karp.hpp"
 #include "algo/y_combinator.hpp"
+
+// --- Bipartite matching
+
+// Determine maximum number of edge disjoint paths between s and t (sample)
+auto max_edge_disjoint_paths(const vector<vector<int>>& out, int s, int t) {
+    using Solver = edmonds_karp<int>;
+
+    int N = out.size();
+    Solver mf(N);
+
+    for (int u = 0; u < N; u++) {
+        for (int v : out[u]) {
+            mf.add(u, v, 1);
+        }
+    }
+
+    return mf.maxflow(s, t);
+}
+
+// Determine maximum number of vertex disjoint paths between s and t (sample)
+auto max_vertex_disjoint_paths(int N, const vector<array<int, 2>>& G, int s, int t) {
+    using Solver = edmonds_karp<int>;
+
+    Solver mf(2 * N);
+
+    for (int u = 0; u < N; u++) {
+        mf.add(2 * u, 2 * u + 1, 1);
+    }
+    for (auto [u, v] : G) {
+        mf.add(2 * u + 1, 2 * v, 1);
+    }
+
+    s = 2 * s + 1, t = 2 * t;
+    return mf.maxflow(s, t);
+}
+
+// Decompose a directed acyclic graph into a minimum number of chains
+auto min_dag_chain_decomposition(int N, const vector<array<int, 2>>& G) {
+    hopcroft_karp bm(N, N);
+
+    for (auto [u, v] : G) {
+        bm.add(u, v);
+    }
+
+    int m = bm.max_matching();
+    int C = N - m;
+    vector<vector<int>> chains(C);
+
+    for (int c = 0, u = 0; u < N; u++) {
+        if (bm.mv[u] == -1) {
+            int v = u;
+            do {
+                chains[c].push_back(v), v = bm.mu[v];
+            } while (v != -1);
+            c++;
+        }
+    }
+
+    return make_tuple(C, move(chains), move(bm.mu), move(bm.mv));
+}
+
+// Construct bipartite maximum matching and compute minimum vertex cover from it
+auto min_bipartite_vertex_cover(int N, int M, const vector<array<int, 2>>& G) {
+    hopcroft_karp bm(N, M);
+
+    for (auto [u, v] : G) {
+        bm.add(u, v);
+    }
+
+    int m = bm.max_matching();
+    vector<int> A, B;
+    vector<int8_t> L(N), R(M);
+
+    auto dfs = y_combinator([&](auto self, int u) -> void {
+        L[u] = 1;
+        for (int v : bm.adj[u]) {
+            if (v != bm.mu[u] && !R[v]) {
+                R[v] = 1, B.push_back(v);
+                if (bm.mv[v] != -1) {
+                    self(bm.mv[v]);
+                }
+            }
+        }
+    });
+
+    for (int u = 0; u < N; u++) {
+        if (L[u] == 0 && bm.mu[u] == -1) {
+            dfs(u);
+        }
+    }
+    for (int u = 0; u < N; u++) {
+        if (L[u] == 0) {
+            A.push_back(u);
+        }
+    }
+
+    return make_tuple(m, move(A), move(B), move(bm.mu), move(bm.mv));
+}
+
+// --- Maxflow
 
 // We have N projects. The i-th project yields projects[i] revenue if completed.
 // We have M machines. The j-th machine costs machines[j] to build.
@@ -105,11 +204,11 @@ auto max_segmentation(const vector<int64_t>& A, //
 }
 
 // We have N teams in a competition. Team i already has w(i) wins.
-// Given several tuples (u,v,c), there will be c games between teams u and v.
-// Exactly one team wins each game, and all games will be played. A team is said to be
-// eliminated if it cannot win the competition by finishing first, possibly tied.
-// Determine if team k is eliminated. If so, return an elimination set; if not, return
-// an assignment of wins to teams u, that lets team k win the competition.
+// Given (u,v,c), there will be c games between teams u and v.
+// Exactly one team wins each game, and all games will be played.
+// A team is eliminated if it can't win the competition by finishing first.
+// Determine if team k is eliminated. If so, return an elimination set;
+//     if not, return an assignment of wins to teams u, that lets team k win.
 // Allow ties for first with strict=false
 auto single_elimination(const vector<int>& wins,
                         const vector<tuple<int, int, int>>& games, int k, bool strict) {
@@ -192,109 +291,211 @@ auto max_weight_closure(const vector<array<int, 2>>& G, const vector<int64_t>& w
     return positive - maxflow;
 }
 
-// Determine maximum number of edge disjoint paths between s and t (sample)
-auto max_edge_disjoint_paths(const vector<vector<int>>& out, int s, int t) {
-    using Solver = edmonds_karp<int>;
+// We have N people, C clubs and P parties. The i-th person belongs to party[i].
+// Each person belongs to at least 1 club, there are (club,person) pairs.
+// Each club must nominate a member to represent it, and at most portion[p] for party p.
+// What is the largest balanced set of representatives possible?
+auto balanced_representatives(int N, int C, int P, const vector<int>& party,
+                              const vector<int>& portion,
+                              const vector<array<int, 2>>& members) {
+    int s = N + C + P, t = s + 1;
+    dinitz_flow<int> mf(N + C + P + 2);
 
-    int N = out.size();
-    Solver mf(N);
-
-    for (int u = 0; u < N; u++) {
-        for (int v : out[u]) {
-            mf.add(u, v, 1);
-        }
+    for (auto [c, u] : members) {
+        mf.add(c, u + C, 1);
     }
-
-    return mf.maxflow(s, t);
-}
-
-// Determine maximum number of vertex disjoint paths between s and t (sample)
-auto max_vertex_disjoint_paths(int N, const vector<array<int, 2>>& G, int s, int t) {
-    using Solver = edmonds_karp<int>;
-
-    Solver mf(2 * N);
-
-    for (int u = 0; u < N; u++) {
-        mf.add(2 * u, 2 * u + 1, 1);
-    }
-    for (auto [u, v] : G) {
-        mf.add(2 * u + 1, 2 * v, 1);
-    }
-
-    s = 2 * s + 1, t = 2 * t;
-    return mf.maxflow(s, t);
-}
-
-// Decompose a directed acyclic graph into a minimum number of chains
-auto min_dag_chain_decomposition(int N, const vector<array<int, 2>>& G) {
-    hopcroft_karp bm(N, N);
-
-    for (auto [u, v] : G) {
-        bm.add(u, v);
-    }
-
-    int m = bm.max_matching();
-    int C = N - m;
-    vector<vector<int>> chains(C);
-
-    for (int c = 0, u = 0; u < N; u++) {
-        if (bm.mv[u] == -1) {
-            int v = u;
-            do {
-                chains[c].push_back(v), v = bm.mu[v];
-            } while (v != -1);
-            c++;
-        }
-    }
-
-    return make_tuple(C, move(chains), move(bm.mu), move(bm.mv));
-}
-
-// Construct bipartite maximum matching and compute minimum vertex cover from it
-auto min_bipartite_vertex_cover(int N, int M, const vector<array<int, 2>>& G) {
-    hopcroft_karp bm(N, M);
-
-    for (auto [u, v] : G) {
-        bm.add(u, v);
-    }
-
-    int m = bm.max_matching();
-    vector<int> A, B;
-    vector<int8_t> L(N), R(M);
-
-    auto dfs = y_combinator([&](auto self, int u) -> void {
-        L[u] = 1;
-        for (int v : bm.adj[u]) {
-            if (v != bm.mu[u] && !R[v]) {
-                R[v] = 1, B.push_back(v);
-                if (bm.mv[v] != -1) {
-                    self(bm.mv[v]);
-                }
-            }
-        }
-    });
-
-    for (int u = 0; u < N; u++) {
-        if (L[u] == 0 && bm.mu[u] == -1) {
-            dfs(u);
-        }
+    for (int c = 0; c < C; c++) {
+        mf.add(s, c, 1);
     }
     for (int u = 0; u < N; u++) {
-        if (L[u] == 0) {
-            A.push_back(u);
+        mf.add(u + C, party[u] + C + N, 1);
+    }
+    for (int p = 0; p < P; p++) {
+        mf.add(p + C + N, t, portion[p]);
+    }
+
+    auto maxflow = mf.maxflow(s, t);
+
+    vector<int> rep(C, -1);
+    for (int e = 0, E = members.size(); e < E; e++) {
+        if (mf.get_flow(e)) {
+            auto [c, u] = members[e];
+            rep[c] = u;
         }
     }
 
-    return make_tuple(m, move(A), move(B), move(bm.mu), move(bm.mv));
+    return make_pair(maxflow, move(rep));
 }
+
+// We have a matrix A with real entries. Construct a matrix R such that R[i][j] is either
+// the lower or upper rounding of A[i][j], and such that the row sums and column sums of
+// R are also the lower or upper rounding of the row sums and column sums of A.
+auto matrix_rounding(const vector<vector<double>>& A) {
+    int N = A.size(), M = A[0].size(), s = N * M, t = s + 1;
+    circulation<int64_t> circ(N + M + 2);
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < M; j++) {
+            int64_t low = floor(A[i][j]);
+            circ.add(i, j + N, low, low + 1);
+        }
+    }
+    for (int i = 0; i < N; i++) {
+        double sum = 0;
+        for (int j = 0; j < M; j++) {
+            sum += A[i][j];
+        }
+        int64_t low = floor(sum);
+        circ.add(s, i, low, low + 1);
+    }
+    for (int j = 0; j < M; j++) {
+        double sum = 0;
+        for (int i = 0; i < N; i++) {
+            sum += A[i][j];
+        }
+        int64_t low = floor(sum);
+        circ.add(j + N, t, low, low + 1);
+    }
+
+    constexpr int64_t inf = INT64_MAX / 4;
+    circ.add(t, s, -inf, inf);
+
+    bool ok = circ.feasible_circulation();
+    assert(ok);
+
+    vector<vector<int64_t>> R(N, vector<int64_t>(M));
+    for (int i = 0, e = 0; i < N; i++) {
+        for (int j = 0; j < M; j++, e++) {
+            R[i][j] = circ.get_flow(e);
+        }
+    }
+    return R;
+}
+
+// --- Mincost flow
+
+// There is a deck collection holding cards with labels 0 through N-1.
+// We currently have start[i] cards with label i, and we want to get goal[i] such cards.
+// Given (u,v,c,s), we can swap a card u for a card v at cost c and at most s times.
+// What is the minimum cost to reach our goal, if it is possible?
+auto min_cards_swap(int N, const vector<int>& start, const vector<int>& goal,
+                    const vector<tuple<int, int, int, int>>& swaps) {
+    network_simplex<int64_t, int64_t> ns(N);
+
+    for (int u = 0; u < N; u++) {
+        ns.set_supply(u, start[u] - goal[u]);
+    }
+    for (auto [u, v, c, s] : swaps) {
+        if (u != v) {
+            ns.add(u, v, 0, s, c);
+        }
+    }
+
+    if (ns.mincost_circulation()) {
+        return make_pair(true, ns.get_circulation_cost());
+    } else {
+        return make_pair(false, int64_t(0));
+    }
+}
+
+// Minimum chinese postman tour, i.e. walk visiting every edge, weighted edges
+auto min_chinese_postman(int N, const vector<array<int, 2>>& G, const vector<int>& cost) {
+    network_simplex<int, int64_t> ns(N);
+
+    int E = G.size();
+    for (int e = 0; e < E; e++) {
+        auto [u, v] = G[e];
+        assert(cost[e] > 0);
+        ns.add(u, v, 1, 2 * N, cost[e]);
+    }
+
+    if (ns.mincost_circulation()) {
+        return make_pair(true, ns.get_circulation_cost());
+    } else {
+        return make_pair(false, int64_t(0));
+    }
+}
+
+// Shortest chinese postman tour, i.e. shortest walk visiting every edge at least once
+auto shortest_chinese_postman(int N, const vector<array<int, 2>>& G) {
+    network_simplex<int, int64_t> ns(N);
+
+    int E = G.size();
+    for (int e = 0; e < E; e++) {
+        auto [u, v] = G[e];
+        ns.add(u, v, 1, 2 * N, 1);
+    }
+
+    if (ns.mincost_circulation()) {
+        return make_pair(true, ns.get_circulation_cost());
+    } else {
+        return make_pair(false, int64_t(0));
+    }
+}
+
+// A train moves from station 0 to station N, and has a capacity of P users.
+// For (i,j,c,p), the company sells tickets from station i to station j at a cost of c.
+//     per ticket, and there are p people who are interested in this ticket.
+// What is the maximum profit possible?
+auto max_train_allocation(int N, int P,
+                          const vector<tuple<int, int, int, int>>& tickets) {
+    int T = tickets.size();
+    network_simplex<int, int64_t> ns(N + 1);
+
+    for (auto [i, j, c, p] : tickets) {
+        ns.add(j, i, 0, p, -c);
+    }
+    for (int i = 0; i < N; i++) {
+        ns.add(i, i + 1, 0, P, 0);
+    }
+
+    auto flow = ns.mincost_flow();
+    auto cost = ns.mincost_circulation();
+
+    vector<int> sold(T);
+    for (int e = 0; e < T; e++) {
+        sold[e] = ns.get_flow(e);
+    }
+    return make_tuple(cost, flow, move(sold));
+}
+
+// We have a period of N days. On the i-th day we wish to meet demand of demand[i] items.
+// Given (i,j,c,s), we can hire up to s workers, each to produce one item per day from
+//     day i to day j inclusive, each worker at a hire cost of c.
+// Can we meet all demand? And what is the minimum cost?
+auto employment_scheduling(int N, int M, const vector<int>& demand,
+                           const vector<tuple<int, int, int, int>>& workers) {
+    int64_t D = *max_element(begin(demand), end(demand));
+    int K = N + 1, W = workers.size();
+    network_simplex<int64_t, int64_t> ns(2 * K + M);
+
+    for (auto [i, j, c, s] : workers) {
+        ns.add(j + 1, i, 0, s, c);
+    }
+    for (int i = 0; i < N; i++) {
+        ns.add(i, i + K, demand[i], D, 0);
+        ns.add(i + K, i + 1, 0, D, 0);
+    } // pretty much the same as train allocation
+
+    if (ns.mincost_circulation()) {
+        vector<int> hires(W);
+        for (int e = 0; e < W; e++) {
+            hires[e] = ns.get_flow(e);
+        }
+        return make_tuple(true, ns.get_circulation_cost(), move(hires));
+    } else {
+        return make_tuple(false, int64_t(0), vector<int>(W));
+    }
+}
+
+// --- Greedies
 
 // We have a period of N days. On the i-th day we wish to meet demand of demand[i] items.
 // On the i-th day we can produce up to supply[i] items, each for cost[i] dollars.
 // The items stick around for later days, i.e. they can be produced and consumed later.
 // Can we meet all demand? And what is the minimum cost? O(N log N)
-auto unbounded_lot_demand(int N, const vector<int>& demand,
-                                 const vector<int>& supply,
-                                 const vector<int>& cost) {
+auto unbounded_lot_demand(int N, const vector<int>& demand, const vector<int>& supply,
+                          const vector<int>& cost) {
     auto compare = [&](int i, int j) {
         return make_pair(cost[i], i) > make_pair(cost[j], j);
     };
@@ -324,53 +525,49 @@ auto unbounded_lot_demand(int N, const vector<int>& demand,
     return make_tuple(true, total, move(prod));
 }
 
-// We have a period of N days. On the i-th day we wish to meet demand of demand[i] items.
-// We have M workers. The j-th worker can produce daily supply[j] items on each of the
-// days start[j]..end[j] inclusive. It costs the j-th worker cost[j] to produce one item.
-// Can we meet all demand? And what is the minimum cost?
-auto worker_daily_lot_demand(int N, int M, const vector<int>& demand,
-                                           const vector<int>& supply,
-                                           const vector<int>& date,
-                                           const vector<int>& until,
-                                           const vector<int>& cost) {
-    int64_t S = 1 + accumulate(begin(supply), end(supply), 0LL);
-    int64_t D = *max_element(begin(demand), end(demand));
-    if (D >= S) {
-        return make_pair(false, int64_t(0));
-    }
+// We have N jobs to be scheduled. The i-th job has time[i] batches of work.
+// The i-th job may be started on day start[i], inclusive.
+// The i-th job must be completed by done[i], exclusive.
+// The time[i] batches of job i must be completed in succession on different days.
+// They may be performed by different machines on non-consecutive days.
+// Is there a feasible scheduling? O(N^2), can be optimized with segtree
+auto interruptable_parallel_scheduling(int N, int M, const vector<int64_t>& time,
+                                       const vector<int>& start,
+                                       const vector<int>& done) {
+    vector<int> order(N);
+    iota(begin(order), end(order), 0);
+    sort(begin(order), end(order), [&](int i, int j) {
+        return make_tuple(done[i], start[i], i) < make_tuple(done[j], start[j], j);
+    });
 
-    int K = N + 1;
-    network_simplex<int64_t, int64_t> ns(2 * K + M);
-
-    for (int j = 0; j < M; j++) {
-        ns.add(until[j] + 1, date[j], 0, supply[j], cost[j]);
-    }
+    vector<int> pts;
     for (int i = 0; i < N; i++) {
-        ns.add(i, i + K, demand[i], S, 0);
-        ns.add(i + K, i + 1, 0, S, 0);
+        assert(0 <= start[i] && 0 <= time[i] && start[i] + time[i] <= done[i]);
+        pts.push_back(start[i]);
+        pts.push_back(done[i]);
+    }
+    sort(begin(pts), end(pts));
+    pts.erase(unique(begin(pts), end(pts)), end(pts));
+    int P = pts.size() - 1;
+
+    vector<int64_t> spare(P);
+    for (int t = 0; t < P; t++) {
+        spare[t] = M * (pts[t + 1] - pts[t]);
     }
 
-    if (ns.mincost_circulation()) {
-        return make_pair(true, ns.get_circulation_cost());
-    } else {
-        return make_pair(false, int64_t(0));
-    }
-}
-
-// Minimum chinese postman tour, i.e. walk visiting every edge, weighted edges
-auto min_chinese_postman(int N, const vector<array<int, 2>>& G, const vector<int>& cost) {
-    network_simplex<int, int64_t> ns(N);
-
-    int E = G.size();
-    for (int e = 0; e < E; e++) {
-        auto [u, v] = G[e];
-        assert(cost[e] > 0);
-        ns.add(u, v, 1, 2 * N, cost[e]);
+    for (int i : order) {
+        int a = lower_bound(begin(pts), end(pts), start[i]) - begin(pts);
+        int b = lower_bound(begin(pts), end(pts), done[i]) - begin(pts);
+        auto need = time[i];
+        for (int t = a; t < b && need > 0; t++) {
+            int64_t take = min<int64_t>({need, spare[t], pts[t + 1] - pts[t]});
+            need -= take;
+            spare[t] -= take;
+        }
+        if (need > 0) {
+            return false;
+        }
     }
 
-    if (ns.mincost_circulation()) {
-        return make_pair(true, ns.get_circulation_cost());
-    } else {
-        return make_pair(false, int64_t(0));
-    }
+    return true;
 }
