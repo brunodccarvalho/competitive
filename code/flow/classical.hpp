@@ -9,16 +9,13 @@
 // --- Bipartite matching
 
 // Determine maximum number of edge disjoint paths between s and t (sample)
-auto max_edge_disjoint_paths(const vector<vector<int>>& out, int s, int t) {
+auto max_edge_disjoint_paths(int N, const vector<array<int, 2>>& G, int s, int t) {
     using Solver = edmonds_karp<int>;
 
-    int N = out.size();
     Solver mf(N);
 
-    for (int u = 0; u < N; u++) {
-        for (int v : out[u]) {
-            mf.add(u, v, 1);
-        }
+    for (auto [u, v] : G) {
+        mf.add(u, v, 1);
     }
 
     return mf.maxflow(s, t);
@@ -105,60 +102,6 @@ auto min_bipartite_vertex_cover(int N, int M, const vector<array<int, 2>>& G) {
 }
 
 // --- Maxflow
-
-// We have N projects. The i-th project yields projects[i] revenue if completed.
-// We have M machines. The j-th machine costs machines[j] to build.
-// The i-th project requires all machines in input[i] to be built so it can be completed.
-// Find maximum revenue possible, the choice of projects and machines.
-auto max_project_selection(const vector<int64_t>& projects,
-                           const vector<int64_t>& machines,
-                           const vector<vector<int>>& input) {
-    using Solver = dinitz_flow<int64_t>;
-
-    int N = projects.size(), M = machines.size();
-    int s = N + M, t = s + 1;
-    Solver mf(N + M + 2);
-
-    for (int i = 0; i < N; i++) {
-        mf.add(s, i, projects[i]);
-    }
-    for (int j = 0; j < M; j++) {
-        mf.add(j + N, t, machines[j]);
-    }
-    for (int i = 0; i < N; i++) {
-        for (int j : input[i]) {
-            mf.add(i, j + N, Solver::flowinf);
-        }
-    }
-
-    auto maxflow = mf.maxflow(s, t);
-    int64_t revenue = 0;
-    vector<int> took_machine(M);
-    vector<int> choice_projects, choice_machines;
-
-    for (int i = 0; i < N; i++) {
-        bool satisfied = true;
-        for (int j : input[i]) {
-            satisfied &= mf.get_flow(j + N) == machines[j];
-        }
-        if (satisfied) {
-            revenue += projects[i];
-            for (int j : input[i]) {
-                took_machine[j] = true;
-            }
-            choice_projects.push_back(i);
-        }
-    }
-    for (int j = 0; j < M; j++) {
-        if (took_machine[j]) {
-            revenue -= machines[j];
-            choice_machines.push_back(j);
-        }
-    }
-
-    assert(revenue + maxflow == accumulate(begin(projects), end(projects), int64_t(0)));
-    return make_tuple(revenue, move(choice_projects), move(choice_machines));
-}
 
 // We have N nodes, and we want to assign each to either side A or side B.
 // Assigning node i to A yields A[i] profit, and assigning it to B yields B[i] profit.
@@ -485,6 +428,59 @@ auto employment_scheduling(int N, int M, const vector<int>& demand,
         return make_tuple(true, ns.get_circulation_cost(), move(hires));
     } else {
         return make_tuple(false, int64_t(0), vector<int>(W));
+    }
+}
+
+// Solve a min linear program with consecutive 1s in columns by converting it to a min
+// cost flow problem. Variables are integers with individual lower and upper bounds.
+// Constraints are individually either >= or <=.
+auto lp_consecutive_ones_columns(const vector<vector<int>>& A, const vector<int>& B,
+                                 const vector<int>& C, const vector<int>& lower,
+                                 const vector<int>& upper, const vector<bool>& geq) {
+    int N = C.size(), M = B.size();
+    assert(B.size() == A.size() && C.size() == A[0].size());
+
+    vector<int> first(N + M, -1), last(N + M, -1);
+    for (int j = 0; j < N; j++) {
+        for (int i = 0; i < M; i++) {
+            if (last[j] != -1 && A[i][j] != 0)
+                throw runtime_error("Invalid system");
+            if (A[i][j] == 0 && last[j] == -1 && first[j] != -1)
+                last[j] = i + 1;
+            if (A[i][j] == 1 && first[j] == -1)
+                first[j] = i;
+        }
+    }
+    for (int i = 0; i < M; i++) {
+        if (geq[i]) {
+            first[i + N] = i + 1, last[i + N] = i;
+        } else {
+            first[i + N] = i, last[i + N] = i + 1;
+        }
+    }
+
+    constexpr int inf = 1e9;
+    network_simplex<int64_t, int64_t> ns(M + N + 1);
+
+    for (int i = 0; i <= M; i++) {
+        ns.add_supply(i, i < M ? B[i] : 0);
+        ns.add_demand(i, i > 0 ? B[i - 1] : 0);
+    }
+    for (int i = 0; i < N; i++) {
+        ns.add(first[i], last[i], lower[i], upper[i], C[i]);
+    }
+    for (int i = N; i < N + M; i++) {
+        ns.add(first[i], last[i], 0, inf, 0);
+    }
+
+    if (ns.mincost_circulation()) {
+        vector<int> x(N);
+        for (int i = 0; i < N; i++) {
+            x[i] = ns.get_flow(i);
+        }
+        return make_tuple(true, ns.get_circulation_cost(), move(x));
+    } else {
+        return make_tuple(false, int64_t(0), vector<int>{});
     }
 }
 

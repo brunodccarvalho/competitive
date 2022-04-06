@@ -26,24 +26,20 @@ struct circulation {
 
     // Run for feasibility: return true if a feasible circulation exists
     auto feasible_circulation() {
-        FlowSum total_supply = 0, total_demand = 0;
+        FlowSum sum_supply = 0;
         for (int u = 0; u < V; u++) {
-            total_supply += max<FlowSum>(supply[u], 0);
-            total_demand += max<FlowSum>(-supply[u], 0);
+            sum_supply += supply[u];
         }
-        if (total_supply != total_demand) {
+        if (sum_supply != 0) {
             return false;
         }
 
-        auto [maxflow, sum] = run();
-        return maxflow == total_supply;
+        auto [maxflow, sum, pos, neg] = run();
+        return maxflow == pos && maxflow == neg;
     }
 
     // Run for maximum circulation value: return maxflow including lower bounds
-    auto max_circulation() {
-        auto [maxflow, sum] = run();
-        return maxflow + sum;
-    }
+    auto max_circulation() { return run(); }
 
   private:
     int V, E = 0;
@@ -60,7 +56,7 @@ struct circulation {
         int s = V, t = V + 1;
 
         vector<FlowSum> excess = supply;
-        FlowSum lower_sum = 0;
+        FlowSum lower_sum = 0, pos = 0, neg = 0;
 
         for (auto [u, v, lower, upper] : edges) {
             excess[u] -= lower;
@@ -71,12 +67,14 @@ struct circulation {
         for (int u = 0; u < V; u++) {
             if (excess[u] > 0) {
                 mf.add(s, u, excess[u]);
+                pos += excess[u];
             } else if (excess[u] < 0) {
                 mf.add(u, t, -excess[u]);
+                neg -= excess[u];
             }
         }
 
         auto max_flow = mf.maxflow(s, t);
-        return make_pair(max_flow, lower_sum);
+        return make_tuple(max_flow, lower_sum, pos, neg);
     }
 };

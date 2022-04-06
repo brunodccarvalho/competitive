@@ -15,7 +15,7 @@ struct dinitz_flow {
     vector<vector<int>> res;
     vector<Edge> edge;
 
-    explicit dinitz_flow(int V) : V(V), res(V) {}
+    explicit dinitz_flow(int V = 0) : V(V), res(V) {}
 
     int add(int u, int v, Flow capacity) {
         assert(0 <= u && u < V && 0 <= v && v < V && capacity >= 0);
