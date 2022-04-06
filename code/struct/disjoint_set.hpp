@@ -94,3 +94,52 @@ struct disjoint_set_rollback {
         return false;
     }
 };
+
+struct sparse_disjoint_set {
+    int N, S;
+    unordered_map<int, int> entry;
+
+    explicit sparse_disjoint_set(int N = 0) : N(N), S(N) {}
+
+    int count(int i) {
+        auto pos = entry.find(i);
+        return pos == entry.end() ? 1 : -pos->second;
+    }
+    void assign(int n) { *this = sparse_disjoint_set(n); }
+    void reset() { *this = sparse_disjoint_set(N); }
+    bool same(int i, int j) { return find(i) == find(j); }
+    bool unit(int i) { return count(i) == 1; }
+    bool root(int i) { return find(i) == i; }
+    void reroot(int i) {
+        int j = find(i);
+        if (j != i) {
+            entry[i] = entry[j];
+            entry[j] = i;
+        }
+    }
+    int find(int i) {
+        auto pos = entry.find(i);
+        while (pos != entry.end() && pos->second >= 0) {
+            auto nxt = entry.find(pos->second);
+            pos->second = nxt->second >= 0 ? nxt->second : pos->second;
+            i = nxt->first, pos = nxt;
+        }
+        return i;
+    }
+    bool join(int i, int j) {
+        i = find(i);
+        j = find(j);
+        if (i != j) {
+            auto pi = entry.emplace(i, -1).first;
+            auto pj = entry.emplace(j, -1).first;
+            if (-pi->second < -pj->second) {
+                swap(i, j), swap(pi, pj);
+            }
+            pi->second += pj->second;
+            pj->second = i;
+            S--;
+            return true;
+        }
+        return false;
+    }
+};
