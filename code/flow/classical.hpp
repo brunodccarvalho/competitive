@@ -234,6 +234,46 @@ auto max_weight_closure(const vector<array<int, 2>>& G, const vector<int64_t>& w
     return positive - maxflow;
 }
 
+// Determine maximum weight longest antichain
+auto max_weight_antichain(const vector<array<int, 2>>& G, const vector<int64_t>& weight) {
+    using Solver = dinitz_flow<int64_t>;
+
+    int N = weight.size();
+    int64_t B = *max_element(begin(weight), end(weight));
+    int64_t big = B * N + 1;
+
+    int s = 2 * N, t = 2 * N + 1;
+    Solver mf(2 * N + 2);
+    vector<int> in(N), out(N);
+
+    for (int u = 0; u < N; u++) {
+        assert(weight[u] >= 0);
+        mf.add(2 * u, 2 * u + 1, big - weight[u]);
+    }
+    for (auto [u, v] : G) {
+        mf.add(2 * u + 1, 2 * v, Solver::flowinf);
+        out[u]++, in[v]++;
+    }
+    for (int u = 0; u < N; u++) {
+        if (in[u] == 0) {
+            mf.add(s, 2 * u, Solver::flowinf);
+        }
+        if (out[u] == 0) {
+            mf.add(2 * u + 1, t, Solver::flowinf);
+        }
+    }
+
+    auto maxflow = mf.maxflow(s, t);
+    vector<int> antichain;
+    for (int u = 0; u < N; u++) {
+        if (mf.left_of_mincut(2 * u) && !mf.left_of_mincut(2 * u + 1)) {
+            antichain.push_back(u);
+        }
+    }
+    int L = antichain.size();
+    return make_tuple(L, L * big - maxflow, move(antichain));
+}
+
 // We have N people, C clubs and P parties. The i-th person belongs to party[i].
 // Each person belongs to at least 1 club, there are (club,person) pairs.
 // Each club must nominate a member to represent it, and at most portion[p] for party p.
