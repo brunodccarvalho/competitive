@@ -178,6 +178,20 @@ long phi(long n) {
     return tot;
 }
 
+auto get_primes(int n) {
+    map<int, int> primes;
+    for (int p = 2; p * p <= n; p++) {
+        while (n % p == 0) {
+            n /= p;
+            primes[p]++;
+        }
+    }
+    if (n > 1) {
+        primes[n]++;
+    }
+    return primes;
+}
+
 template <typename T>
 auto get_divisors(const map<T, int>& factors, bool one, bool self) {
     vector<T> divs = {1};

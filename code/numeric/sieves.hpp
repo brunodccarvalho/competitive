@@ -145,7 +145,7 @@ auto logfac_sieve(int N) {
 }
 
 // Count primes in the range [L,R], both inclusive. Requires sieving first, such that
-// primes[] contains all primes at least up to sqrt(R). O(R^1/2 + K log log K) where K=R-L
+// primes[] contains all primes at least up to sqrt(R). O(√R + K log log K) where K=R-L
 int count_primes(int64_t L, int64_t R, const vector<int>& primes) {
     assert(1 <= L && L <= R);
     vector<bool> isprime(R - L + 1, true);
@@ -163,7 +163,7 @@ int count_primes(int64_t L, int64_t R, const vector<int>& primes) {
 }
 
 // Get primes in the range [L,R], both inclusive. Requires sieving first, such that
-// primes[] contains all primes at least up to sqrt(R). O(R^1/2 + K log log K) where K=R-L
+// primes[] contains all primes at least up to sqrt(R). O(√R + K log log K) where K=R-L
 auto get_primes(int64_t L, int64_t R, const vector<int>& primes) {
     assert(1 <= L && L <= R);
     vector<bool> isprime(R - L + 1, true);
@@ -176,9 +176,37 @@ auto get_primes(int64_t L, int64_t R, const vector<int>& primes) {
             isprime[n - L] = false;
     }
 
-    vector<long> new_primes;
-    for (long n = L; n <= R; n++)
+    vector<int64_t> new_primes;
+    for (int64_t n = L; n <= R; n++)
         if (isprime[n - L])
             new_primes.push_back(n);
     return new_primes;
+}
+
+// Get all primes that divide at least one number in the range [L,R]. Requires sieving
+// first, such that primes[] contains all primes at least up to sqrt(R). O(√R log K)
+auto get_range_prime_divisors(int64_t L, int64_t R, const vector<int>& primes) {
+    assert(1 <= L && L <= R && R - L <= 150'000'000);
+    int N = R - L + 1;
+    vector<int64_t> a(N), found;
+    iota(begin(a), end(a), L);
+    for (int p : primes) {
+        int r = L % p, d = r == 0 ? 0 : p - r;
+        if (d < N) {
+            found.push_back(p);
+        }
+        for (int i = d; i < N; i += p) {
+            do {
+                a[i] /= p;
+            } while (a[i] % p == 0);
+        }
+    }
+    int F = found.size();
+    for (int64_t n : a) {
+        if (n > 1) {
+            found.push_back(n);
+        }
+    }
+    sort(begin(found) + F, end(found));
+    return found;
 }

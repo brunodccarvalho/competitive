@@ -11,7 +11,7 @@ declare -r PROG_NAME=$(basename "$0")
 declare ROOT=$(git rev-parse --show-cdup)
 declare -r ACTION="${1:-run}"
 
-if test -z "$ROOT"; then ROOT="."; else ROOT=${ROOT%/}; fi
+if test -z "$ROOT"; then ROOT="../competitive"; else ROOT=${ROOT%/}/../competitive; fi
 if ! test -d "$ROOT/bin/" && ! test -d "$ROOT/root/"; then
 	echo "Did not find root directory"; exit 0
 elif ! test -d "$ROOT/bin/"; then
