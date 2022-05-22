@@ -82,35 +82,34 @@ struct lca_schieber_vishkin {
     }
 };
 
-/**
- * LCA on a growing forest. Add roots and new children to existing nodes.
- * Complexity: O(N) construction, true O(1) add, O(log D) lca/ancestor
- */
 struct lca_incremental {
     vector<int> parent, depth, jump;
 
     lca_incremental() = default;
     lca_incremental(int N) : parent(N, -1), depth(N), jump(N) {}
-    lca_incremental(const vector<vector<int>>& tree, int root) { add_tree(tree, root); }
 
-    void add_tree(const vector<vector<int>>& tree, int root) {
-        add_root(root);
-        for (int v : tree[root]) {
-            dfs_tree(tree, v, root);
+    lca_incremental(const vector<vector<int>>& tree, int root) {
+        int N = tree.size();
+        ensure(N);
+        dfs_tree_root(tree, root);
+        for (int u = 0; u < N; u++) {
+            if (u != root && parent[u] == -1) {
+                dfs_tree_root(tree, u);
+            }
         }
     }
 
     int num_nodes() const { return parent.size(); }
 
     void add_root(int u) {
-        ensure_new(u);
+        ensure(u);
         parent[u] = u;
         depth[u] = 0;
         jump[u] = u;
     }
 
     void add_child(int p, int u) {
-        ensure_new(u);
+        ensure(u);
         parent[u] = p;
         depth[u] = depth[p] + 1;
         int t = jump[p];
@@ -147,6 +146,21 @@ struct lca_incremental {
         return u;
     }
 
+    auto get_path(int u, int v) {
+        int a = lca(u, v);
+        int D = depth[u] - depth[a] + 1;
+        vector<int> path;
+        while (u != a) {
+            path.push_back(u), u = parent[u];
+        }
+        path.push_back(a);
+        while (v != a) {
+            path.push_back(v), v = parent[v];
+        }
+        reverse(begin(path) + D, end(path));
+        return path;
+    }
+
     int dist(int u, int v) const { return depth[u] + depth[v] - 2 * depth[lca(u, v)]; }
 
     bool conn(int u, int v) const {
@@ -154,23 +168,26 @@ struct lca_incremental {
     }
 
   private:
-    void ensure_new(int N) {
-        if (int M = parent.size(); N >= M) {
+    void ensure(int N) {
+        if (int S = parent.size(); S < N) {
             parent.resize(N + 1, -1);
-            depth.resize(N + 1);
-            jump.resize(N + 1);
-        } else {
-            assert(parent[N] == -1);
+            depth.resize(N + 1, 0);
+            jump.resize(N + 1, 0);
         }
     }
 
     void dfs_tree(const vector<vector<int>>& tree, int u, int p) {
-        add_child(p, u);
         for (int v : tree[u]) {
             if (v != p) {
+                add_child(u, v);
                 dfs_tree(tree, v, u);
             }
         }
+    }
+
+    void dfs_tree_root(const vector<vector<int>>& tree, int root) {
+        add_root(root);
+        dfs_tree(tree, root, -1);
     }
 };
 

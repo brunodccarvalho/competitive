@@ -16,7 +16,7 @@ void stress_test_mos() {
 
     auto compute = [](const auto& queries, const auto& order) {
         int Q = queries.size();
-        long init = queries[order[0]].second - queries[order[0]].first;
+        long init = queries[order[0]][1] - queries[order[0]][0];
         long shifts = init;
         long jumps = init;
         long transfers = init;
@@ -33,7 +33,7 @@ void stress_test_mos() {
     map<pair<string, pair<int, int>>, stringable> table;
 
     for (auto [N, Q] : NQs) {
-        vector<pair<int, int>> queries(Q);
+        vector<array<int, 2>> queries(Q);
         for (auto& [l, r] : queries) {
             auto [u, v] = different<int>(0, N - 1);
             l = u, r = v;
