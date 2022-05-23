@@ -18,7 +18,9 @@ struct segtree {
     void assign(int N, Node init) {
         n = N;
         node.assign(2 * next_two(N), init);
-        build_init_dfs(1, 0, n);
+        if (n > 0) {
+            build_init_dfs(1, 0, n);
+        }
     }
 
     template <typename T>
@@ -26,7 +28,9 @@ struct segtree {
         assert(int(arr.size()) >= N + s);
         n = N;
         node.resize(2 * next_two(N));
-        build_array_dfs(1, s, s + n, arr);
+        if (n > 0) {
+            build_array_dfs(1, s, s + n, arr);
+        }
     }
 
     template <typename... Us>
@@ -484,26 +488,26 @@ struct segtree {
 };
 
 struct Segnode {
-    static constexpr bool LAZY = true, RANGES = true;
-    long value = 0, lazy = 0;
+    static constexpr bool LAZY = false, RANGES = false;
+    int64_t value = 0, lazy = 0;
 
-    Segnode(long value = 0) : value(value) {}
+    Segnode(int64_t value = 0) : value(value) {}
 
     void pushup(const Segnode& lhs, const Segnode& rhs) {
         assert(lazy == 0);
-        value = lhs.value + rhs.value;
+        value = max(lhs.value, rhs.value);
     }
 
-    void pushdown(Segnode& lhs, Segnode& rhs, int a, int b) {
+    void pushdown(Segnode& lhs, Segnode& rhs) {
         if (lazy) {
-            lhs.apply(lazy, a);
-            rhs.apply(lazy, b);
+            lhs.apply(lazy);
+            rhs.apply(lazy);
             lazy = 0;
         }
     }
 
-    void apply(long add, int s) {
-        value += s * add;
+    void apply(int64_t add) {
+        value += add;
         lazy += add;
     }
 };

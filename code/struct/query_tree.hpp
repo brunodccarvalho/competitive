@@ -1,7 +1,6 @@
 #pragma once
 
-#include <bits/stdc++.h>
-using namespace std;
+#include "algo/y_combinator.hpp"
 
 /**
  * For an associative and commutative data structure that allows true O(T(n)) insertion
@@ -13,6 +12,25 @@ using namespace std;
  * This implementation queries the data structure at every timepoint.
  * Reference: https://github.com/Aeren1564/Algorithms/.../query_tree.sublime-snippet
  */
+template <typename Fun>
+class y_combinator_result {
+    Fun fun_;
+
+  public:
+    template <typename T>
+    explicit y_combinator_result(T&& fun) : fun_(std::forward<T>(fun)) {}
+
+    template <typename... Args>
+    decltype(auto) operator()(Args&&... args) {
+        return fun_(std::ref(*this), std::forward<Args>(args)...);
+    }
+};
+
+template <typename Fun>
+auto y_combinator(Fun&& fun) {
+    return y_combinator_result<std::decay_t<Fun>>(std::forward<Fun>(fun));
+}
+
 template <typename E>
 struct query_tree {
     int N;
@@ -20,12 +38,14 @@ struct query_tree {
 
     explicit query_tree(int N) : N(N) {
         int Q = 1 << (N > 1 ? 8 * sizeof(N) - __builtin_clz(N - 1) : 0);
-        st.assign(2 * Q);
+        st.assign(2 * Q, {});
     }
 
     void insert(int L, int R, const E& element) {
-        assert(0 <= L && L < R && R <= N);
-        insert_recurse(1, 0, N, L, R, element);
+        assert(0 <= L && L <= R && R <= N);
+        if (L < R) {
+            insert_recurse(1, 0, N, L, R, element);
+        }
     }
 
     /**
@@ -35,7 +55,7 @@ struct query_tree {
      */
     template <typename Insert, typename Save, typename Rollback, typename Answer>
     void visit(Insert&& insert, Save&& save, Rollback&& rollback, Answer&& answer) {
-        auto dfs = [&](const auto& dfs, int u, int l, int r) {
+        y_combinator([&](auto self, int u, int l, int r) -> void {
             save();
             for (const auto& elem : st[u]) {
                 insert(elem);
@@ -44,12 +64,11 @@ struct query_tree {
                 answer(l);
             } else {
                 int m = l + (r - l) / 2;
-                dfs(dfs, u << 1, l, m);
-                dfs(dfs, u << 1 | 1, m, r);
+                self(u << 1, l, m);
+                self(u << 1 | 1, m, r);
             }
             rollback();
-        };
-        dfs(dfs, 1, 0, N);
+        })(1, 0, N);
     }
 
   private:
