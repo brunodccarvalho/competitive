@@ -470,6 +470,26 @@ struct basic_treap {
 
     friend Treap* meld(Treap* A, Treap* B, Treap* C) { return meld(meld(A, B), C); }
 
+    // ***** Root operations (delete on dfs)
+
+    friend Treap* pop_root(Treap* root) {
+        if (!root) {
+            return root;
+        }
+        auto [L, R] = root->kids;
+        root->kids[0] = root->kids[1] = nullptr;
+        return join(L, R);
+    }
+
+    friend Treap* delete_root(Treap* root) {
+        if (!root) {
+            return nullptr;
+        }
+        auto [L, R] = root->kids;
+        delete root;
+        return join(L, R);
+    }
+
     // ***** Debugging/auxiliary
 
     template <typename Fn>
@@ -532,88 +552,243 @@ struct Treap : basic_treap<Treap> {
     static int64_t get_sum(const Treap* x) { return x ? x->sum : 0; }
 };
 
-struct SetminTreap : basic_treap<SetminTreap> {
-    static constexpr int64_t MIN = numeric_limits<int64_t>::lowest();
-    static constexpr int64_t MAX = numeric_limits<int64_t>::max();
+/**
+ * An interval tree with remove-on-stab functionality
+ * Maintain a set of segments [l,r) and answer stab queries at i, removing the
+ * segments that are found from the treap so they only get stabbed once. O(n log n).
+ */
+struct OnceStabTreap : basic_treap<OnceStabTreap> {
+    struct Range {
+        int L, R;
+        bool operator<(Range o) const { return make_pair(L, R) < make_pair(o.L, o.R); }
+        bool within(int i) const { return L <= i && i < R; }
+    };
+    Range key;
+    int max_right = 0;
 
-    int size = 1;
-    int64_t key;
-    int64_t sum;
-    int64_t maximum = MIN;
-    int64_t second_max = MIN;
-    int count_max = 1;
-    int64_t add_lazy = 0;
+    explicit OnceStabTreap(Range key) : key(key), max_right(key.R) {}
 
-    explicit SetminTreap(int key) : key(key), sum(key), maximum(key) {}
+    void pushdown() {}
 
-    bool can_break(int64_t setmin) const { return maximum <= setmin; }
-    bool can_update(int64_t setmin) const { return second_max < setmin; }
+    void pushup() { max_right = max({key.R, get_right(kids[0]), get_right(kids[1])}); }
 
-    void apply_setmin(int64_t setmin) {
-        if (setmin < maximum) {
-            assert(second_max < setmin);
-            key = min(key, setmin);
-            sum -= count_max * (maximum - setmin);
-            maximum = setmin;
-        }
+    static auto stab_query(OnceStabTreap*& root, int i) {
+        vector<OnceStabTreap*> rs;
+        root = stab_query_dfs(root, i, rs);
+        return rs;
     }
 
-    void apply_add(int64_t add) {
-        key += add;
-        sum += add * size;
-        maximum += add;
-        if (second_max != MIN)
-            second_max += add;
-        add_lazy += add;
+    static OnceStabTreap* stab_query_dfs(OnceStabTreap* x, int i,
+                                         vector<OnceStabTreap*>& rs) {
+        while (x && x->key.within(i)) {
+            rs.push_back(x);
+            x = pop_root(x);
+        }
+        if (x && get_right(x->kids[0]) > i) {
+            x->kids[0] = stab_query_dfs(x->kids[0], i, rs);
+            x->pushup();
+        }
+        if (x && get_right(x->kids[1]) > i && x->key.L <= i) {
+            x->kids[1] = stab_query_dfs(x->kids[1], i, rs);
+            x->pushup();
+        }
+        return x;
+    }
+
+    static int get_right(const OnceStabTreap* x) { return x ? x->max_right : 0; }
+};
+
+/**
+ * An interval tree with single-stab functionality
+ * Maintain a set of segments [l,r) and answer stab queries at i.
+ * The stabbed node is not popped.
+ * The user guarantees that there is exactly zero or one stabbed intervals. O(n log n).
+ */
+struct SingleStabTreap : basic_treap<SingleStabTreap> {
+    struct Range {
+        int L, R;
+        bool operator<(Range o) const { return make_pair(L, R) < make_pair(o.L, o.R); }
+        bool within(int i) const { return L <= i && i < R; }
+    };
+    Range key;
+    int max_right = 0;
+
+    explicit SingleStabTreap(Range key) : key(key), max_right(key.R) {}
+
+    void pushdown() {}
+
+    void pushup() { max_right = max({key.R, get_right(kids[0]), get_right(kids[1])}); }
+
+    static auto stab_query(SingleStabTreap*& root, int i) {
+        SingleStabTreap* ans = nullptr;
+        root = stab_query_dfs(root, i, ans);
+        return ans;
+    }
+
+    static SingleStabTreap* stab_query_dfs(SingleStabTreap* x, int i,
+                                           SingleStabTreap*& ans) {
+        if (x && x->key.within(i)) {
+            ans = x;
+        } else if (x && get_right(x->kids[0]) > i) {
+            x->kids[0] = stab_query_dfs(x->kids[0], i, ans);
+            x->pushup();
+        } else if (x && get_right(x->kids[1]) > i && x->key.L <= i) {
+            x->kids[1] = stab_query_dfs(x->kids[1], i, ans);
+            x->pushup();
+        }
+        return x;
+    }
+
+    static int get_right(const SingleStabTreap* x) { return x ? x->max_right : 0; }
+};
+
+/**
+ * Maintain key->value mappings, support setmin and getmin on range values. O(n log n)
+ */
+struct MinTreap : basic_treap<MinTreap> {
+    static constexpr int64_t MAX = numeric_limits<int64_t>::max() / 2;
+
+    int size = 1;
+    int key;
+    int64_t value = MAX;
+    int64_t minimum = MAX;
+    int64_t set_lazy = MAX;
+
+    explicit MinTreap(int key, int64_t value) : key(key), value(value), minimum(value) {}
+
+    void apply_setmin(int64_t setmin) {
+        value = min(value, setmin);
+        minimum = min(minimum, setmin);
+        set_lazy = min(set_lazy, setmin);
     }
 
     void pushdown() {
-        if (add_lazy) {
-            if (kids[0])
-                kids[0]->apply_add(add_lazy);
-            if (kids[1])
-                kids[1]->apply_add(add_lazy);
-            add_lazy = 0;
-        }
         if (kids[0])
-            kids[0]->apply_setmin(maximum);
+            kids[0]->apply_setmin(set_lazy);
         if (kids[1])
-            kids[1]->apply_setmin(maximum);
+            kids[1]->apply_setmin(set_lazy);
+        set_lazy = MAX;
     }
 
     void pushup() {
-        sum = key + get_sum(kids[0]) + get_sum(kids[1]);
-        maximum = max({key, get_max(kids[0]), get_max(kids[1])});
-        second_max = maximum == key ? MIN : key;
-        count_max = maximum == key;
-        for (int s : {0, 1}) {
-            if (maximum == get_max(kids[s])) {
-                count_max += get_count_max(kids[s]);
-                setmax(second_max, get_second_max(kids[s]));
-            } else {
-                setmax(second_max, get_max(kids[s]));
-            }
-        }
+        minimum = min({value, get_min(kids[0]), get_min(kids[1])});
         size = 1 + get_size(kids[0]) + get_size(kids[1]);
     }
 
-    static auto setmin_beats_visitor(int64_t setmin) {
-        return [=](SetminTreap* x) {
-            if (x->can_break(setmin)) {
-                return true;
-            } else if (x->can_update(setmin)) {
-                x->apply_setmin(setmin);
-                return true;
-            } else {
-                x->key = min(x->key, setmin);
-                return false;
-            }
-        };
+    static MinTreap* query_remove_min(MinTreap* x, MinTreap*& node) {
+        x->pushdown();
+        if (x->value == x->minimum) {
+            node = x;
+            x = join(x->kids[0], x->kids[1]);
+            node->kids[0] = node->kids[1] = nullptr, node->pushup();
+        } else if (get_min(x->kids[0]) == x->minimum) {
+            x->kids[0] = query_remove_min(x->kids[0], node);
+            x->pushup();
+        } else if (get_min(x->kids[1]) == x->minimum) {
+            x->kids[1] = query_remove_min(x->kids[1], node);
+            x->pushup();
+        } else {
+            assert(false);
+        }
+        return x;
     }
 
-    static void setmax(int64_t& a, int64_t b) { a = max(a, b); }
-    static int64_t get_sum(SetminTreap* x) { return x ? x->sum : 0; }
-    static int64_t get_max(SetminTreap* x) { return x ? x->maximum : MIN; }
-    static int64_t get_second_max(SetminTreap* x) { return x ? x->second_max : MIN; }
-    static int get_count_max(SetminTreap* x) { return x ? x->count_max : 0; }
+    static int64_t get_min(MinTreap* x) { return x ? x->minimum : MAX; }
+};
+
+/**
+ * Splay supporting the following operations:
+ * Insert range of integers [l,r), none existing (delete first if you need to be sure)
+ * Delete range of integers [l,r), some might not exist
+ * Query k-th integer
+ */
+struct RangeTreap : basic_treap<RangeTreap> {
+    using V = int64_t;
+    V length, L, R;
+
+    explicit RangeTreap(V L, V R) : length(R - L), L(L), R(R) {}
+
+    static V get_length(const RangeTreap* x) { return x ? x->length : 0; }
+
+    void pushdown() {}
+
+    void pushup() { length = R - L + get_length(kids[0]) + get_length(kids[1]); }
+
+    friend RangeTreap* within_range_find(RangeTreap*& tree, V i) {
+        RangeTreap* node = tree;
+        RangeTreap* after = nullptr;
+        while (node) {
+            if (i < node->L) {
+                after = node;
+                node = node->kids[0];
+            } else if (node->R <= i) {
+                node = node->kids[1];
+            } else {
+                return node;
+            }
+        }
+        return after;
+    }
+
+    friend void clear_range(RangeTreap*& tree, V l, V r) {
+        auto right = within_range_find(tree, r);
+        if (right && right->L < r && r < right->R) {
+            split_node_proper(tree, right, r);
+        }
+        auto left = within_range_find(tree, l);
+        if (left && left->L < l && l < left->R) {
+            split_node_proper(tree, left, l);
+        }
+        tree = delete_key_range(tree, l, r);
+    }
+
+    friend void insert_range(RangeTreap*& tree, V l, V r) {
+        tree = insert_key(tree, new RangeTreap(l, r));
+    }
+
+    friend void split_node_proper(RangeTreap*& tree, RangeTreap* x, V M) {
+        assert(x->L < M && M < x->R);
+        RangeTreap* y = new RangeTreap(M, x->R);
+        tie(tree, x) = splice_key(tree, x->L);
+        x->R = M, x->pushup();
+        tree = insert_key(tree, x);
+        tree = insert_key(tree, y);
+    }
+
+    friend V range_kth(RangeTreap*& tree, V k) {
+        RangeTreap* node = tree;
+        assert(0 <= k && k < get_length(tree));
+        while (true) {
+            if (k < get_length(node->kids[0])) {
+                node = node->kids[0];
+            }
+            k -= get_length(node->kids[0]);
+            if (k < get_length(node)) {
+                return node->L + k;
+            }
+            k -= get_length(node);
+            node = node->kids[1];
+        }
+    }
+
+    friend V range_rank(RangeTreap*& tree, V i) {
+        int64_t rank = 0;
+        RangeTreap* node = tree;
+        while (node) {
+            if (i < node->L) {
+                node = node->kids[0];
+            } else if (node->R <= i) {
+                rank += node->R - node->L + get_length(node->kids[0]);
+                node = node->kids[1];
+            } else {
+                rank += get_length(node->kids[0]);
+                return rank + (i - node->L);
+            }
+        }
+        return rank;
+    }
+
+#ifdef LOCAL
+    string format() const { return '(' + to_string(L) + ' ' + to_string(R) + ')'; }
+#endif
 };

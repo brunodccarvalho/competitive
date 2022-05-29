@@ -127,7 +127,6 @@ struct hld_forest {
     }
 
     // Split the path from u to v into sorted heavy path segments [l,r), 0<=l<r<=N
-    // With merge=true join heavy path segments [l,m) and [m,r) (for efficiency)
     auto vertex_segments(int u, int v) const {
         vector<array<int, 2>> ranges;
         while (head[u] != head[v]) {
@@ -145,6 +144,28 @@ struct hld_forest {
             ranges.push_back({time[v], time[u] + 1});
         }
         return ranges;
+    }
+
+    // Split the path from u to v into sorted heavy path segments [l,r), 0<=l<r<=N
+    // down: l appears first on the path; up: l appears last on the path
+    auto oriented_vertex_segments(int u, int v) const {
+        vector<array<int, 2>> up, down;
+        while (head[u] != head[v]) {
+            if (depth[head[u]] > depth[head[v]]) {
+                up.push_back({time[head[u]], time[u] + 1});
+                u = parent[head[u]];
+            } else {
+                down.push_back({time[head[v]], time[v] + 1});
+                v = parent[head[v]];
+            }
+        }
+        if (depth[u] < depth[v]) {
+            down.push_back({time[u], time[v] + 1});
+        } else {
+            up.push_back({time[v], time[u] + 1});
+        }
+        reverse(begin(down), end(down));
+        return make_pair(move(up), move(down));
     }
 
     // Split the edge path from u to v into sorted heavy path segments [l,r), 1<=l<r<=N

@@ -208,5 +208,6 @@ auto get_range_prime_divisors(int64_t L, int64_t R, const vector<int>& primes) {
         }
     }
     sort(begin(found) + F, end(found));
+    found.erase(unique(begin(found) + F, end(found)), end(found));
     return found;
 }

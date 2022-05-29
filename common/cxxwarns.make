@@ -92,6 +92,7 @@ ifeq ($(COMPILER),clang)
 	WARNS += -Wzero-as-null-pointer-constant
 	WARNS += -Wzero-length-array
     WARNS += -Wno-shadow-field-in-constructor
+	WARNS += -Wno-c++11-narrowing
 endif
 
 # Not errors

@@ -5,27 +5,27 @@ using namespace std;
 
 struct disjoint_set {
     int N, S;
-    vector<int> next, size;
+    vector<int> nxt, siz;
 
-    explicit disjoint_set(int N = 0) : N(N), S(N), next(N), size(N, 1) {
-        iota(begin(next), end(next), 0);
+    explicit disjoint_set(int N = 0) : N(N), S(N), nxt(N), siz(N, 1) {
+        iota(begin(nxt), end(nxt), 0);
     }
 
     void assign(int n) { *this = disjoint_set(n); }
     void reset() { *this = disjoint_set(N); }
+    int size(int n) { return siz[n]; }
     bool same(int i, int j) { return find(i) == find(j); }
-    bool unit(int i) { return i == next[i] && size[i] == 1; }
-    bool root(int i) { return find(i) == i; }
+    bool isroot(int i) { return find(i) == i; }
     void reroot(int u) {
         if (int r = find(u); u != r) {
-            size[u] = size[r];
-            next[u] = next[r] = u;
+            siz[u] = siz[r];
+            nxt[u] = nxt[r] = u;
         }
     }
 
     int find(int i) {
-        while (i != next[i]) {
-            i = next[i] = next[next[i]];
+        while (i != nxt[i]) {
+            i = nxt[i] = nxt[nxt[i]];
         }
         return i;
     }
@@ -34,11 +34,11 @@ struct disjoint_set {
         i = find(i);
         j = find(j);
         if (i != j) {
-            if (size[i] < size[j]) {
+            if (siz[i] < siz[j]) {
                 swap(i, j);
             }
-            next[j] = i;
-            size[i] += size[j];
+            nxt[j] = i;
+            siz[i] += siz[j];
             S--;
             return true;
         }
@@ -48,32 +48,32 @@ struct disjoint_set {
 
 struct disjoint_set_rollback {
     int N, S;
-    vector<int> next;
-    vector<pair<int, int>> history;
+    vector<int> nxt;
+    vector<pair<int, int>> hist;
 
-    explicit disjoint_set_rollback(int N = 0) : N(N), S(N), next(N, -1) {}
+    explicit disjoint_set_rollback(int N = 0) : N(N), S(N), nxt(N, -1) {}
 
     void assign(int n) { *this = disjoint_set_rollback(n); }
     void reset() { *this = disjoint_set_rollback(N); }
     bool same(int i, int j) { return find(i) == find(j); }
-    bool unit(int i) { return next[i] == -1; }
-    bool root(int i) { return next[i] < 0; }
-    int size(int i) { return -next[find(i)]; }
-    int time() const { return history.size(); }
+    bool unit(int i) { return nxt[i] == -1; }
+    bool root(int i) { return nxt[i] < 0; }
+    int size(int i) { return -nxt[find(i)]; }
+    int time() const { return hist.size(); }
 
     void rollback(int t) {
         int i = time();
         while (i > t) {
-            i--, next[history[i].first] = history[i].second;
-            i--, next[history[i].first] = history[i].second;
+            i--, nxt[hist[i].first] = hist[i].second;
+            i--, nxt[hist[i].first] = hist[i].second;
             S++;
         }
-        history.resize(t);
+        hist.resize(t);
     }
 
     int find(int i) {
-        while (next[i] >= 0) {
-            i = next[i];
+        while (nxt[i] >= 0) {
+            i = nxt[i];
         }
         return i;
     }
@@ -85,10 +85,10 @@ struct disjoint_set_rollback {
             if (size(i) < size(j)) {
                 swap(i, j);
             }
-            history.emplace_back(i, next[i]);
-            history.emplace_back(j, next[j]);
-            next[i] += next[j];
-            next[j] = i, S--;
+            hist.emplace_back(i, nxt[i]);
+            hist.emplace_back(j, nxt[j]);
+            nxt[i] += nxt[j];
+            nxt[j] = i, S--;
             return true;
         }
         return false;

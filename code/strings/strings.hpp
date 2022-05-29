@@ -101,7 +101,7 @@ auto build_lcp_array(const Vec& s, const vector<int>& sa) {
 
 /**
  * Compute the z function of string s.
- * z[i] := longest common prefix of s[0..] and s[i..]; z[i]=0.
+ * z[i] := longest common prefix of s[0..] and s[i..]; z[0]=0.
  *
  * Complexity: O(N)
  * Reference: https://cp-algorithms.com/string/z-function.html

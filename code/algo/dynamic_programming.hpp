@@ -197,3 +197,24 @@ auto dense_subset_sum_count(const vector<int>& nums) {
 
     return dp;
 }
+
+auto minimum_feedback_set(int N, const vector<array<int, 2>>& graph) {
+    vector<int> out(N);
+    for (auto [u, v] : graph) {
+        out[u] |= 1 << v;
+    }
+
+    vector<int> dp(1 << N, INT_MAX / 2);
+    dp[0] = 0;
+
+    for (int m = 1; m < (1 << N); m++) {
+        for (int v = 0; v < N; v++) {
+            if (m >> v & 1) {
+                dp[m] = min(dp[m], dp[m ^ (1 << v)] + __builtin_popcount(out[v] & m));
+            }
+        }
+    }
+
+    const int ALL = (1 << N) - 1;
+    return dp[ALL];
+}

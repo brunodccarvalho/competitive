@@ -829,3 +829,94 @@ struct Splay : basic_splay<Splay> {
 
     static int64_t get_sum(const Splay* x) { return x ? x->sum : 0; }
 };
+
+/**
+ * Splay supporting the following operations:
+ * Insert range of integers [l,r), none existing (delete first if you need to be sure)
+ * Delete range of integers [l,r), some might not exist
+ * Query k-th integer
+ */
+struct RangeSplay : basic_splay<RangeSplay> {
+    using V = int64_t;
+    V length, L, R;
+
+    explicit RangeSplay(V L, V R) : length(R - L), L(L), R(R) {}
+
+    static V get_length(const RangeSplay* x) { return x ? x->length : 0; }
+
+    void pushdown() {}
+
+    void pushup() { length = R - L + get_length(kids[0]) + get_length(kids[1]); }
+
+    friend RangeSplay* within_range_find(RangeSplay*& tree, V i) {
+        RangeSplay* node = tree;
+        RangeSplay* after = nullptr;
+        while (node) {
+            if (i < node->L) {
+                after = node;
+                node = node->kids[0];
+            } else if (node->R <= i) {
+                node = node->kids[1];
+            } else {
+                tree = splay(node);
+                return node;
+            }
+        }
+        return after ? tree = splay(after) : nullptr;
+    }
+
+    friend void clear_range(RangeSplay*& tree, V l, V r) {
+        auto right = within_range_find(tree, r);
+        if (right && right->L < r && r < right->R) {
+            right = split_node_proper(tree, right, r);
+        }
+        auto left = within_range_find(tree, l);
+        if (left && left->L < l && l < left->R) {
+            left = split_node_proper(tree, left, l);
+        }
+        if (left) {
+            delete_range(tree, left, right);
+        }
+    }
+
+    friend RangeSplay* insert_range(RangeSplay*& tree, V l, V r) {
+        return insert_key(tree, new RangeSplay(l, r));
+    }
+
+    friend RangeSplay* split_node_proper(RangeSplay*& tree, RangeSplay* x, V M) {
+        assert(x->L < M && M < x->R);
+        RangeSplay* y = new RangeSplay(M, x->R);
+        x->length -= x->R - M, x->R = M;
+        return insert_after(tree, x, y);
+    }
+
+    friend V range_kth(RangeSplay*& tree, V k) {
+        RangeSplay* node = tree;
+        assert(0 <= k && k < get_length(tree));
+        while (true) {
+            if (k < get_length(node->kids[0])) {
+                node = node->kids[0];
+            }
+            k -= get_length(node->kids[0]);
+            if (k < get_length(node)) {
+                tree = splay(node);
+                return node->L + k;
+            }
+            k -= get_length(node);
+            node = node->kids[1];
+        }
+    }
+
+    friend V range_rank(RangeSplay*& tree, V i) {
+        RangeSplay* node = within_range_find(tree, i);
+        if (node == nullptr) {
+            return get_length(tree);
+        } else {
+            return get_length(node->kids[0]) + max<V>(i - node->L, 0);
+        }
+    }
+
+#ifdef LOCAL
+    string format() const { return '(' + to_string(L) + ' ' + to_string(R) + ')'; }
+#endif
+};
