@@ -7,7 +7,7 @@ template <typename Flow = int64_t, typename FlowSum = Flow>
 struct circulation {
     using MaxflowSolver = tidal_flow<Flow, FlowSum>;
 
-    explicit circulation(int V = 0) : V(V) {}
+    explicit circulation(int V = 0) : V(V), supply(V) {}
 
     int add(int u, int v, Flow lower, Flow upper) {
         assert(0 <= u && u < V && 0 <= v && v < V && lower <= upper);
@@ -26,42 +26,15 @@ struct circulation {
 
     // Run for feasibility: return true if a feasible circulation exists
     auto feasible_circulation() {
-        FlowSum sum_supply = 0;
-        for (int u = 0; u < V; u++) {
-            sum_supply += supply[u];
-        }
-        if (sum_supply != 0) {
-            return false;
-        }
-
-        auto [maxflow, sum, pos, neg] = run();
-        return maxflow == pos && maxflow == neg;
-    }
-
-    // Run for maximum circulation value: return maxflow including lower bounds
-    auto max_circulation() { return run(); }
-
-  private:
-    int V, E = 0;
-    struct Edge {
-        int u, v;
-        Flow lower, upper;
-    };
-    vector<Edge> edges;
-    vector<FlowSum> supply;
-    MaxflowSolver mf;
-
-    auto run() {
         mf = MaxflowSolver(V + 2);
         int s = V, t = V + 1;
 
         vector<FlowSum> excess = supply;
-        FlowSum lower_sum = 0, pos = 0, neg = 0;
+        FlowSum pos = 0, neg = 0;
 
         for (auto [u, v, lower, upper] : edges) {
             excess[u] -= lower;
             excess[v] += lower;
-            lower_sum += lower;
             mf.add(u, v, upper - lower);
         }
         for (int u = 0; u < V; u++) {
@@ -74,7 +47,49 @@ struct circulation {
             }
         }
 
-        auto max_flow = mf.maxflow(s, t);
-        return make_tuple(max_flow, lower_sum, pos, neg);
+        auto f = mf.maxflow(s, t);
+        return make_pair(f == pos && f == neg, f);
     }
+
+    // Run for maximum circulation value: return maxflow on given edge
+    auto max_circulation(int me) {
+        mf = MaxflowSolver(V + 2);
+        int s = V, t = V + 1, a = edges[me].v, b = edges[me].u;
+
+        vector<FlowSum> excess = supply;
+        FlowSum source = 0, target = 0;
+
+        for (int e = 0; e < E; e++) {
+            auto [u, v, lower, upper] = edges[e];
+            excess[u] -= lower;
+            excess[v] += lower;
+            mf.add(u, v, upper - lower);
+        }
+        for (int u = 0; u < V; u++) {
+            if (excess[u] > 0) {
+                mf.add(s, u, excess[u]);
+                source += excess[u];
+            } else if (excess[u] < 0) {
+                mf.add(u, t, -excess[u]);
+                target -= excess[u];
+            }
+        }
+
+        auto F = mf.maxflow(s, t);
+        if (F < min(source, target)) {
+            return make_pair(false, FlowSum(0));
+        } else {
+            return make_pair(true, mf.maxflow(a, b));
+        }
+    }
+
+  private:
+    int V, E = 0;
+    struct Edge {
+        int u, v;
+        Flow lower, upper;
+    };
+    vector<Edge> edges;
+    vector<FlowSum> supply;
+    MaxflowSolver mf;
 };

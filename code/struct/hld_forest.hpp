@@ -170,7 +170,6 @@ struct hld_forest {
 
     // Split the edge path from u to v into sorted heavy path segments [l,r), 1<=l<r<=N
     // We consider edges here, so that vertex u is responsible for its parent edge
-    // With merge=true join heavy path segments [l,m) and [m,r) (for efficiency)
     auto edge_segments(int u, int v) const {
         vector<array<int, 2>> ranges;
         while (head[u] != head[v]) {
@@ -188,6 +187,79 @@ struct hld_forest {
             ranges.push_back({time[v] + 1, time[u] + 1});
         }
         return ranges;
+    }
+
+    // Split the edge path from u to v into sorted heavy path segments [l,r), 1<=l<r<=N
+    // We consider edges here, so that vertex u is responsible for its parent edge
+    // down: l appears first on the path; up: l appears last on the path
+    auto oriented_edge_segments(int u, int v) const {
+        vector<array<int, 2>> up, down;
+        while (head[u] != head[v]) {
+            if (depth[head[u]] > depth[head[v]]) {
+                up.push_back({time[head[u]], time[u] + 1});
+                u = parent[head[u]];
+            } else {
+                down.push_back({time[head[v]], time[v] + 1});
+                v = parent[head[v]];
+            }
+        }
+        if (depth[u] < depth[v]) {
+            down.push_back({time[u], time[v] + 1});
+        } else if (depth[v] < depth[u]) {
+            up.push_back({time[v], time[u] + 1});
+        }
+        reverse(begin(down), end(down));
+        return make_pair(move(up), move(down));
+    }
+
+    // Split the edge path from u to v into sorted heavy path segments [l,r), 1<=l<r<=N
+    // Return inclusive bounds and merge heavy paths with their parent light edges.
+    // Includes an extra 0-edge interval for the lca if it lies on a separate heavy path
+    auto cut_segments(int u, int v) const {
+        vector<array<int, 3>> ranges;
+        while (head[u] != head[v]) {
+            if (depth[head[u]] > depth[head[v]]) {
+                ranges.push_back({head[u], time[parent[head[u]]], time[u]});
+                u = parent[head[u]];
+            } else {
+                ranges.push_back({head[v], time[parent[head[v]]], time[v]});
+                v = parent[head[v]];
+            }
+        }
+        if (depth[u] < depth[v]) {
+            ranges.push_back({head[v], time[u], time[v]});
+        } else if (depth[v] < depth[u]) {
+            ranges.push_back({head[u], time[v], time[u]});
+        } else {
+            ranges.push_back({head[u], time[u], time[u]}); // up or down doesn't matter
+        }
+        return ranges;
+    }
+
+    // Split the edge path from u to v into sorted heavy path segments [l,r), 1<=l<r<=N
+    // Return inclusive bounds and merge heavy paths with their parent light edges.
+    // Includes an extra 0-edge interval for the lca if it lies on a separate heavy path
+    // down: l appears first on the path; up: l appears last on the path
+    auto oriented_cut_segments(int u, int v) const {
+        vector<array<int, 3>> down, up;
+        while (head[u] != head[v]) {
+            if (depth[head[u]] > depth[head[v]]) {
+                up.push_back({head[u], time[head[u]] - 1, time[u]});
+                u = parent[head[u]];
+            } else {
+                down.push_back({head[v], time[head[v]] - 1, time[v]});
+                v = parent[head[v]];
+            }
+        }
+        if (depth[u] < depth[v]) {
+            down.push_back({head[v], time[u], time[v]});
+        } else if (depth[v] < depth[u]) {
+            up.push_back({head[u], time[v], time[u]});
+        } else {
+            up.push_back({head[u], time[u], time[u]}); // up or down doesn't matter
+        }
+        reverse(begin(down), end(down));
+        return make_pair(move(up), move(down));
     }
 
     // Compute a minimal subtree that contains all the nodes with at most 2k-1 nodes
