@@ -5,7 +5,7 @@ using namespace std;
 
 /**
  * Compute the suffix array of a string.
- * sa[i]: Starting index of the rotation in the (i+1)th lexicographical order.
+ * sa[i]: Starting index of the rotation in the ith lexicographical order.
  *
  * You should append to s a value smaller than any value in s and then pop the front
  * element of the returned SA. If not, the algorithm computes a sorting of rotations

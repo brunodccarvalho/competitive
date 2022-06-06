@@ -2,7 +2,7 @@
 #include "struct/link_cut_tree_path.hpp"
 #include "struct/link_cut_tree_edge_path.hpp"
 
-using lct_edge_path = link_cut_tree_edge_path<lct_node_path_max<long>>;
+using lct_edge_path = link_cut_tree_edge_path<lct_node_path_max>;
 
 void unit_test_lct_edge_path() {
     const int N = 10;

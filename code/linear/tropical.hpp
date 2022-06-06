@@ -3,17 +3,19 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-// Tropical matrix operations (max plus)
+// Tropical matrix operations (max plus or min plus)
 template <typename T>
 struct tmat {
     using vec = vector<T>;
     using unit_type = T;
-    static constexpr T ninf = numeric_limits<T>::lowest() / 2;
+    static constexpr T inf = numeric_limits<T>::lowest() / 2;
+    static const T add(const T& a, const T& b) { return max(a, b); }
+    static const T mul(const T& a, const T& b) { return a + b; }
     int n, m;
     T* data = nullptr;
 
     tmat() : n(0), m(0) {}
-    tmat(int n, int m, const T& v = ninf) { assign(n, m, v); }
+    tmat(int n, int m, const T& v = inf) { assign(n, m, v); }
     tmat(const tmat& o) : n(o.n), m(o.m), data(new T[n * m]) {
         copy(o.data, o.data + n * m, data);
     }
@@ -60,7 +62,7 @@ struct tmat {
     }
 
     static tmat identity(int n) {
-        tmat a(n, n, ninf);
+        tmat a(n, n, inf);
         for (int i = 0; i < n; i++)
             a[i][i] = 0;
         return a;
@@ -77,26 +79,26 @@ struct tmat {
     friend tmat& operator+=(tmat& a, const tmat& b) {
         assert(a.size() == b.size() && "Different matrix dimensions");
         for (int i = 0, s = a.n * a.m; i < s; i++)
-            a[i] = max(a[i], b[i]);
+            a[i] = add(a[i], b[i]);
         return a;
     }
 
     friend tmat operator*(const tmat& a, const tmat& b) {
         assert(a.m == b.n && "Invalid proper matrix multiplication");
-        tmat c(a.n, b.m, ninf);
+        tmat c(a.n, b.m, inf);
         for (int i = 0; i < a.n; i++)
             for (int k = 0; k < a.m; k++)
                 for (int j = 0; j < b.m; j++)
-                    c[i][j] = max(c[i][j], a[i][k] + b[k][j]);
+                    c[i][j] = add(c[i][j], mul(a[i][k], b[k][j]));
         return c;
     }
 
     friend vec operator*(const tmat& a, const vec& b) {
         assert(a.m == int(b.size()) && "Invalid matrix/vector multiplication");
-        vec c(a.n, ninf);
+        vec c(a.n, inf);
         for (int i = 0; i < a.n; i++)
             for (int j = 0; j < a.m; j++)
-                c[i] = max(c[i], a[i][j] + b[j]);
+                c[i] = add(c[i], mul(a[i][j], b[j]));
         return c;
     }
 

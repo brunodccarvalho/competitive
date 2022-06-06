@@ -55,17 +55,20 @@ struct Binomial {
         return n < 0 || k < 0 || k > n ? 0 : fact[n] * ifact[n - k];
     }
 
-    // Layout n identical items over k distinct bins, >=0 per bin
-    static T zero_layout(int n, int k) {
-        return n == 0 && k == 0 ? 1 : choose(n + k - 1, k);
+    // Layout n identical items over k distinct bins, >=a per bin
+    static T layout(int n, int k, int a = 0) {
+        return k == 0 ? n == 0 : choose(n + (1 - a) * (k - 1), k - 1);
     }
 
-    // Layout n identical items over k distinct bins, >=1 per bin
-    static T one_layout(int n, int k) {
-        return n == 0 && k == 0 ? 1 : choose(n - 1, k - 1);
+    // Layout n identical items over k distinct bins, >=a and <b per bin. O(k)
+    static T bounded_layout(int n, int p, int a, int b) {
+        n -= a * p, b -= a;
+        T ans = 0;
+        for (int k = 0; k <= p && b * k <= n && b > 0; k++) {
+            ans += (k % 2 ? -1 : +1) * choose(p, k) * layout(n - b * k, p);
+        }
+        return ans;
     }
-
-    static T arrange(int n, int k) { return falling(n, k); }
 
     static T catalan(int n) {
         ensure_factorial(2 * n + 1);

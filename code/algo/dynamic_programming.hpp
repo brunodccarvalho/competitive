@@ -2,6 +2,7 @@
 
 #include "struct/tensor.hpp"
 #include "numeric/combinatorics.hpp"
+#include "numeric/bits.hpp"
 
 // Compute LIS in O(n log n)
 // less<T>: strictly increasing subsequence
@@ -198,7 +199,7 @@ auto dense_subset_sum_count(const vector<int>& nums) {
     return dp;
 }
 
-auto minimum_feedback_set(int N, const vector<array<int, 2>>& graph) {
+auto minimum_feedback_arc_set(int N, const vector<array<int, 2>>& graph) {
     vector<int> out(N);
     for (auto [u, v] : graph) {
         out[u] |= 1 << v;
@@ -217,4 +218,47 @@ auto minimum_feedback_set(int N, const vector<array<int, 2>>& graph) {
 
     const int ALL = (1 << N) - 1;
     return dp[ALL];
+}
+
+// Compute the minimum number of vertices to delete to acycle a directed graph
+auto minimum_feedback_vertex_set(int N, const vector<array<int, 2>>& graph) {
+    vector<int> out(N), in(N);
+    for (auto [u, v] : graph) {
+        out[u] |= 1 << v, in[v] |= 1 << u;
+    }
+
+    auto check = [&](int take) {
+        int keep = ((1 << N) - 1) ^ take;
+        vector<int> bfs, indeg(N);
+        for (int u = 0; u < N; u++) {
+            indeg[u] = __builtin_popcount(in[u] & keep);
+        }
+        for (int u = 0; u < N; u++) {
+            if ((keep >> u & 1) && indeg[u] == 0) {
+                bfs.push_back(u);
+            }
+        }
+        int S = __builtin_popcount(keep), B = bfs.size();
+        for (int i = 0; i < B && B < S; i++) {
+            int u = bfs[i];
+            for (int v = 0; v < N; v++) {
+                if (((keep & out[u]) >> v & 1) && --indeg[v] == 0) {
+                    bfs.push_back(v), B++;
+                }
+            }
+        }
+        return B == S;
+    };
+
+    if (check(0)) {
+        return 0;
+    }
+    for (int s = 1; s < N; s++) {
+        FOR_EACH_MASK (mask, s, N) {
+            if (check(mask)) {
+                return s;
+            }
+        }
+    }
+    return N;
 }

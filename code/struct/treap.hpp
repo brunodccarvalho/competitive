@@ -15,8 +15,8 @@ struct basic_treap {
     Treap* kids[2] = {};
     uint32_t priority = priod(rng);
 
-    static int get_size(const Treap* x) { return x ? x->size : 0; }
-    static const auto& get_key(const Treap* x) { return x->key; }
+    static int get_size(const Treap* x) { return Treap::get_size(x); }
+    static auto get_key(const Treap* x) { return Treap::get_key(x); }
 
   protected:
     basic_treap() : priority(priod(rng)) {}
@@ -523,6 +523,10 @@ struct Treap : basic_treap<Treap> {
 
     explicit Treap(int key, int value = 0) : key(key), sum(value) {}
 
+    static int get_size(const Treap* x) { return x ? x->size : 0; }
+    static auto get_key(const Treap* x) { return x->key; }
+    static int64_t get_sum(const Treap* x) { return x ? x->sum : 0; }
+
     void update_self(int64_t add) {
         key += add;
         sum += add;
@@ -548,8 +552,6 @@ struct Treap : basic_treap<Treap> {
         sum = key + get_sum(kids[0]) + get_sum(kids[1]);
         size = 1 + get_size(kids[0]) + get_size(kids[1]);
     }
-
-    static int64_t get_sum(const Treap* x) { return x ? x->sum : 0; }
 };
 
 /**
@@ -567,6 +569,9 @@ struct OnceStabTreap : basic_treap<OnceStabTreap> {
     int max_right = 0;
 
     explicit OnceStabTreap(Range key) : key(key), max_right(key.R) {}
+
+    static auto get_key(const OnceStabTreap* x) { return x->key; }
+    static int get_right(const OnceStabTreap* x) { return x ? x->max_right : 0; }
 
     void pushdown() {}
 
@@ -594,8 +599,6 @@ struct OnceStabTreap : basic_treap<OnceStabTreap> {
         }
         return x;
     }
-
-    static int get_right(const OnceStabTreap* x) { return x ? x->max_right : 0; }
 };
 
 /**
@@ -614,6 +617,9 @@ struct SingleStabTreap : basic_treap<SingleStabTreap> {
     int max_right = 0;
 
     explicit SingleStabTreap(Range key) : key(key), max_right(key.R) {}
+
+    static auto get_key(const SingleStabTreap* x) { return x->key; }
+    static int get_right(const SingleStabTreap* x) { return x ? x->max_right : 0; }
 
     void pushdown() {}
 
@@ -638,8 +644,6 @@ struct SingleStabTreap : basic_treap<SingleStabTreap> {
         }
         return x;
     }
-
-    static int get_right(const SingleStabTreap* x) { return x ? x->max_right : 0; }
 };
 
 /**
@@ -655,6 +659,10 @@ struct MinTreap : basic_treap<MinTreap> {
     int64_t set_lazy = MAX;
 
     explicit MinTreap(int key, int64_t value) : key(key), value(value), minimum(value) {}
+
+    static int get_size(const MinTreap* x) { return x ? x->size : 0; }
+    static auto get_key(const MinTreap* x) { return x->key; }
+    static int64_t get_min(const MinTreap* x) { return x ? x->minimum : MAX; }
 
     void apply_setmin(int64_t setmin) {
         value = min(value, setmin);
@@ -692,8 +700,6 @@ struct MinTreap : basic_treap<MinTreap> {
         }
         return x;
     }
-
-    static int64_t get_min(MinTreap* x) { return x ? x->minimum : MAX; }
 };
 
 /**
@@ -708,7 +714,12 @@ struct RangeTreap : basic_treap<RangeTreap> {
 
     explicit RangeTreap(V L, V R) : length(R - L), L(L), R(R) {}
 
+    static auto get_key(const RangeTreap* x) { return x->L; }
     static V get_length(const RangeTreap* x) { return x ? x->length : 0; }
+
+#ifdef LOCAL
+    string format() const { return '(' + to_string(L) + ' ' + to_string(R) + ')'; }
+#endif
 
     void pushdown() {}
 
@@ -787,8 +798,4 @@ struct RangeTreap : basic_treap<RangeTreap> {
         }
         return rank;
     }
-
-#ifdef LOCAL
-    string format() const { return '(' + to_string(L) + ' ' + to_string(R) + ')'; }
-#endif
 };

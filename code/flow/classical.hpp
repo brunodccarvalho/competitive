@@ -103,6 +103,44 @@ auto min_bipartite_vertex_cover(int N, int M, const vector<array<int, 2>>& G) {
 
 // --- Maxflow
 
+template <typename Solver>
+auto decompose_dag_flow_matching(Solver& mf, int s, int t) {
+    int V = mf.V;
+    vector<int> reach = {s}, indeg(V);
+    for (int i = 0, R = 1; i < R; i++) {
+        for (int e : mf.res[reach[i]]) {
+            if (int v = mf.edge[e].node[1]; !(e & 1) && mf.edge[e].flow && v != s) {
+                if (v != t && indeg[v]++ == 0) {
+                    reach.push_back(v), R++;
+                }
+            }
+        }
+    }
+    vector<vector<array<int, 2>>> edgepaths(V);
+    vector<int> bfs = {s};
+    for (int i = 0, B = 1; i < B; i++) {
+        int u = bfs[i];
+        for (int e : mf.res[u]) {
+            if (int v = mf.edge[e].node[1]; !(e & 1) && mf.edge[e].flow && v != s) {
+                int k = mf.edge[e].flow;
+                while (k--) {
+                    if (u == s) {
+                        edgepaths[v].push_back({e / 2, -1});
+                    } else {
+                        int f = edgepaths[u].back()[0];
+                        edgepaths[u].pop_back();
+                        edgepaths[v].push_back({f, e / 2});
+                    }
+                }
+                if (v != t && --indeg[v] == 0) {
+                    bfs.push_back(v), B++;
+                }
+            }
+        }
+    }
+    return edgepaths[t];
+}
+
 // We have N nodes, and we want to assign each to either side A or side B.
 // Assigning node i to A yields A[i] profit, and assigning it to B yields B[i] profit.
 // For several pairs (i,j) there is a penalty of c(i,j) if i,j are assigned differently.
@@ -343,8 +381,7 @@ auto matrix_rounding(const vector<vector<double>>& A) {
     constexpr int64_t inf = INT64_MAX / 4;
     circ.add(t, s, -inf, inf);
 
-    bool ok = circ.feasible_circulation();
-    assert(ok);
+    auto [ok, flow] = circ.feasible_circulation();
 
     vector<vector<int64_t>> R(N, vector<int64_t>(M));
     for (int i = 0, e = 0; i < N; i++) {

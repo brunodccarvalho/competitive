@@ -111,6 +111,8 @@ struct hld_forest {
         return is_above(lca(u, v), x) && (is_above(x, u) || is_above(x, v));
     }
 
+    int seg_edge_index(int u, int v) const { return parent[u] == v ? time[u] : time[v]; }
+
     int kth_on_path(int u, int v, int k) const {
         int a = lca(u, v);
         if (k <= depth[u] - depth[a]) {
@@ -204,9 +206,9 @@ struct hld_forest {
             }
         }
         if (depth[u] < depth[v]) {
-            down.push_back({time[u], time[v] + 1});
+            down.push_back({time[u] + 1, time[v] + 1});
         } else if (depth[v] < depth[u]) {
-            up.push_back({time[v], time[u] + 1});
+            up.push_back({time[v] + 1, time[u] + 1});
         }
         reverse(begin(down), end(down));
         return make_pair(move(up), move(down));

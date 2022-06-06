@@ -12,9 +12,6 @@ struct basic_splay {
     Splay* parent = nullptr;
     Splay* kids[2] = {};
 
-    static int get_size(const Splay* x) { return x ? x->size : 0; }
-    static const auto& get_key(const Splay* x) { return x->key; }
-
   protected:
     basic_splay() = default;
     inline void pushdown() {}
@@ -26,6 +23,9 @@ struct basic_splay {
   private:
     using TwoSplays = pair<Splay*, Splay*>;
     using ThreeSplays = tuple<Splay*, Splay*, Splay*>;
+
+    static int get_size(const Splay* x) { return Splay::get_size(x); }
+    static auto get_key(const Splay* x) { return Splay::get_key(x); }
 
     bool is_root() const { return !parent; }
     bool is_left() const { return parent && self() == parent->kids[0]; }
@@ -119,7 +119,7 @@ struct basic_splay {
     }
 
     friend Splay* splay(Splay* u) {
-        return u ? !u->parent ? u->pushdown(), u : splay_unsafe(u) : nullptr;
+        return u ? !u->parent ? u->pushdown(), u->pushup(), u : splay_unsafe(u) : nullptr;
     }
 
     friend void delete_all(Splay* u) {
@@ -271,7 +271,7 @@ struct basic_splay {
         return access_exclusive(tree, predecessor(tree, L), R);
     }
 
-    // Delete the range (L...R). If L,R are both null it splices everything
+    // Splice the range (L...R). If L,R are both null it splices everything
     friend Splay* splice_exclusive(Splay*& tree, Splay* L, Splay* R) {
         Splay* M = access_exclusive(tree, L, R);
         if (M && M->parent) {
@@ -801,6 +801,10 @@ struct Splay : basic_splay<Splay> {
 
     explicit Splay(int64_t key) : key(key), sum(key) {}
 
+    static const auto& get_key(const Splay* x) { return x->key; }
+    static int get_size(const Splay* x) { return x ? x->size : 0; }
+    static int64_t get_sum(const Splay* x) { return x ? x->sum : 0; }
+
     void update_self(int64_t add) {
         key += add;
         sum += add;
@@ -826,8 +830,6 @@ struct Splay : basic_splay<Splay> {
         sum = key + get_sum(kids[0]) + get_sum(kids[1]);
         size = 1 + get_size(kids[0]) + get_size(kids[1]);
     }
-
-    static int64_t get_sum(const Splay* x) { return x ? x->sum : 0; }
 };
 
 /**
@@ -842,6 +844,7 @@ struct RangeSplay : basic_splay<RangeSplay> {
 
     explicit RangeSplay(V L, V R) : length(R - L), L(L), R(R) {}
 
+    static auto get_key(const RangeSplay* x) { return x->L; }
     static V get_length(const RangeSplay* x) { return x ? x->length : 0; }
 
     void pushdown() {}
@@ -879,9 +882,9 @@ struct RangeSplay : basic_splay<RangeSplay> {
         }
     }
 
-    friend RangeSplay* insert_range(RangeSplay*& tree, V l, V r) {
-        return insert_key(tree, new RangeSplay(l, r));
-    }
+    // friend RangeSplay* insert_range(RangeSplay*& tree, V l, V r) {
+    //     return insert_key(tree, new RangeSplay(l, r));
+    // } // redefine get_key()
 
     friend RangeSplay* split_node_proper(RangeSplay*& tree, RangeSplay* x, V M) {
         assert(x->L < M && M < x->R);
@@ -915,8 +918,4 @@ struct RangeSplay : basic_splay<RangeSplay> {
             return get_length(node->kids[0]) + max<V>(i - node->L, 0);
         }
     }
-
-#ifdef LOCAL
-    string format() const { return '(' + to_string(L) + ' ' + to_string(R) + ')'; }
-#endif
 };
