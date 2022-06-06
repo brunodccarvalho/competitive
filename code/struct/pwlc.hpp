@@ -3,224 +3,180 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-// Piecewise-linear convex function with slope changing points stored in heaps
+// Piecewise-linear unbounded convex function with slope changing points stored in heaps
 // Supports pointwise addition of functions but not min-plus convolution
 // Source: https://github.com/saketh-are/algo-lib
-template <typename T>
+template <typename V>
 struct LinPoints {
-    static inline constexpr T MIN = numeric_limits<T>::lowest() / 4;
-    static inline constexpr T MAX = numeric_limits<T>::max() / 4;
-    template <typename U>
-    using max_heap = priority_queue<U, vector<U>, less<U>>;
-    template <typename U>
-    using min_heap = priority_queue<U, vector<U>, greater<U>>;
+    static constexpr V ninf = numeric_limits<V>::lowest() / 2;
+    static constexpr V pinf = numeric_limits<V>::max() / 2;
+    using max_heap = priority_queue<pair<V, V>, vector<pair<V, V>>, less<pair<V, V>>>;
+    using min_heap = priority_queue<pair<V, V>, vector<pair<V, V>>, greater<pair<V, V>>>;
 
-    T y0, left_offset = 0, right_offset = 0;
-    max_heap<pair<T, T>> left;
-    min_heap<pair<T, T>> right;
+    max_heap L;
+    min_heap R;
+    V y, Loff = 0, Roff = 0;
+    // valley is top(L)..top(R), value there is y, Loff/Roff are lazily added to points
 
-    explicit LinPoints(T y0 = 0) : y0(y0) {}
+    // f(x) = 0
+    LinPoints() = default;
 
-    int size() const { return left.size() + right.size(); }
+    int merge_size() const { return L.size() + R.size(); }
 
-    T minimum() const { return y0; }
-    T left_arg_min() const {
-        return left.empty() ? MIN : (left.top().first + left_offset);
-    }
-    T right_arg_min() const {
-        return right.empty() ? MAX : (right.top().first + right_offset);
+    static LinPoints constant(V y) {
+        LinPoints fn;
+        fn.y = y;
+        return fn;
     }
 
-    auto destructive_query(T x) {
-        auto c = y0;
-        auto L = left_arg_min();
-        auto R = right_arg_min();
-        if (x < L) {
-            while (left.size() && left.top().first + left_offset > x) {
-                auto [lx, slope] = left.top();
-                if (slope >= MAX / 2)
-                    return MAX;
-                left.pop(), lx += left_offset;
-                c += slope * (lx - x);
+    // f(x) = {y if x<=M | a(x-M)+y if M<=x}
+    static LinPoints valley_right(V a, V M, V y) {
+        assert(a > 0);
+        LinPoints fn;
+        fn.y = y;
+        fn.push_right(M, a);
+        return fn;
+    }
+
+    // f(x) = {a(M-x)+y if x<=M | y if M<=x}
+    static LinPoints valley_left(V a, V M, V y) {
+        assert(a > 0);
+        LinPoints fn;
+        fn.y = y;
+        fn.push_left(M, a);
+        return fn;
+    }
+
+    // f(x) = {a(L-x)+y if x<=L | y if L<=x<=R | b(x-R)+y if R<=x}
+    static LinPoints valley(V a, V b, V L, V R, V y) {
+        assert(L <= R && a > 0 && b > 0);
+        LinPoints fn;
+        fn.y = y;
+        fn.push_left(L, a);
+        fn.push_right(R, b);
+        return fn;
+    }
+
+    // f(x) = {a(p-x)+y if x<=p | b(x-p)+y if p<=x}
+    static LinPoints abs(V a, V b, V p, V y) { return valley(a, b, p, p, y); }
+
+    static void pointwise(LinPoints& fn, LinPoints& gn) {
+        if (fn.merge_size() < gn.merge_size()) {
+            swap(fn, gn);
+        }
+        fn.y += gn.y;
+        while (gn.L.size()) {
+            auto [x, d] = pop_heap(gn.L, gn.Loff);
+            if (x <= fn.right_argmin()) {
+                fn.push_left(x, d);
+                continue;
             }
-        } else if (R < x) {
-            while (right.size() && right.top().first + right_offset < x) {
-                auto [rx, slope] = right.top();
-                if (slope >= MAX / 2)
-                    return MAX;
-                right.pop(), rx += right_offset;
-                c += slope * (x - rx);
-            }
-        }
-        return c;
-    }
-
-    // __ : f(x) = b
-    static LinPoints constant(T b) { return LinPoints(b); }
-
-    // \__/ : f(x) = max(0, c(x0-x), c(x-x1)) + b, positive c
-    static LinPoints range(T c, T x0, T x1, T b = 0) {
-        LinPoints f(b);
-        assert(c > 0 && x0 <= x1);
-        f.right.emplace(x1, c);
-        f.left.emplace(x0, c);
-        return f;
-    }
-
-    // \_ or _/ : f(x) = max(0, c * (x - x0)) + b
-    static LinPoints slope(T c, T x0, T b = 0) {
-        LinPoints f(b);
-        if (c < 0) {
-            f.left.emplace(x0, -c);
-        } else if (c > 0) {
-            f.right.emplace(x0, c);
-        }
-        return f;
-    }
-
-    // \/ : y = c * abs(x - x0) + b, positive c
-    static LinPoints abs(T c, T x0, T b = 0) {
-        LinPoints f(b);
-        assert(c > 0);
-        f.left.emplace(x0, c);
-        f.right.emplace(x0, c);
-        return f;
-    }
-
-    // f'(x) = f(x + c)
-    auto& shift(int c) {
-        left_offset -= c;
-        right_offset -= c;
-        return *this;
-    }
-
-    // \_/ => \__ : f'(x) = min_{y <= x} f(y)
-    auto& prefix_min() {
-        right = min_heap<pair<T, T>>();
-        return *this;
-    }
-
-    // \_/ => \__ : f'(x) = min_{y >= x} f(y)
-    auto& suffix_min() {
-        left = max_heap<pair<T, T>>();
-        return *this;
-    }
-
-    // \_/ => \___/ : f'(x) = min_{dx in [xl, xr]} f(x + dx) */
-    auto& range_min(T xl, T xr) {
-        assert(xl <= xr);
-        if (xl > 0) {
-            shift(xl), xr -= xl, xl = 0;
-        }
-        if (xr < 0) {
-            shift(xr), xl -= xr, xr = 0;
-        }
-        left_offset -= xr;
-        right_offset -= xl;
-        return *this;
-    }
-
-    auto& add_constant(T dy) {
-        y0 += dy;
-        return *this;
-    }
-
-    auto& add(LinPoints&& o) {
-        y0 += o.y0;
-
-        while (!o.left.empty()) {
-            auto [x, beta_change] = o.left.top();
-            x += o.left_offset;
-            o.left.pop();
-
-            if (x <= right_arg_min()) {
-                left.emplace(x - left_offset, beta_change);
-            } else {
-                T x0 = right_arg_min();
-                y0 += (x - x0) * beta_change;
-                right.emplace(x - right_offset, beta_change);
-                T beta = beta_change;
-                while (beta > 0) {
-                    T next_change = right.top().second;
-                    right.pop();
-                    if (next_change >= beta) {
-                        left.emplace(x0 - left_offset, beta);
-                        if (next_change > beta) {
-                            right.emplace(x0 - right_offset, next_change - beta);
-                        }
-                        beta = 0;
-                    } else {
-                        beta -= next_change;
-                        y0 -= beta * (right_arg_min() - x0);
-                        x0 = right_arg_min();
-                    }
+            auto p = fn.right_argmin();
+            fn.y += (x - p) * d;
+            fn.push_right(x, d);
+            while (d > 0) {
+                auto [r, dr] = pop_heap(fn.R, fn.Roff);
+                if (dr >= d) {
+                    fn.push_left(p, d);
+                    fn.push_right(p, dr - d);
+                    break;
+                } else {
+                    d -= dr;
+                    fn.y -= d * (fn.right_argmin() - p);
+                    p = fn.right_argmin();
                 }
             }
         }
-
-        while (!o.right.empty()) {
-            auto [x, beta_change] = o.right.top();
-            x += o.right_offset;
-            o.right.pop();
-
-            if (x >= left_arg_min()) {
-                right.emplace(x - right_offset, beta_change);
-            } else {
-                T x0 = left_arg_min();
-                y0 += (x0 - x) * beta_change;
-                left.emplace(x - left_offset, beta_change);
-                T beta = beta_change;
-                while (beta > 0) {
-                    T next_change = left.top().second;
-                    left.pop();
-                    if (next_change >= beta) {
-                        right.emplace(x0 - right_offset, beta);
-                        if (next_change > beta) {
-                            left.emplace(x0 - left_offset, next_change - beta);
-                        }
-                        beta = 0;
-                    } else {
-                        beta -= next_change;
-                        y0 -= beta * (x0 - left_arg_min());
-                        x0 = left_arg_min();
-                    }
+        while (gn.R.size()) {
+            auto [x, d] = pop_heap(gn.R, gn.Roff);
+            if (x >= fn.left_argmin()) {
+                fn.push_right(x, d);
+                continue;
+            }
+            auto p = fn.left_argmin();
+            fn.y += (p - x) * d;
+            fn.push_left(x, d);
+            while (d > 0) {
+                auto [l, dl] = pop_heap(fn.L, fn.Loff);
+                if (dl >= d) {
+                    fn.push_right(p, d);
+                    fn.push_left(p, dl - d);
+                    break;
+                } else {
+                    d -= dl;
+                    fn.y -= d * (p - fn.left_argmin());
+                    p = fn.left_argmin();
                 }
             }
         }
-
-        return *this;
     }
 
-    LinPoints& add(const LinPoints& o) {
-        LinPoints f(o);
-        return add(move(f));
+    // f(x) := g(x+c)
+    auto shift(int c) { Loff -= c, Roff -= c; }
+
+    // f(x) := g(x)+dy
+    void add_constant(V dy) { y += dy; }
+
+    // f(x) := min{da+x<=y<=db+y} g(y)
+    void range_min(V da, V db) { assert(da <= db), Loff -= db, Roff -= da; }
+
+    // f(x) := min{x<=y} g(y). Clears the left heap.
+    void suffix_min() { L.swap(min_heap()), Loff = 0; }
+
+    // f(x) := min{y<=x} g(y). Clears the right heap.
+    void prefix_min() { R.swap(min_heap()), Roff = 0; }
+
+    V minimum() const { return y; }
+    V left_argmin() const { return L.empty() ? ninf : (L.top().first + Loff); }
+    V right_argmin() const { return R.empty() ? pinf : (R.top().first + Roff); }
+    auto valley() const { return make_pair(left_argmin(), right_argmin()); }
+
+    auto destructive_query(V x) {
+        V a = left_argmin(), b = right_argmin();
+        if (a <= x && x <= b) {
+            return y;
+        } else if (x < a) {
+            V slope = 0, ans = y;
+            while (L.size()) {
+                auto [f, d] = pop_heap(L, Loff);
+                auto advance = min(a - x, a - f);
+                ans += slope * advance;
+                a -= advance, slope += d;
+            }
+            ans += slope * (a - x);
+            return ans;
+        } else /* b < x */ {
+            V slope = 0, ans = y;
+            while (R.size()) {
+                auto [f, d] = pop_heap(R, Roff);
+                auto advance = min(x - b, f - b);
+                ans += slope * advance;
+                b += advance, slope += d;
+            }
+            ans += slope * (x - b);
+            return ans;
+        }
     }
 
-    friend LinPoints operator+(LinPoints a, const LinPoints& b) { return a.add(b); }
-
-    auto destructive_format() {
-        set<pair<T, T>> pts;
-        T L = left_arg_min(), R = right_arg_min();
-        pts.emplace(L, y0);
-        pts.emplace(R, y0);
-        T cL = 0, cR = 0, vL = y0, vR = y0;
-        while (!left.empty()) {
-            auto [l, c] = left.top();
-            left.pop(), l += left_offset;
-            vL += (L - l) * cL, cL += c;
-            pts.emplace(l, vL);
-            if (c >= MAX / 2)
-                break;
+  private:
+    template <typename Heap>
+    static auto pop_heap(Heap& heap, V off) {
+        auto [x, slope] = heap.top();
+        V ans = 0;
+        do {
+            ans += heap.top().second, heap.pop();
+        } while (heap.size() && heap.top().first == x);
+        return make_pair(x + off, ans);
+    }
+    void push_left(V x, V slope) {
+        if (slope) {
+            L.emplace(x - Loff, slope);
         }
-        while (!right.empty()) {
-            auto [r, c] = right.top();
-            right.pop(), r += right_offset;
-            vR += (r - R) * cR, cR += c;
-            pts.emplace(r, vR);
-            if (c >= MAX / 2)
-                break;
+    }
+    void push_right(V x, V slope) {
+        if (slope) {
+            R.emplace(x - Roff, slope);
         }
-        return to_string(pts);
     }
 };
 
@@ -232,7 +188,7 @@ struct LinSlopes {
     static constexpr V inf = numeric_limits<V>::max() / 2;
     min_heap L, R;
     V a = 0, b = 0, y = 0, Loff = 0, Roff = 0;
-    // valley is [a,b], value there is y, Loff and Roff are lazily added to heaps
+    // valley is [a,b], value there is y, Loff/Roff are lazily added to slopes
 
     // f(x) = {0 for x=0}
     LinSlopes() = default;
@@ -266,7 +222,7 @@ struct LinSlopes {
         }
     }
 
-    // f(x) = {a(L-x)+y for L<=x<=A, y for A<=x<=B, b(R-x)+y for B<=x<=R | for L<=x<=R}
+    // f(x) = {a(L-x)+y if L<=x<=A, y if A<=x<=B, b(R-x)+y if B<=x<=R | for L<=x<=R}
     static LinSlopes valley(V a, V b, V L, V A, V B, V R, V y) {
         assert(L <= A && A <= B && B <= R && a > 0 && b > 0);
         LinSlopes fn;
@@ -409,7 +365,11 @@ struct LinSlopes {
         }
         while (b.size()) {
             auto [s, len] = b.top();
-            a.push({s + boff - aoff, len}), b.pop();
+            V ans = 0;
+            do {
+                ans += b.top().second, b.pop();
+            } while (b.size() && b.top().first == s);
+            a.emplace(s + boff - aoff, len);
         }
     }
     auto push_left(V slope, V length) {
@@ -424,10 +384,18 @@ struct LinSlopes {
     }
     auto pop_left() {
         auto [s, len] = L.top();
-        return L.pop(), make_pair(s + Loff, len);
+        V ans = 0;
+        do {
+            ans += L.top().second, L.pop();
+        } while (L.size() && L.top().first == s);
+        return make_pair(s + Loff, ans);
     }
     auto pop_right() {
         auto [s, len] = R.top();
-        return R.pop(), make_pair(s + Roff, len);
+        V ans = 0;
+        do {
+            ans += R.top().second, R.pop();
+        } while (R.size() && R.top().first == s);
+        return make_pair(s + Roff, ans);
     }
 };
