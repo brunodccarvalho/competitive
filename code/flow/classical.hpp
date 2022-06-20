@@ -163,8 +163,9 @@ auto max_segmentation(const vector<int64_t>& A, //
         mf.add(i, t, B[i]);
     }
     for (auto [i, j, c] : costs) {
-        assert(0 <= i && i < N && 0 <= j && j < N && i != j && c > 0);
-        mf.add(i, j, c), mf.add(j, i, c);
+        if (i != j && c > 0) {
+            mf.add(i, j, c), mf.add(j, i, c);
+        }
     }
 
     int64_t maxflow = mf.maxflow(s, t);

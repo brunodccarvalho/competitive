@@ -26,16 +26,36 @@ struct linked_lists {
     void erase(int n) { meet(prev[n], next[n]); }
     void pop_front(int l) { meet(rep(l), next[head(l)]); }
     void pop_back(int l) { meet(prev[tail(l)], rep(l)); }
+    void cut_suffix(int l, int x) { meet(prev[x], rep(l)); }
+    void cut_prefix(int l, int x) { meet(rep(l), next[x]); }
 
+    void splice_suffix_back(int l, int b, int x) { // move b[x,...) to back of l
+        assert(0 <= l && l < L && 0 <= b && b < L && l != b && !empty(b));
+        int y = tail(b);
+        meet(prev[x], rep(b)), meet(tail(l), x), meet(y, rep(l));
+    }
+    void splice_suffix_front(int l, int b, int x) { // move b[x,...) to front of l
+        assert(0 <= l && l < L && 0 <= b && b < L && l != b && !empty(b));
+        int y = tail(b);
+        meet(prev[x], rep(b)), meet(y, head(l)), meet(rep(l), x);
+    }
+    void splice_prefix_back(int l, int b, int y) { // move b(...,y] to back of l
+        assert(0 <= l && l < L && 0 <= b && b < L && l != b && !empty(b));
+        int x = head(b);
+        meet(rep(b), next[y]), meet(tail(l), x), meet(y, rep(l));
+    }
+    void splice_prefix_front(int l, int b, int y) { // move b(...,y] to front of l
+        assert(0 <= l && l < L && 0 <= b && b < L && l != b && !empty(b));
+        int x = head(b);
+        meet(rep(b), next[y]), meet(y, head(l)), meet(rep(l), x);
+    }
     void splice_front(int l, int b) {
-        assert(0 <= l && l < L && 0 <= b && b < L && l != b);
-        if (!empty(b))
-            meet(tail(b), head(l)), meet(rep(l), head(b)), clear(b);
+        assert(0 <= l && l < L && 0 <= b && b < L && l != b && !empty(b));
+        meet(tail(b), head(l)), meet(rep(l), head(b)), clear(b);
     }
     void splice_back(int l, int b) {
-        assert(0 <= l && l < L && 0 <= b && b < L && l != b);
-        if (!empty(b))
-            meet(tail(l), head(b)), meet(tail(b), rep(l)), clear(b);
+        assert(0 <= l && l < L && 0 <= b && b < L && l != b && !empty(b));
+        meet(tail(l), head(b)), meet(tail(b), rep(l)), clear(b);
     }
 
     void clear() {

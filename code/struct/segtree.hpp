@@ -308,7 +308,7 @@ struct segtree {
 
     template <typename Vis>
     void visit_beats_dfs(int u, int L, int R, int ql, int qr, Vis&& vis) {
-        if (ql <= L && R <= qr && vis(u, R - L)) {
+        if (ql <= L && R <= qr && vis(node[u], R - L)) {
             return;
         }
         pushdown(u, R - L);

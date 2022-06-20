@@ -744,25 +744,46 @@ struct basic_splay {
         return {a, b, c};
     }
 
-    // Meld two splay trees, smaller into larger. O(B log A) if |A| >= |B|
     friend Splay* meld(Splay* A, Splay* B) {
         if (!A || !B) {
             return A ? A : B;
         }
-        if (get_size(A) < get_size(B)) {
-            swap(A, B);
-        }
-        visit_inorder(B, [&A](Splay* item) {
-            item->kids[0] = item->kids[1] = item->parent = nullptr;
-            item->pushup();
-            insert_key(A, item);
-        });
+        A->pushdown(), B->pushdown();
+        auto [L, R] = split_key(B, get_key(A));
+        Splay* X = detach_kid(A, 0);
+        Splay* Y = detach_kid(A, 1);
+        attach_node(A, meld(L, X), 0);
+        attach_node(A, meld(R, Y), 1);
         return A;
     }
 
     friend Splay* meld(Splay* A, Splay* B, Splay* C) { return meld(meld(A, B), C); }
 
-    // ***** Debugging
+    friend vector<Splay*> unstitch(Splay* A) {
+        vector<Splay*> nodes = get_inorder_vector(A);
+        for (Splay* node : nodes) {
+            node->parent = node->kids[0] = node->kids[1] = nullptr;
+            node->pushup();
+        }
+        return nodes;
+    }
+
+    friend Splay* stitch_dfs(const vector<Splay*>& nodes, int L, int R, Splay* parent) {
+        if (L >= R) {
+            return nullptr;
+        }
+        int M = (L + R) / 2;
+        Splay* root = nodes[M];
+        root->parent = parent;
+        root->kids[0] = stitch_dfs(nodes, L, M, root);
+        root->kids[1] = stitch_dfs(nodes, M + 1, R, root);
+        root->pushup();
+        return root;
+    }
+
+    friend Splay* stitch(const vector<Splay*>& nodes) {
+        return stitch_dfs(nodes, 0, nodes.size(), nullptr);
+    }
 
     friend vector<Splay*> get_inorder_vector(Splay* node) {
         vector<Splay*> vec;
@@ -780,6 +801,8 @@ struct basic_splay {
             visit_inorder(b, fn);
         }
     }
+
+    // ***** Debugging
 
     friend string format_inorder(Splay* node) {
         int id = 0;

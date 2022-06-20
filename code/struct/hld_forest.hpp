@@ -3,7 +3,7 @@
 #include "algo/y_combinator.hpp"
 
 struct hld_forest {
-    vector<int> subsize, parent, depth, roots;
+    vector<int> subsize, parent, depth, roots, order;
     vector<int> heavy; // heavy child of this node, tree[u][0]
     vector<int> head;  // top of heavy path
     vector<int> time;  // index of node in preorder tour with no repetition
@@ -16,6 +16,7 @@ struct hld_forest {
         depth.assign(N, 0);
         head.assign(N, 0);
         time.assign(N, 0);
+        order.assign(N, 0);
         int timer = 0;
 
         auto dfs = y_combinator([&](auto self, int u, int p) -> void {
@@ -37,6 +38,7 @@ struct hld_forest {
         });
 
         auto decompose = y_combinator([&](auto self, int u, int h) -> void {
+            order[timer] = u;
             head[u] = h;
             time[u] = timer++;
             for (int v : tree[u]) {
@@ -62,14 +64,19 @@ struct hld_forest {
 
     int num_nodes() const { return subsize.size(); }
 
+    int max_depth() const { return *max_element(begin(depth), end(depth)); }
+
     int kth_ancestor(int u, int k) const {
-        assert(0 <= k && k <= depth[u]);
+        if (k < 0 || depth[u] < k) {
+            return -1;
+        }
         int dest = depth[u] - k;
         while (depth[u] > dest) {
-            if (depth[head[u]] < dest) {
-                u = parent[u];
+            if (depth[head[u]] > dest) {
+                u = parent[head[u]];
             } else {
-                u = head[u];
+                int up = depth[u] - dest;
+                u = order[time[u] - up];
             }
         }
         return u;
@@ -113,12 +120,18 @@ struct hld_forest {
 
     int seg_edge_index(int u, int v) const { return parent[u] == v ? time[u] : time[v]; }
 
+    auto seg_vertex_range(int u) const {
+        return make_pair(time[u], time[u] + subsize[u]);
+    }
+
     int kth_on_path(int u, int v, int k) const {
         int a = lca(u, v);
         if (k <= depth[u] - depth[a]) {
             return kth_ancestor(u, k);
+        } else if (k -= depth[u] - depth[a]; k <= depth[v] - depth[a]) {
+            return kth_ancestor(v, depth[v] - depth[a] - k);
         } else {
-            return kth_ancestor(v, depth[u] + depth[v] - 2 * depth[a] - k);
+            return -1;
         }
     }
 
@@ -279,10 +292,10 @@ struct hld_forest {
         nodes.erase(unique(begin(nodes), end(nodes)), end(nodes));
         k = nodes.size();
 
-        vector<pair<int, int>> compressed_tree = {{nodes[0], -1}};
+        vector<pair<int, int>> ctree;
         for (int i = 1; i < k; i++) {
-            compressed_tree.push_back({nodes[i], lca(nodes[i - 1], nodes[i])});
+            ctree.emplace_back(nodes[i], lca(nodes[i - 1], nodes[i]));
         }
-        return compressed_tree;
+        return make_pair(nodes[0], move(ctree));
     }
 };

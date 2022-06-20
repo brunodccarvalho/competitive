@@ -3,6 +3,25 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+template <typename K, typename V>
+struct count_map : map<K, V> {
+    V adjust(const Key& k, V v) {
+        if (auto it = find(k); it == end() && v != 0) {
+            return emplace(k, v), v;
+        } else if (it == end()) {
+            return 0;
+        } else if (it->second + v == 0) {
+            return erase(it), 0;
+        } else {
+            return it->second += v;
+        }
+    }
+    V get(const Key& k) const {
+        auto it = find(k);
+        return it == end() ? 0 : it->second;
+    }
+};
+
 // Reference: https://github.com/Aeren1564/Algorithms color processor
 
 /**

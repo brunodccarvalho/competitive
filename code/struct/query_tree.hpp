@@ -12,25 +12,6 @@
  * This implementation queries the data structure at every timepoint.
  * Reference: https://github.com/Aeren1564/Algorithms/.../query_tree.sublime-snippet
  */
-template <typename Fun>
-class y_combinator_result {
-    Fun fun_;
-
-  public:
-    template <typename T>
-    explicit y_combinator_result(T&& fun) : fun_(std::forward<T>(fun)) {}
-
-    template <typename... Args>
-    decltype(auto) operator()(Args&&... args) {
-        return fun_(std::ref(*this), std::forward<Args>(args)...);
-    }
-};
-
-template <typename Fun>
-auto y_combinator(Fun&& fun) {
-    return y_combinator_result<std::decay_t<Fun>>(std::forward<Fun>(fun));
-}
-
 template <typename E>
 struct query_tree {
     int N;
@@ -88,3 +69,57 @@ struct query_tree {
         }
     }
 };
+
+template <typename E, typename Insert, typename Rollback>
+struct undo_stack_to_queue {
+    Insert inserter;
+    Rollback rollbacker;
+    vector<pair<int, E>> stack; // A=1, B=0
+    int A = 0, S = 0;
+
+    explicit undo_stack_to_queue(const Insert& insert, const Rollback& rollback)
+        : inserter(insert), rollbacker(rollback) {}
+
+    void push(E elem) { stack.emplace_back(0, elem), S++, inserter(elem); }
+
+    void pop() {
+        if (stack.empty()) {
+            return;
+        } else if (stack.back().first == 1) {
+            stack.pop_back(), A--, S--, rollbacker();
+        } else if (A == 0) {
+            for (int i = 0; i < S; i++) {
+                rollbacker();
+            }
+            reverse(begin(stack), end(stack));
+            for (int i = 0; i < S; i++) {
+                stack[i].first = 1, A++;
+                inserter(stack[i].second);
+            }
+            stack.pop_back(), A--, S--, rollbacker();
+        } else {
+            int D = 0; // Bs - As
+            vector<pair<int, E>> popped[2] = {};
+            do {
+                int t = stack.back().first;
+                popped[t].push_back(stack.back()), stack.pop_back();
+                rollbacker();
+                A -= t, D += t ? -1 : +1;
+            } while (stack.size() && A > 0 && D > 0);
+            while (popped[0].size()) {
+                stack.push_back(popped[0].back()), popped[0].pop_back();
+                inserter(stack.back().second);
+            }
+            while (popped[1].size()) {
+                stack.push_back(popped[1].back()), popped[1].pop_back(), A++;
+                inserter(stack.back().second);
+            }
+            stack.pop_back(), A--, S--, rollbacker();
+        }
+    }
+};
+
+template <typename E, typename Insert, typename Rollback>
+auto make_undo_stack_to_queue(Insert&& insert, Rollback&& rollback) {
+    return undo_stack_to_queue<E, Insert, Rollback>(insert, rollback);
+}

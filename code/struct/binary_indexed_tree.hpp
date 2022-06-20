@@ -9,6 +9,8 @@ struct bitree {
     vector<T> tree;
     BinOp binop;
 
+    explicit bitree(int N, T id = T()) : N(N), tree(N + 1, id), binop(BinOp()) {}
+
     explicit bitree(int N, const BinOp& op, T id = T())
         : N(N), tree(N + 1, id), binop(op) {}
 
@@ -29,10 +31,10 @@ struct bitree {
         }
     }
 
-    // Prefix sum inclusive, [0..r]
+    // Prefix sum exclusive, [0..r)
     T prefix(int r) const {
         T accum = tree[0];
-        for (int i = r + 1; i > 0; i -= i & -i) {
+        for (int i = r; i > 0; i -= i & -i) {
             accum = binop(tree[i], accum);
         }
         return accum;
@@ -98,11 +100,11 @@ struct bitree2d {
         }
     }
 
-    // Prefix sum inclusive, [0..r][0..c]
+    // Prefix sum exclusive, [0..r)[0..c)
     T prefix(int r, int c) const {
         T accum = tree[0][0];
-        for (int i = r + 1; i > 0; i -= i & -i) {
-            for (int j = c + 1; j > 0; j -= j & -j) {
+        for (int i = r; i > 0; i -= i & -i) {
+            for (int j = c; j > 0; j -= j & -j) {
                 accum = binop(tree[i][j], accum);
             }
         }

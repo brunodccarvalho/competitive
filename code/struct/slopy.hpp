@@ -5,6 +5,7 @@
 // minplus convolution (small to large), inversion and evaluation in O(log n)
 struct Branch : basic_splay<Branch> {
     using V = int64_t;
+    static constexpr bool SAFE = true; // set to true to allow merging
     int size = 1, flip = 0;
     V slope = 0, width = 0, sum = 0, height = 0, lazy = 0;
 
@@ -45,10 +46,16 @@ struct Branch : basic_splay<Branch> {
         height = val() + get_height(kids[0]) + get_height(kids[1]);
     }
 
+    static void invert(Branch*& tree) {
+        if (tree) {
+            tree->invert_range();
+        }
+    }
+
     static void insert_segment(Branch*& tree, V slope, V width) {
         if (width <= 0) {
             return;
-        } else if (auto pos = after(tree, slope); pos && pos->slope == slope) {
+        } else if (auto pos = after(tree, slope); SAFE && pos && pos->slope <= slope) {
             pos->adjust_width(width), tree = splay(pos);
         } else {
             insert_before(tree, pos, new Branch(slope, width));
@@ -58,17 +65,19 @@ struct Branch : basic_splay<Branch> {
     // Find the node responsible for x=rank. If this lies at the beginning of a node
     // x, it returns x, otherwise it cuts x and returns its successor node
     static auto find_by_rank(Branch*& tree, V rank) -> Branch* {
-        if (get_sum(tree) <= rank) {
+        if (!tree || get_sum(tree) <= rank) {
             return nullptr;
+        } else if (rank <= 0) {
+            return front(tree);
         }
-        assert(rank >= 0);
-        Branch* node = tree;
-        while (true) {
+        Branch *node = tree, *after = nullptr;
+        while (node) {
             node->pushdown();
             if (rank < get_sum(node->kids[0])) {
+                after = node;
                 node = node->kids[0];
             } else if (rank -= get_sum(node->kids[0]); rank < node->width) {
-                if (rank == 0) {
+                if (rank <= 0) {
                     return tree = splay(node);
                 } else {
                     V rest = node->width - rank;
@@ -80,6 +89,13 @@ struct Branch : basic_splay<Branch> {
                 rank -= node->width;
                 node = node->kids[1];
             }
+        }
+        if (after) {
+            auto b = new Branch(after->slope, 0);
+            return insert_before(tree, after, b);
+        } else {
+            auto b = new Branch(back(tree)->slope, 0);
+            return push_back(tree, b);
         }
     }
 
@@ -143,17 +159,8 @@ struct Branch : basic_splay<Branch> {
 
     // Split the tree into two branches [0,rank) and [rank,...)
     static auto split_rank_range(Branch*& tree, V rank) {
-        assert(0 <= rank && rank <= get_sum(tree));
         auto A = find_by_rank(tree, rank);
         return split_before(tree, A);
-    }
-
-    // Split the tree into three branches [0,L) and [L,R) and [R,...)
-    static auto access_rank_range(Branch*& tree, V L, V R) {
-        assert(0 <= L && L < R && R <= get_sum(tree));
-        auto B = find_by_rank(tree, R);
-        auto A = find_by_rank(tree, L);
-        return split_range(tree, A, B);
     }
 
     // Query height at given rank. O(log n)
@@ -185,27 +192,7 @@ struct Branch : basic_splay<Branch> {
     }
 
     // Minplus convolution of two branches, the caller tracks the vertex shift.
-    // Small to large merge. O(min(a,b) log max(a,b))
-    static void minplus(Branch*& a, Branch*& b) {
-        if (get_size(a) < get_size(b)) {
-            swap(a, b);
-        }
-        while (b) {
-            auto x = pop_front(b);
-            if (auto pos = after(a, x->slope); !pos) {
-                push_back(a, x);
-                push_back(a, b);
-                break;
-            } else if (pos->slope == x->slope) {
-                pos->adjust_width(x->width);
-                a = splay(pos);
-                delete x;
-            } else {
-                insert_before(a, pos, x);
-            }
-            a->pushup();
-        }
-    }
+    static void minplus(Branch*& a, Branch*& b) { a = meld(a, b), b = nullptr; }
 
     // Pointwise addition of two branches, the caller tracks the vertex shift.
     // Small to large. O(min(a,b) log max(a,b)). Restricts to common domain.
@@ -219,17 +206,32 @@ struct Branch : basic_splay<Branch> {
         if (get_size(a) < get_size(b)) {
             swap(a, b);
         }
-        V rank = 0;
-        while (b) {
-            auto node = pop_front(b);
-            auto [x, y, z] = access_rank_range(a, rank, rank + node->width);
-            rank += node->width;
-            y->update_range(node->slope);
-            if (Branch* c = back(x), *d = front(y); c && c->slope == d->slope) {
-                d->adjust_width(c->width), y = splay(d), delete_back(x);
+        vector<Branch*> from = unstitch(b);
+        vector<Branch*> into = {a};
+        int S = from.size();
+        for (int i = 0; i < S; i++) {
+            auto [u, v] = split_rank_range(into.back(), from[i]->width);
+            into.pop_back();
+            into.push_back(u);
+            into.push_back(v);
+        }
+        for (int i = 0; i < S; i++) {
+            if (into[i]) {
+                into[i]->update_range(from[i]->slope);
             }
-            a = join(x, y, z);
-            delete node;
+            delete from[i];
+        }
+        for (int i = 0; i < S && SAFE; i++) {
+            Branch *c = back(into[i]), *d = front(into[i + 1]);
+            if (c && d && c->slope >= d->slope) {
+                d->adjust_width(c->width);
+                into[i + 1] = splay(d);
+                delete_back(into[i]);
+            }
+        }
+        a = into[0];
+        for (int i = 1; i <= S; i++) {
+            a = join(a, into[i]);
         }
     }
 
@@ -259,8 +261,12 @@ struct Branch : basic_splay<Branch> {
 
     // Trim branch to [L,R) of current domain
     static void trimto(Branch*& tree, V L, V R) {
-        assert(0 <= L && L <= R && R <= get_sum(tree));
-        trim_back(tree, get_sum(tree) - R), trim_front(tree, L);
+        L = max<V>(L, 0), R = min<V>(R, get_sum(tree));
+        if (R <= L) {
+            delete_all(tree), tree = nullptr;
+        } else {
+            trim_back(tree, get_sum(tree) - R), trim_front(tree, L);
+        }
     }
 };
 
@@ -274,7 +280,7 @@ struct Slopy {
     // f(x) = {0 for x=0}
     Slopy() = default;
 
-    ~Slopy() noexcept { delete_all(tree), tree = nullptr; }
+    void clear() { delete_all(tree), tree = nullptr, v = y = 0; }
 
     static Slopy point(V x, V y) {
         Slopy fn;
@@ -342,7 +348,6 @@ struct Slopy {
     // merge g into f. f(x)=min{y+z=x}(a(y)+b(z))
     static void minplus(Slopy& fn, Slopy& gn) {
         fn.y += gn.y, fn.v += gn.v, Branch::minplus(fn.tree, gn.tree);
-        gn = Slopy();
     }
 
     // merge g into f. f(x)=g(x)+h(x) restricted to the intersected domain
@@ -353,7 +358,6 @@ struct Slopy {
         fn.y = fn.query(vertex) + gn.query(vertex);
         Branch::pointwise(fn.tree, gn.tree, fn.v, gn.v);
         fn.v = vertex;
-        gn = Slopy();
     }
 
     // f(x) := g(x+c)
@@ -386,25 +390,21 @@ struct Slopy {
     void trimto(V L, V R) {
         L = max(L, left()), R = min(R, right());
         assert(L <= R);
-        y = Branch::query(tree, L - v);
+        y = query(L);
         Branch::trimto(tree, L - v, R - v);
         v = L;
     }
+
+    void invert() { v = -right(), Branch::invert(tree); }
 
     V minimum() { return y + Branch::query(tree, Branch::slope_rank(tree, 0)); }
     V left_argmin() { return v + Branch::slope_rank(tree, 0); }
     V right_argmin() { return v + Branch::slope_rank(tree, 1); }
     V left() const { return v; }
     V right() const { return v + Branch::get_sum(tree); }
-    auto ceiling_range(V ceil) { return Branch::ceiling_range(tree, ceil - v); }
 
     bool within_domain(V x) const { return v <= x && x <= v + Branch::get_sum(tree); }
 
-    // Compute f(x)
     V query(V x) { return within_domain(x) ? y + Branch::query(tree, x - v) : inf; }
-
-    Slopy(const Slopy&) = delete;
-    Slopy& operator=(const Slopy&) = delete;
-    Slopy(Slopy&&) = default;
-    Slopy& operator=(Slopy&&) = default;
+    auto ceiling_range(V ceil) { return Branch::ceiling_range(tree, ceil - v); }
 };

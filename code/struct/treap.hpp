@@ -15,9 +15,6 @@ struct basic_treap {
     Treap* kids[2] = {};
     uint32_t priority = priod(rng);
 
-    static int get_size(const Treap* x) { return Treap::get_size(x); }
-    static auto get_key(const Treap* x) { return Treap::get_key(x); }
-
   protected:
     basic_treap() : priority(priod(rng)) {}
     inline void pushdown() {}
@@ -29,6 +26,9 @@ struct basic_treap {
   private:
     using TwoTreaps = pair<Treap*, Treap*>;
     using ThreeTreaps = tuple<Treap*, Treap*, Treap*>;
+
+    static int get_size(const Treap* x) { return Treap::get_size(x); }
+    static auto get_key(const Treap* x) { return Treap::get_key(x); }
 
   public:
     Treap* clone() const {
@@ -451,20 +451,18 @@ struct basic_treap {
         return join(a, c);
     }
 
-    // Meld two treaps, smaller into larger. O(B log A) if |A| >= |B|
     friend Treap* meld(Treap* A, Treap* B) {
         if (!A || !B) {
             return A ? A : B;
         }
-        if (get_size(A) < get_size(B)) {
+        if (A->priority < B->priority) {
             swap(A, B);
         }
-        visit_inorder(B, [&A](Treap* item) {
-            item->kids[0] = item->kids[1] = nullptr;
-            item->pushup();
-            insert_key(A, item);
-        });
-        meld_dfs(A, B);
+        A->pushdown(), B->pushdown();
+        auto [L, R] = split_key(B, get_key(A));
+        A->kids[0] = meld(L, A->kids[0]);
+        A->kids[1] = meld(R, A->kids[1]);
+        A->pushup();
         return A;
     }
 
@@ -491,6 +489,38 @@ struct basic_treap {
     }
 
     // ***** Debugging/auxiliary
+
+    friend vector<Treap*> unstitch(Treap* A) {
+        vector<Treap*> nodes = get_inorder_vector(A);
+        for (Treap* node : nodes) {
+            node->parent = node->kids[0] = node->kids[1] = nullptr;
+            node->pushup();
+        }
+        return nodes;
+    }
+
+    friend Treap* stitch_dfs(const vector<Treap*>& nodes, int L, int R, Treap* parent) {
+        if (L >= R) {
+            return nullptr;
+        }
+        int M = (L + R) / 2;
+        Treap* root = nodes[M];
+        root->parent = parent;
+        root->kids[0] = stitch_dfs(nodes, L, M, root);
+        root->kids[1] = stitch_dfs(nodes, M + 1, R, root);
+        root->pushup();
+        return root;
+    }
+
+    friend Treap* stitch(const vector<Treap*>& nodes) {
+        return stitch_dfs(nodes, 0, nodes.size(), nullptr);
+    }
+
+    friend vector<Treap*> get_inorder_vector(Treap* node) {
+        vector<Treap*> vec;
+        visit_inorder(node, [&vec](Treap* x) { vec.push_back(x); });
+        return vec;
+    }
 
     template <typename Fn>
     friend void visit_inorder(Treap* node, Fn&& fn) {

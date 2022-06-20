@@ -1,6 +1,6 @@
 # C++ template (COMPILER=(gcc or clang), CC=(executable name/path, e.g. g++ or clang++))
-COMPILER := clang
-CC := clang++
+COMPILER := gcc
+CC := g++
 CPP_STANDARD := c++17
 EXTRA_CXXFLAGS := -DLOCAL
 LIBS := -lfmt
