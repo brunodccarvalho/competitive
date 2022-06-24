@@ -54,8 +54,9 @@ void stress_test_dynamic_segtree() {
 
 void stress_test_maxsubrange_segtree() {
     constexpr int N = 200;
+    using V = maxsubrange_segnode::V;
 
-    vector<int> arr(N, 0);
+    vector<V> arr(N, 0);
     dynamic_segtree<maxsubrange_segnode> st;
     int root = st.build_sparse({0}, false);
 
@@ -68,11 +69,11 @@ void stress_test_maxsubrange_segtree() {
         }
         if (cointoss(0.5)) {
             auto [L, R] = ordered_unif<int>(0, N);
-            int got = st.query_range(root, 0, N, L, R);
+            auto got = st.query_range(root, 0, N, L, R);
 
-            int actual = maxsubrange_segnode::MIN;
+            auto actual = maxsubrange_segnode::MIN;
             for (int i = L; i < R; i++) {
-                int sum = arr[i];
+                auto sum = arr[i];
                 actual = max(actual, sum);
                 for (int j = i + 1; j < R; j++) {
                     sum += arr[j];
@@ -153,8 +154,9 @@ void stress_test_gcd_segtree() {
 
 void stress_test_maxcount_segtree() {
     constexpr int N = 200;
+    using V = maxcount_segnode::V;
 
-    vector<int> arr(N, 0);
+    vector<V> arr(N, 0);
     dynamic_segtree<maxcount_segnode> st;
     int root = st.build_array(N, arr, false);
 
@@ -173,7 +175,8 @@ void stress_test_maxcount_segtree() {
             auto got_max = ans.value;
             auto got_cnt = ans.count;
 
-            int actual_max = maxcount_segnode::MIN, actual_cnt = 0;
+            auto actual_max = maxcount_segnode::MIN;
+            int actual_cnt = 0;
             for (int i = L; i < R; i++) {
                 if (arr[i] > actual_max) {
                     actual_max = arr[i];

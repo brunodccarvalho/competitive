@@ -824,7 +824,7 @@ struct Splay : basic_splay<Splay> {
 
     explicit Splay(int64_t key) : key(key), sum(key) {}
 
-    static const auto& get_key(const Splay* x) { return x->key; }
+    static auto get_key(const Splay* x) { return x->key; }
     static int get_size(const Splay* x) { return x ? x->size : 0; }
     static int64_t get_sum(const Splay* x) { return x ? x->sum : 0; }
 

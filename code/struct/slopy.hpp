@@ -349,6 +349,7 @@ struct Slopy {
     static void minplus(Slopy& fn, Slopy& gn) {
         fn.y += gn.y, fn.v += gn.v, Branch::minplus(fn.tree, gn.tree);
     }
+    static void minplus(Slopy& fn, Slopy&& gn) { minplus(fn, gn); }
 
     // merge g into f. f(x)=g(x)+h(x) restricted to the intersected domain
     static void pointwise(Slopy& fn, Slopy& gn) {
@@ -359,6 +360,7 @@ struct Slopy {
         Branch::pointwise(fn.tree, gn.tree, fn.v, gn.v);
         fn.v = vertex;
     }
+    static void pointwise(Slopy& fn, Slopy&& gn) { pointwise(fn, gn); }
 
     // f(x) := g(x+c)
     void shift(V c) { v -= c; }

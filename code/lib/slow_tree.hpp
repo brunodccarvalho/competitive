@@ -19,7 +19,7 @@ struct slow_tree {
     vector<tree_pt> tree_of;           // tree of each node
 
     // node data/topology
-    vector<long> val;                  // int value at each node
+    vector<int64_t> val;               // int value at each node
     vector<int> parent;                // parent of each node (0 for roots)
     vector<ordered_set<int>> children; // children list of each node
     vector<ordered_set<int>> adjacent; // children + parent
@@ -117,6 +117,7 @@ struct slow_tree {
         int i = intd(0, R - 1)(mt);
         int r = *roots.find_by_order(i);
         if (tree_of[r] == tree) {
+            assert(R > 1);
             return tree_of[*roots.find_by_order(different<int>(i, 0, R - 1))];
         } else {
             return tree_of[r];
@@ -344,12 +345,12 @@ struct slow_tree {
 
     auto query_node(int u) const { return val[u]; }
 
-    void update_node(int u, long new_value) { val[u] = new_value; }
+    void update_node(int u, int64_t new_value) { val[u] = new_value; }
 
     // ***** TREES
 
     auto query_tree(int u) {
-        long sum = 0;
+        int64_t sum = 0;
         for (int w : *tree_of[u]) {
             sum += val[w];
         }
@@ -358,7 +359,7 @@ struct slow_tree {
 
     int tree_size(int u) { return tree_of[u]->size(); }
 
-    void update_tree(int u, long value) {
+    void update_tree(int u, int64_t value) {
         for (int w : *tree_of[u]) {
             val[w] += value;
         }
@@ -368,7 +369,7 @@ struct slow_tree {
 
     auto query_subtree(int u) {
         static_assert(rooted);
-        long sum = 0;
+        int64_t sum = 0;
         for (int i = 0, S = bfs_subtree(u); i < S; i++) {
             sum += val[bfs[i]];
         }
@@ -380,7 +381,7 @@ struct slow_tree {
         return bfs_subtree(u);
     }
 
-    void update_subtree(int u, long value) {
+    void update_subtree(int u, int64_t value) {
         static_assert(rooted);
         for (int i = 0, S = bfs_subtree(u); i < S; i++) {
             val[bfs[i]] += value;
@@ -392,7 +393,7 @@ struct slow_tree {
     auto query_subtree(int u, int v) {
         static_assert(!rooted);
         reroot(v);
-        long sum = 0;
+        int64_t sum = 0;
         for (int i = 0, S = bfs_subtree(u); i < S; i++) {
             sum += val[bfs[i]];
         }
@@ -405,7 +406,7 @@ struct slow_tree {
         return bfs_subtree(u);
     }
 
-    void update_subtree(int u, int v, long value) {
+    void update_subtree(int u, int v, int64_t value) {
         static_assert(!rooted);
         reroot(v);
         for (int i = 0, S = bfs_subtree(u); i < S; i++) {
@@ -416,7 +417,7 @@ struct slow_tree {
     // ***** PATHS
 
     auto query_path(int u, int v) {
-        long sum = 0;
+        int64_t sum = 0;
         for (int w : get_path(u, v)) {
             sum += val[w];
         }
@@ -425,7 +426,7 @@ struct slow_tree {
 
     int path_length(int u, int v) { return get_path(u, v).size(); }
 
-    void update_path(int u, int v, long value) {
+    void update_path(int u, int v, int64_t value) {
         for (int w : get_path(u, v)) {
             val[w] += value;
         }

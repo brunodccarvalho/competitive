@@ -107,11 +107,14 @@ array<O, 2> ordered_grav(common_type_t<T> a, common_type_t<T> b, int gravity) {
 
 template <typename T, typename O = T> // inclusive [a,b], returns !banned
 O different(common_type_t<T> banned, common_type_t<T> a, common_type_t<T> b) {
-    assert(a < b && (a != banned || a + 1 < b));
-    if (a + 1 == b)
-        return a;
-    auto v = rand_unif<T, O>(a, b - 2);
-    return v + !(v < banned);
+    assert(a != banned ? a <= b : a < b);
+    if (banned < a || b < banned) {
+        return rand_unif<T, O>(a, b);
+    } else {
+        auto v = rand_unif<T, O>(a, b - 1);
+        v += v >= banned;
+        return v;
+    }
 }
 
 template <typename T, typename O = T> // inclusive [a,b], ordered pair u<v

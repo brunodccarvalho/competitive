@@ -45,10 +45,11 @@ auto build_min_edge_line(int N, const vector<array<int, 2>>& edges,
         adj[u][adj[u][0] != -1] = adj[v][adj[v][0] != -1] = i;
     }
 
+    vector<int> index(N), edge(E);
+    vector<T> value(E);
+
     for (int s = 0; s < N; s++) {
         if (adj[s][1] == -1) {
-            vector<int> index(N), edge(E);
-            vector<T> value(E);
             int u = s, j = adj[s][0];
             for (int i = 0; i < E; i++) {
                 index[u] = i, edge[i] = line[j][2];
@@ -58,8 +59,9 @@ auto build_min_edge_line(int N, const vector<array<int, 2>>& edges,
             }
             assert(j == -1);
             index[u] = N - 1;
-            return make_tuple(move(index), move(edge), move(value));
+            break;
         }
     }
-    __builtin_unreachable();
+
+    return make_tuple(move(index), move(edge), move(value));
 }

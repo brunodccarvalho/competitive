@@ -29,6 +29,14 @@ struct LinPoints {
         return fn;
     }
 
+    static LinPoints point(V x, V y) {
+        LinPoints fn;
+        fn.y = y;
+        fn.push_left(x, pinf);
+        fn.push_right(x, pinf);
+        return fn;
+    }
+
     // f(x) = {y if x<=M | a(x-M)+y if M<=x}
     static LinPoints valley_right(V a, V M, V y) {
         assert(a > 0);
@@ -60,6 +68,50 @@ struct LinPoints {
     // f(x) = {a(p-x)+y if x<=p | b(x-p)+y if p<=x}
     static LinPoints abs(V a, V b, V p, V y) { return valley(a, b, p, p, y); }
 
+    void add_left_point(V x, V slope) {
+        if (x <= right_argmin()) {
+            push_left(x, slope);
+            return;
+        }
+        auto p = right_argmin();
+        y += (x - p) * slope;
+        push_right(x, slope);
+        while (slope > 0) {
+            auto [r, dr] = pop_heap(R, Roff);
+            if (dr >= slope) {
+                push_left(p, slope);
+                push_right(p, dr - slope);
+                break;
+            } else {
+                slope -= dr;
+                y -= slope * (right_argmin() - p);
+                p = right_argmin();
+            }
+        }
+    }
+
+    void add_right_point(V x, V slope) {
+        if (x >= left_argmin()) {
+            push_right(x, slope);
+            return;
+        }
+        auto p = left_argmin();
+        y += (p - x) * slope;
+        push_left(x, slope);
+        while (slope > 0) {
+            auto [l, dl] = pop_heap(L, Loff);
+            if (dl >= slope) {
+                push_right(p, slope);
+                push_left(p, dl - slope);
+                break;
+            } else {
+                slope -= dl;
+                y -= slope * (p - left_argmin());
+                p = left_argmin();
+            }
+        }
+    }
+
     static void pointwise(LinPoints& fn, LinPoints& gn) {
         if (fn.merge_size() < gn.merge_size()) {
             swap(fn, gn);
@@ -67,49 +119,17 @@ struct LinPoints {
         fn.y += gn.y;
         while (gn.L.size()) {
             auto [x, d] = pop_heap(gn.L, gn.Loff);
-            if (x <= fn.right_argmin()) {
-                fn.push_left(x, d);
-                continue;
-            }
-            auto p = fn.right_argmin();
-            fn.y += (x - p) * d;
-            fn.push_right(x, d);
-            while (d > 0) {
-                auto [r, dr] = pop_heap(fn.R, fn.Roff);
-                if (dr >= d) {
-                    fn.push_left(p, d);
-                    fn.push_right(p, dr - d);
-                    break;
-                } else {
-                    d -= dr;
-                    fn.y -= d * (fn.right_argmin() - p);
-                    p = fn.right_argmin();
-                }
-            }
+            fn.add_left_point(x, d);
         }
         while (gn.R.size()) {
             auto [x, d] = pop_heap(gn.R, gn.Roff);
-            if (x >= fn.left_argmin()) {
-                fn.push_right(x, d);
-                continue;
-            }
-            auto p = fn.left_argmin();
-            fn.y += (p - x) * d;
-            fn.push_left(x, d);
-            while (d > 0) {
-                auto [l, dl] = pop_heap(fn.L, fn.Loff);
-                if (dl >= d) {
-                    fn.push_right(p, d);
-                    fn.push_left(p, dl - d);
-                    break;
-                } else {
-                    d -= dl;
-                    fn.y -= d * (p - fn.left_argmin());
-                    p = fn.left_argmin();
-                }
-            }
+            fn.add_right_point(x, d);
         }
     }
+    static void pointwise(LinPoints& fn, LinPoints&& gn) { pointwise(fn, gn); }
+
+    // f(x) := g(x) + c|x|
+    auto add_abs(V c) { add_left_point(0, c), add_right_point(0, c); }
 
     // f(x) := g(x+c)
     auto shift(int c) { Loff -= c, Roff -= c; }
@@ -276,8 +296,8 @@ struct LinSlopes {
         fn.a += gn.a, fn.a += gn.b, fn.y += gn.y;
         pq_merge(fn.L, gn.L, fn.Loff, gn.Loff);
         pq_merge(fn.R, gn.R, fn.Roff, gn.Roff);
-        gn = LinSlopes();
     }
+    static void minplus(LinSlopes& fn, LinSlopes&& gn) { minplus(fn, gn); }
 
     // f(x) := g(x+c)
     void shift(V c) { a -= c, b -= c; }

@@ -4,8 +4,8 @@
 
 void stress_test_minupdate_segtree_beats() {
     constexpr int N = 200;
-    segtree<setmin_segnode<long>> st(N, 73);
-    using Op = setmin_segnode<long>::Operation;
+    segtree<setmin_sum_segnode> st(N, 73);
+    using Op = setmin_sum_segnode::Operation;
     vector<long> arr(N, 73);
 
     LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
@@ -49,7 +49,7 @@ void stress_test_modupdate_segtree_beats() {
     constexpr int N = 200, MAX = 500'000'000;
     int X = 100'000'000;
     vector<int> arr = rands_unif<int>(N, 0, MAX);
-    segtree<setmod_segnode<long>> st(N, arr);
+    segtree<setmod_sum_segnode> st(N, arr);
 
     LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
         if (cointoss(0.5)) {
@@ -76,8 +76,8 @@ void stress_test_fullji_segtree_beats() {
         constexpr int N = 300;
 
         vector<int64_t> arr = rands_unif<int64_t>(N, -20000, 20000);
-        segtree<fullji_segnode<int64_t>> st(N, arr);
-        using Operation = fullji_segnode<int64_t>::Operation;
+        segtree<fullji_segnode> st(N, arr);
+        using Operation = fullji_segnode::Operation;
 
         LOOP_FOR_DURATION (1s) {
             if (cointoss(0.95)) {

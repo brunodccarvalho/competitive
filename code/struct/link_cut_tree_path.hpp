@@ -4,7 +4,7 @@
 using namespace std;
 
 struct lct_node_path_empty {
-    void path_flip() {}
+    void flip_path() {}
     void pushdown(lct_node_path_empty&, lct_node_path_empty&) {}
     void pushup(const lct_node_path_empty&, const lct_node_path_empty&) {}
 };
@@ -17,7 +17,7 @@ struct link_cut_tree_path {
     struct LCTNode {
         int parent = 0, kids[2] = {};
         int8_t flip = 0; // splay tree is flipped due to reroot
-        Node node;
+        Node data;
     };
 
     vector<LCTNode> st;
@@ -27,29 +27,37 @@ struct link_cut_tree_path {
     template <typename T>
     link_cut_tree_path(int N, const vector<T>& arr) : st(N + 1) {
         for (int u = 1; u <= N; u++) {
-            st[u].node = Node(arr[u]);
+            st[u].data = Node(arr[u]);
         }
     }
 
     // ***** Node updates
   protected:
+    void flip(int u) {
+        if (u == 0) {
+            return;
+        }
+        auto& [l, r] = st[u].kids;
+        swap(l, r);
+        st[u].flip ^= 1;
+        st[u].data.flip_path();
+    }
+
     void pushdown(int u) {
         if (u != 0) {
             auto& [l, r] = st[u].kids;
             if (st[u].flip) {
-                swap(l, r);
-                st[l].flip ^= 1;
-                st[r].flip ^= 1;
+                flip(l);
+                flip(r);
                 st[u].flip = 0;
-                st[u].node.path_flip();
             }
-            st[u].node.pushdown(st[l].node, st[r].node);
+            st[u].data.pushdown(st[l].data, st[r].data);
         }
     }
 
     void pushup(int u) {
         auto [l, r] = st[u].kids;
-        st[u].node.pushup(st[l].node, st[r].node);
+        st[u].data.pushup(st[l].data, st[r].data);
     }
 
     // ***** Interface
@@ -72,7 +80,7 @@ struct link_cut_tree_path {
 
     void reroot(int u) {
         access(u);
-        st[u].flip ^= 1, pushdown(u);
+        flip(u);
     }
 
     int findroot(int u) {
@@ -93,12 +101,12 @@ struct link_cut_tree_path {
 
     Node* access_node(int u) {
         access(u);
-        return &st[u].node;
+        return &st[u].data;
     }
 
     Node* access_path(int u, int v) {
         reroot(v), access(u);
-        return &st[u].node;
+        return &st[u].data;
     }
 
   protected:
@@ -171,7 +179,7 @@ struct lct_node_path_sum {
         }
     }
 
-    void path_flip() {}
+    void flip_path() {}
 
     void pushdown(lct_node_path_sum& lhs, lct_node_path_sum& rhs) {
         if (lazy) {
@@ -210,7 +218,7 @@ struct lct_node_path_max {
         }
     }
 
-    void path_flip() {}
+    void flip_path() {}
 
     void pushdown(lct_node_path_max& lhs, lct_node_path_max& rhs) {
         if (lazy) {
@@ -249,7 +257,7 @@ struct lct_node_path_min {
         }
     }
 
-    void path_flip() {}
+    void flip_path() {}
 
     void pushdown(lct_node_path_min& lhs, lct_node_path_min& rhs) {
         if (lazy) {
@@ -269,7 +277,7 @@ struct lct_node_path_min {
  * Query for (u,v) returns composition of affine functions f[u],...,f[v] in two orders:
  * - u<-v order: f[u](...(f[u](x)))
  * - v<-u order: f[v](...(f[v](x)))
- * Use the returned node to eval directly for a value, or store the node somewhere.
+ * Use the returned data to eval directly for a value, or store the data somewhere.
  * Support := on point
  */
 struct lct_node_path_affine {
@@ -284,7 +292,7 @@ struct lct_node_path_affine {
     num eval_vu(num x) const { return path[1][0] * x + path[1][1]; }
     Data combine(Data a, Data b) { return Data{a[0] * b[0], a[0] * b[1] + a[1]}; }
 
-    void path_flip() { swap(path[0], path[1]); }
+    void flip_path() { swap(path[0], path[1]); }
 
     void pushdown(lct_node_path_affine&, lct_node_path_affine&) {}
 
@@ -318,7 +326,7 @@ struct lct_node_path_gcd {
         }
     }
 
-    void path_flip() {}
+    void flip_path() {}
 
     void pushdown(lct_node_path_gcd& lhs, lct_node_path_gcd& rhs) {
         if (lazy) {

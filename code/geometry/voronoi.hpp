@@ -78,7 +78,7 @@ auto box_voronoi(const vector<Pt2>& pts, Wedge* T, vector<Pd2>& centers, Voronoi
 
     // Add some small perturbation to decrease the odds a ray hits a corner exactly
     Pd2 width = hi - lo;
-    auto dx = noised(mt), dy = noised(mt);
+    auto dx = noised(rng), dy = noised(rng);
     lo.x -= dx * width.x, hi.x += dx * width.x;
     lo.y -= dy * width.y, hi.y += dy * width.y;
 
