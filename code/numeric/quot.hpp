@@ -5,7 +5,7 @@ using namespace std;
 
 // Rational arithmetic not taking GCDs and avoiding overflow, T should be an integer type
 // Positive infinity is quot(>0, 0) and negative infinity is quot(<0, 0).
-template <typename T>
+template <typename T, bool SAFE = true>
 struct quot {
     using unit_type = T;
     T n, d; // n/d
@@ -37,6 +37,8 @@ struct quot {
     static int compare(quot a, quot b) {
         if (a.d == 0 || b.d == 0) {
             return infsign(a) - infsign(b);
+        } else if constexpr (SAFE) {
+            return a.n * b.d < b.n * a.d;
         }
         T x = floor(a), y = floor(b);
         while (x == y) {

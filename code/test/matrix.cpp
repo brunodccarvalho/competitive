@@ -1,6 +1,7 @@
 #include "test_utils.hpp"
 #include "linear/matrix.hpp"
 #include "linear/gauss.hpp"
+#include "linear/matrix_cache.hpp"
 #include "numeric/modnum.hpp"
 
 void unit_test_matrix() {

@@ -5,7 +5,7 @@ using namespace std;
 
 // Rational arithmetic taking GCDs and avoiding overflow, T should be an integer type.
 // Positive infinity is frac(1, 0) and negative infinity is frac(-1, 0).
-template <typename T>
+template <typename T, bool SAFE = true>
 struct frac {
     using unit_type = T;
     T n, d; // n/d
@@ -44,6 +44,8 @@ struct frac {
     static int compare(frac a, frac b) {
         if (a.d == 0 || b.d == 0) {
             return infsign(a) - infsign(b);
+        } else if constexpr (SAFE) {
+            return a.n * b.d < b.n * a.d;
         }
         T x = floor(a), y = floor(b);
         while (x == y) {
@@ -59,14 +61,15 @@ struct frac {
     }
 
     friend frac operator+(frac a, frac b) {
-        if (a.d == b.d) {
-            return frac(a.n + b.n, a.d);
+        if (a.d == 0 && b.d == 0) {
+            return assert(a.n == b.n), a;
         } else if (a.d == 0 || b.d == 0) {
             return a.d == 0 ? a : b;
+        } else if (a.d == b.d) {
+            return frac(a.n + b.n, a.d);
         } else {
             return frac(a.n * b.d + b.n * a.d, a.d * b.d);
         }
-        return frac(a.n * b.d + b.n * a.d, a.d * b.d);
     }
     friend frac operator-(frac a, frac b) { return a + (-b); }
     friend frac operator*(frac a, frac b) {

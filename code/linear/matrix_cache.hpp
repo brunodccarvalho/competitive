@@ -1,5 +1,50 @@
 #include "numeric/modnum.hpp"
 
+namespace std {
+
+template <typename V, size_t M>
+using Mat = array<array<V, M>, M>;
+template <typename V, size_t M>
+using Vec = array<V, M>;
+
+template <typename V, size_t M>
+auto identity() {
+    Mat<V, M> a = {};
+    for (unsigned i = 0; i < M; i++)
+        a[i][i] = 1;
+    return a;
+}
+
+template <typename V, size_t M>
+auto operator+(const Mat<V, M>& a, const Mat<V, M>& b) {
+    Mat<V, M> c = {};
+    for (unsigned i = 0; i < M; i++)
+        for (unsigned j = 0; j < M; j++)
+            c[i][j] = a[i][j] + b[i][j];
+    return c;
+}
+
+template <typename V, size_t M>
+auto operator*(const Mat<V, M>& a, const Mat<V, M>& b) {
+    Mat<V, M> c = {};
+    for (unsigned i = 0; i < M; i++)
+        for (unsigned k = 0; k < M; k++)
+            for (unsigned j = 0; j < M; j++)
+                c[i][j] += a[i][k] * b[k][j];
+    return c;
+}
+
+template <typename V, size_t M>
+auto operator*(const Mat<V, M>& a, const Vec<V, M>& b) {
+    Vec<V, M> c = {};
+    for (unsigned i = 0; i < M; i++)
+        for (unsigned j = 0; j < M; j++)
+            c[i] += a[i][j] * b[j];
+    return c;
+}
+
+} // namespace std
+
 // Matrix cache for fast matrix exponentiation
 template <typename V, size_t M, int B, int S>
 struct MatrixCache {

@@ -14,8 +14,6 @@ struct basic_splay {
 
   protected:
     basic_splay() = default;
-    inline void pushdown() {}
-    inline void pushup() {}
 
     Splay* self() { return static_cast<Splay*>(this); }
     const Splay* self() const { return static_cast<const Splay*>(this); }
@@ -28,8 +26,8 @@ struct basic_splay {
     static auto get_key(const Splay* x) { return Splay::get_key(x); }
 
     bool is_root() const { return !parent; }
-    bool is_left() const { return parent && self() == parent->kids[0]; }
-    bool is_right() const { return !parent && self() == parent->kids[1]; }
+    bool is_left() const { return !parent || self() == parent->kids[0]; }
+    bool is_right() const { return parent && self() == parent->kids[1]; }
 
     static void adopt_node(Splay* parent, Splay* kid, int8_t side) {
         if (side >= 0)
@@ -121,6 +119,8 @@ struct basic_splay {
     friend Splay* splay(Splay* u) {
         return u ? !u->parent ? u->pushdown(), u->pushup(), u : splay_unsafe(u) : nullptr;
     }
+
+    friend Splay* splay(Splay*& tree, Splay* u) { return u ? tree = splay(u) : tree; }
 
     friend void delete_all(Splay* u) {
         if (u) {

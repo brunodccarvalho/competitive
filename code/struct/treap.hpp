@@ -17,8 +17,6 @@ struct basic_treap {
 
   protected:
     basic_treap() : priority(priod(rng)) {}
-    inline void pushdown() {}
-    inline void pushup() {}
 
     Treap* self() { return static_cast<Treap*>(this); }
     const Treap* self() const { return static_cast<const Treap*>(this); }

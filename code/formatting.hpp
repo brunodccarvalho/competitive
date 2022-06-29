@@ -35,6 +35,12 @@ auto putln(ostream& out, Ts&&... args) {
 }
 
 template <typename... Ts>
+auto putln(ofstream& out, Ts&&... args) {
+    return print(out, make_format_string(sizeof...(Ts)) + "\n",
+                 std::forward<Ts>(args)...);
+}
+
+template <typename... Ts>
 auto eputln(Ts&&... args) {
     return putln(cerr, std::forward<Ts>(args)...);
 }
