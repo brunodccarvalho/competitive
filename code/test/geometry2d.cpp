@@ -341,17 +341,15 @@ void speed_test_approximate_sandwich_line() {
 }
 
 int main() {
-    RUN_BLOCK(unit_test_offline_point_location());
-    return 0;
     // RUN_BLOCK(stress_test_hull2d());
     // RUN_BLOCK(stress_test_merge_hulls());
-    // RUN_BLOCK(stress_test_all_point_pairs_radial_sweep());
+    RUN_BLOCK(stress_test_all_point_pairs_radial_sweep());
     // RUN_BLOCK(stress_test_separating_line());
     // RUN_BLOCK(speed_test_separating_line());
     // RUN_BLOCK(stress_test_sandwich_line());
-    RUN_BLOCK(speed_test_sandwich_line());
+    // RUN_BLOCK(speed_test_sandwich_line());
     // RUN_BLOCK(stress_test_approximate_sandwich_line());
-    RUN_BLOCK(speed_test_approximate_sandwich_line());
-    RUN_BLOCK(speed_test_hull2d());
+    // RUN_BLOCK(speed_test_approximate_sandwich_line());
+    // RUN_BLOCK(speed_test_hull2d());
     return 0;
 }

@@ -4,7 +4,6 @@
 #include "numeric/quot.hpp"
 
 // Tools for exact computations with integer coordinates.
-
 struct Duality {
     // The dual of point P(a,b) is y=ax-b. The dual of line y=cx-d is P(c,d).
     using Stab = quot<Pt2::T>;

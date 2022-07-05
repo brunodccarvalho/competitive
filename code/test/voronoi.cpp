@@ -24,8 +24,8 @@ void speed_test_voronoi() {
             auto pts = generate_points(N, dist, 0, 10'000'000);
 
             ADD_TIME_BLOCK(voronoi) {
-                auto [data, centers] = voronoi(pts);
-                box_voronoi(pts, data[0], centers, VoronoiBox{});
+                auto [F, hull, data, centers] = voronoi(pts);
+                box_voronoi(pts, data[0], centers);
                 Wedge::release();
             }
         }

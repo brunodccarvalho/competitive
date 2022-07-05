@@ -1,3 +1,5 @@
+#pragma once
+
 #include "splay.hpp"
 
 // Splay tree that represents the branches of a bounded convex piecewise linear function

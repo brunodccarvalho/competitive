@@ -1,7 +1,6 @@
 #include "test_utils.hpp"
 #include "strings/boyer_moore.hpp"
 #include "strings/kmp.hpp"
-#include "strings/rabin_karp.hpp"
 #include "strings/z_search.hpp"
 #include "lib/strings.hpp"
 
@@ -53,12 +52,10 @@ void stress_test_string_searchers() {
             auto i1 = naive_search_all(haystack, needle);
             auto i2 = kmp_search_all(haystack, kmp);
             auto i3 = boyer_moore_search_all(haystack, bm);
-            auto i4 = rabin_karp_search_all(haystack, needle);
-            auto i5 = z_search_all(haystack, needle);
+            auto i4 = z_search_all(haystack, needle);
             assert(i1 == i2);
             assert(i1 == i3);
             assert(i1 == i4);
-            assert(i1 == i5);
         }
     }
 }

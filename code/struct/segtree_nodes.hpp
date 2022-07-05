@@ -93,7 +93,6 @@ struct maxsubrange_segnode {
     operator V() const { return best; }
 
     void pushup(const maxsubrange_segnode& lhs, const maxsubrange_segnode& rhs) {
-        assert(lhs.sum != MIN && rhs.sum != MIN);
         sum = lhs.sum + rhs.sum;
         pref = max(lhs.pref, lhs.sum + rhs.pref);
         suff = max(rhs.suff, lhs.suff + rhs.sum);
@@ -196,7 +195,7 @@ struct mincount_segnode {
 
     V value = MAX, count = 0, lazy = 0;
 
-    explicit mincount_segnode(V v = MAX) : value(v), count(v < MAX) {}
+    mincount_segnode(V v = MAX) : value(v), count(v < MAX) {}
 
     void pushup(const mincount_segnode& lhs, const mincount_segnode& rhs) {
         value = min(lhs.value, rhs.value);
@@ -219,11 +218,11 @@ struct mincount_segnode {
 struct maxcount_segnode {
     using V = int64_t;
     static constexpr bool LAZY = true, RANGES = false;
-    static constexpr V MIN = numeric_limits<int>::min();
+    static constexpr V MIN = numeric_limits<V>::lowest();
 
     V value = MIN, count = 0, lazy = 0;
 
-    explicit maxcount_segnode(V v = MIN) : value(v), count(v > MIN) {}
+    maxcount_segnode(V v = MIN) : value(v), count(v > MIN) {}
 
     void pushup(const maxcount_segnode& lhs, const maxcount_segnode& rhs) {
         value = max(lhs.value, rhs.value);

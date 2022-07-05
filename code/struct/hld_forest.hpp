@@ -8,7 +8,7 @@ struct hld_forest {
     vector<int> head;  // top of heavy path
     vector<int> time;  // index of node in preorder tour with no repetition
 
-    explicit hld_forest(vector<vector<int>>& tree, int root = -1) {
+    explicit hld_forest(vector<vector<int>>& tree, int root, bool sortkids = false) {
         int N = tree.size();
         subsize.assign(N, 0);
         parent.assign(N, -1);
@@ -31,7 +31,9 @@ struct hld_forest {
                     if (biggest < subsize[v]) {
                         biggest = subsize[v];
                         heavy[u] = v;
-                        swap(tree[u][0], v);
+                        if (sortkids) {
+                            swap(tree[u][0], v);
+                        }
                     }
                 }
             }
@@ -41,9 +43,12 @@ struct hld_forest {
             order[timer] = u;
             head[u] = h;
             time[u] = timer++;
+            if (heavy[u] != -1) {
+                self(heavy[u], h);
+            }
             for (int v : tree[u]) {
-                if (v != parent[u]) {
-                    self(v, v == heavy[u] ? h : v);
+                if (v != parent[u] && v != heavy[u]) {
+                    self(v, v);
                 }
             }
         });
@@ -106,22 +111,16 @@ struct hld_forest {
 
     bool conn(int u, int v) const { return findroot(u) == findroot(v); }
 
-    bool is_above(int a, int u) const {
+    bool is_above(int u, int a) const {
         return time[a] <= time[u] && time[u] < time[a] + subsize[a];
     }
 
-    bool is_above_on_heavy_path(int a, int u) const {
+    bool is_above_on_heavy_path(int u, int a) const {
         return head[a] == head[u] && time[a] <= time[u];
     }
 
     bool on_path(int x, int u, int v) const {
-        return is_above(lca(u, v), x) && (is_above(x, u) || is_above(x, v));
-    }
-
-    int seg_edge_index(int u, int v) const { return parent[u] == v ? time[u] : time[v]; }
-
-    auto seg_vertex_range(int u) const {
-        return make_pair(time[u], time[u] + subsize[u]);
+        return is_above(x, lca(u, v)) && (is_above(u, x) || is_above(v, x));
     }
 
     int kth_on_path(int u, int v, int k) const {
@@ -135,10 +134,30 @@ struct hld_forest {
         }
     }
 
-    // Centroid and join of three nodes
     int join_node(int a, int b, int c) const {
         int x = lca(a, b), y = lca(b, c), z = lca(c, a);
         return x ^ y ^ z;
+    }
+
+    auto get_path(int u, int v) const {
+        int a = lca(u, v);
+        int D = depth[u] - depth[a] + 1;
+        vector<int> path;
+        while (u != a) {
+            path.push_back(u), u = parent[u];
+        }
+        path.push_back(a);
+        while (v != a) {
+            path.push_back(v), v = parent[v];
+        }
+        reverse(begin(path) + D, end(path));
+        return path;
+    }
+
+    int seg_edge_index(int u, int v) const { return parent[u] == v ? time[u] : time[v]; }
+
+    auto seg_vertex_range(int u) const {
+        return make_pair(time[u], time[u] + subsize[u]);
     }
 
     // Split the path from u to v into sorted heavy path segments [l,r), 0<=l<r<=N

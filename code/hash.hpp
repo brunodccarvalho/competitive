@@ -1,7 +1,6 @@
 #pragma once
 
-#include <bits/stdc++.h>
-using namespace std;
+#include "numeric/modnum.hpp"
 
 struct Hasher {
     template <typename Container>
@@ -72,44 +71,92 @@ struct Int128Hasher {
 namespace std {
 
 template <>
-struct hash<__int128_t> : Hasher {};
+struct hash<__int128_t> : Int128Hasher {};
 template <>
-struct hash<__uint128_t> : Hasher {};
+struct hash<__uint128_t> : Int128Hasher {};
 
 } // namespace std
 
-struct rolling_hasher {
-    static constexpr size_t base = 2001539UL;
-    static constexpr size_t mask = (1 << 26) - 1;
-    size_t n, mul;
+struct polyhasher {
+    using V1 = modnum<998244353>;
+    using V2 = modnum<999999893>;
+    static constexpr int B1 = 73, B2 = 37;
+    using Hash = tuple<V1, V2, int>;
 
-    explicit rolling_hasher(size_t n) : n(n), mul(powovf(n) & mask) {}
-
-    size_t operator()(const char* s, const char* e) const noexcept {
-        size_t seed = 0;
-        while (s != e) {
-            seed = (seed * base + *s++) & mask;
+    static inline vector<Hash> cache;
+    static void init(int N) {
+        cache.resize(N + 1);
+        cache[0] = {1, 1, 0};
+        for (int i = 1; i <= N; i++) {
+            auto [h1, h2, _] = cache[i - 1];
+            cache[i] = {h1 * B1, h2 * B2, i};
         }
-        return seed;
     }
 
-    size_t operator()(const string& s) const noexcept {
-        return (*this)(s.data(), s.data() + s.length());
+    static Hash extend_right(Hash a, char c) { // a c -> [ac]
+        auto [a1, a2, as] = a;
+        auto [h1, h2, _] = cache[as];
+        Hash h = {a1 + V1(int(c)) * h1, a2 + V2(int(c)) * h2, as + 1};
+        return h;
     }
 
-    size_t roll(size_t seed, unsigned char out, unsigned char in) const noexcept {
-        return (seed * base + in + (mask + 1 - out) * mul) & mask;
+    static Hash extend_left(Hash a, char c) { // c a -> [ca]
+        auto [a1, a2, as] = a;
+        Hash h = {a1 * B1 + V1(int(c)), a2 * B2 + V2(int(c)), as + 1};
+        return h;
     }
 
-    static constexpr size_t powovf(size_t e) {
-        size_t power = 1, b = base;
-        while (e) {
-            if (e & 1) {
-                power = power * b;
-            }
-            e >>= 1;
-            b = b * b;
+    static Hash trim_right(Hash a, char c) { // [ac] -> a
+        auto [a1, a2, as] = a;
+        auto [h1, h2, _] = cache[as];
+        assert(as >= 1);
+        Hash h = {a1 - V1(int(c)) * h1, a2 - V2(int(c)) * h2, as - 1};
+        return h;
+    }
+
+    static Hash trim_left(Hash a, char c) { // [ca] -> a
+        auto [a1, a2, as] = a;
+        assert(as >= 1);
+        Hash h = {(a1 - V1(int(c))) / B1, (a2 - V2(int(c))) / B2, as - 1};
+        return h;
+    }
+
+    static Hash merge(Hash a, Hash b) { // a b -> [ab]
+        auto [a1, a2, as] = a;
+        auto [b1, b2, bs] = b;
+        auto [h1, h2, _] = cache[bs];
+        Hash h = {a1 + b1 * h1, a2 + b2 * h2, as + bs};
+        return h;
+    }
+
+    static Hash trim_right(Hash a, Hash b) { // [ab] -> a
+        auto [a1, a2, as] = a;
+        auto [b1, b2, bs] = b;
+        auto [h1, h2, _] = cache[bs];
+        assert(as >= bs);
+        Hash h = {a1 - b1 * h1, a2 - b2 * h2, as - bs};
+        return h;
+    }
+
+    static Hash trim_left(Hash a, Hash b) { // [ba] -> a
+        auto [a1, a2, as] = a;
+        auto [b1, b2, bs] = b;
+        auto [h1, h2, _] = cache[bs];
+        assert(as >= bs);
+        Hash h = {(a1 - b1) / h1, (a2 - b2) / h2, as - bs};
+        return h;
+    }
+
+    static Hash make(char c) {
+        Hash h = {V1(int(c)), V2(int(c)), 1};
+        return h;
+    }
+
+    static Hash make(const string& s) {
+        Hash h = {0, 0, 0};
+        for (int i = 0, S = s.size(); i < S; i++) {
+            h = extend_right(h, s[i]);
         }
-        return power;
+        return h;
     }
 };

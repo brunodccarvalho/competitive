@@ -130,96 +130,96 @@ struct Pd2 {
         auto ang = std::atan2(cross(u, v), dot(u, v));
         return ang < 0 ? ang + TAU : ang;
     }
+
+    friend int quadrant(Pd2 u) {
+        if (u.x > 0 && u.y >= 0) {
+            return 1;
+        } else if (u.x <= 0 && u.y > 0) {
+            return 2;
+        } else if (u.x < 0 && u.y <= 0) {
+            return 3;
+        } else if (u.x >= 0 && u.y < 0) {
+            return 4;
+        } else {
+            return 0;
+        }
+    }
+
+    friend int directed_quadrant(Pd2 u, Pd2 forward) {
+        auto x = dot(forward, u), y = cross(forward, u);
+        if (x > 0 && y >= 0) {
+            return 1;
+        } else if (x <= 0 && y > 0) {
+            return 2;
+        } else if (x < 0 && y <= 0) {
+            return 3;
+        } else if (x >= 0 && y < 0) {
+            return 4;
+        } else {
+            return 0;
+        }
+    }
+
+    friend bool angle_sort(Pd2 u, Pd2 v) {
+        int qu = quadrant(u), qv = quadrant(v);
+        if (qu != qv) {
+            return qu < qv;
+        } else if (auto cuv = angle(v) - angle(u)) {
+            return cuv > 0;
+        } else {
+            return norm2(u) < norm2(v);
+        }
+    }
+
+    friend bool biangle_sort(Pd2 u, Pd2 v) {
+        return angle_sort(quadrant(u) < 3 ? u : -u, quadrant(v) < 3 ? v : -v);
+    }
+
+    friend auto angle_sorter(Pd2 pivot, Pd2 forward = Pd2(1, 0)) {
+        assert(forward != Pd2());
+        return [=](Pd2 u, Pd2 v) -> bool {
+            u -= pivot, v -= pivot;
+            int qu = directed_quadrant(u, forward), qv = directed_quadrant(v, forward);
+            if (qu != qv) {
+                return qu < qv;
+            } else if (auto cuv = angle(v) - angle(u)) {
+                return cuv > 0;
+            } else {
+                return norm2(u) < norm2(v);
+            }
+        };
+    }
+
+    friend auto biangle_sorter(Pd2 pivot, Pd2 forward = Pd2(1, 0)) {
+        assert(forward != Pd2());
+        return [=](Pd2 u, Pd2 v) -> bool {
+            u -= pivot, v -= pivot;
+            int qu = directed_quadrant(u, forward), qv = directed_quadrant(v, forward);
+            if (qu >= 3)
+                qu -= 2, u = -u;
+            if (qv >= 3)
+                qv -= 2, v = -v;
+            if (qu != qv) {
+                return qu < qv;
+            } else if (auto cuv = angle(v) - angle(u)) {
+                return cuv > 0;
+            } else {
+                return norm2(u) < norm2(v);
+            }
+        };
+    }
+
+    friend auto line_sorter(Pd2 along = Pd2(1, 0)) {
+        assert(along != Pd2());
+        return [=](Pd2 u, Pd2 v) -> bool {
+            if (auto duv = dot(along, v) - dot(along, u)) {
+                return duv > 0;
+            } else {
+                return dot(perp_ccw(along), v) - dot(perp_ccw(along), u) > 0;
+            }
+        };
+    }
 };
-
-int quadrant(Pd2 u) {
-    if (u.x > 0 && u.y >= 0) {
-        return 1;
-    } else if (u.x <= 0 && u.y > 0) {
-        return 2;
-    } else if (u.x < 0 && u.y <= 0) {
-        return 3;
-    } else if (u.x >= 0 && u.y < 0) {
-        return 4;
-    } else {
-        return 0;
-    }
-}
-
-int directed_quadrant(Pd2 u, Pd2 forward) {
-    auto x = dot(forward, u), y = cross(forward, u);
-    if (x > 0 && y >= 0) {
-        return 1;
-    } else if (x <= 0 && y > 0) {
-        return 2;
-    } else if (x < 0 && y <= 0) {
-        return 3;
-    } else if (x >= 0 && y < 0) {
-        return 4;
-    } else {
-        return 0;
-    }
-}
-
-bool angle_sort(Pd2 u, Pd2 v) {
-    int qu = quadrant(u), qv = quadrant(v);
-    if (qu != qv) {
-        return qu < qv;
-    } else if (auto cuv = angle(v) - angle(u)) {
-        return cuv > 0;
-    } else {
-        return norm2(u) < norm2(v);
-    }
-}
-
-bool biangle_sort(Pd2 u, Pd2 v) {
-    return angle_sort(quadrant(u) < 3 ? u : -u, quadrant(v) < 3 ? v : -v);
-}
-
-auto angle_sorter(Pd2 pivot, Pd2 forward = Pd2(1, 0)) {
-    assert(forward != Pd2());
-    return [=](Pd2 u, Pd2 v) -> bool {
-        u -= pivot, v -= pivot;
-        int qu = directed_quadrant(u, forward), qv = directed_quadrant(v, forward);
-        if (qu != qv) {
-            return qu < qv;
-        } else if (auto cuv = angle(v) - angle(u)) {
-            return cuv > 0;
-        } else {
-            return norm2(u) < norm2(v);
-        }
-    };
-}
-
-auto biangle_sorter(Pd2 pivot, Pd2 forward = Pd2(1, 0)) {
-    assert(forward != Pd2());
-    return [=](Pd2 u, Pd2 v) -> bool {
-        u -= pivot, v -= pivot;
-        int qu = directed_quadrant(u, forward), qv = directed_quadrant(v, forward);
-        if (qu >= 3)
-            qu -= 2, u = -u;
-        if (qv >= 3)
-            qv -= 2, v = -v;
-        if (qu != qv) {
-            return qu < qv;
-        } else if (auto cuv = angle(v) - angle(u)) {
-            return cuv > 0;
-        } else {
-            return norm2(u) < norm2(v);
-        }
-    };
-}
-
-auto line_sorter(Pd2 along = Pd2(1, 0)) {
-    assert(along != Pd2());
-    return [=](Pd2 u, Pd2 v) -> bool {
-        if (auto duv = dot(along, v) - dot(along, u)) {
-            return duv > 0;
-        } else {
-            return dot(perp_ccw(along), v) - dot(perp_ccw(along), u) > 0;
-        }
-    };
-}
 
 struct Rayd {
     Pd2 p, d; // p + dt

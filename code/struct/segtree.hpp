@@ -488,7 +488,7 @@ struct segtree {
 };
 
 struct Segnode {
-    static constexpr bool LAZY = false, RANGES = false;
+    static constexpr bool LAZY = true, RANGES = false;
     int64_t value = 0, lazy = 0;
 
     Segnode(int64_t value = 0) : value(value) {}

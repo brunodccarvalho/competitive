@@ -1,3 +1,5 @@
+#pragma once
+
 #include "numeric/modnum.hpp"
 
 namespace std {
@@ -40,6 +42,18 @@ auto operator*(const Mat<V, M>& a, const Vec<V, M>& b) {
     for (unsigned i = 0; i < M; i++)
         for (unsigned j = 0; j < M; j++)
             c[i] += a[i][j] * b[j];
+    return c;
+}
+
+template <typename V, size_t M>
+auto operator^(const Mat<V, M>& a, int64_t k) {
+    Vec<V, M> b = a, c = identity<V, M>();
+    while (k > 0) {
+        if (k & 1)
+            c = c * b;
+        if (k >>= 1)
+            b = b * b;
+    }
     return c;
 }
 

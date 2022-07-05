@@ -37,7 +37,7 @@ auto stress_test_line_tree() {
             virtual_tree[y].push_back(u), virtual_tree[u].push_back(y);
             virtual_tree[y].push_back(v), virtual_tree[v].push_back(y);
         }
-        lca_schieber_vishkin lca(virtual_tree, root);
+        lca_incremental lca(virtual_tree, root);
 
         for (int u = 0; u < N; u++) {
             for (int v = 0; v < N; v++) {

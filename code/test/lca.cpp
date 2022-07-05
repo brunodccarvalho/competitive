@@ -4,7 +4,6 @@
 #include "lib/graph_generator.hpp"
 #include "struct/lca.hpp"
 
-template <typename LCA>
 void unit_test_lca_tree() {
     int V = 20;
     string s = "1,2 1,3 1,4 1,5 2,6 2,7 3,8 3,9 3,10 5,11 5,12 5,13 "
@@ -13,7 +12,7 @@ void unit_test_lca_tree() {
     random_flip_graph_inplace(g);
     auto tree = make_adjacency_lists_undirected(V, g);
 
-    LCA lca(tree, 1);
+    lca_incremental lca(tree, 1);
 
     assert(lca.lca(11, 19) == 5);
     assert(lca.lca(9, 15) == 3);
@@ -28,7 +27,6 @@ void unit_test_lca_tree() {
 }
 
 int main() {
-    RUN_BLOCK(unit_test_lca_tree<lca_schieber_vishkin>());
-    RUN_BLOCK(unit_test_lca_tree<lca_incremental>());
+    RUN_BLOCK(unit_test_lca_tree());
     return 0;
 }

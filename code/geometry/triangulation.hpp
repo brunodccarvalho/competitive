@@ -93,18 +93,6 @@ auto merge_triangulations(Wedge* L, Wedge* R, const vector<Pt2>& pts) {
     return E;
 }
 
-// Merge multiple strictly disjoint triangulations given hull edges. O(n log n)
-auto merge_triangulations(const vector<Wedge*>& blobs, const vector<Pt2>& pts) {
-    return y_combinator([&](auto self, int l, int r) -> Wedge* {
-        if (l + 1 == r) {
-            return blobs[l];
-        } else {
-            int m = (l + r) / 2;
-            return merge_triangulations(self(l, m), self(m, r), pts);
-        }
-    })(0, blobs.size());
-}
-
 // Build a triangulation from a list of segments. O(n log n)
 // lower[] first edge going right in ccw order. upper[] first edge going left in ccw order
 auto build_triangulation(const vector<Pt2>& pts, vector<array<int, 2>> segments) {
@@ -468,58 +456,4 @@ auto multi_polygon_triangulation(const vector<Pt2>& pts, const vector<vector<int
         }
     }
     return sided_triangulation(pts, segments, ban_mark, add_mark);
-}
-
-// Call visitor(a,b,c) for every triangle [abc] counterclockwise.
-template <typename TriangleFn>
-void triangulation_visit_triangles(Wedge* hull, TriangleFn&& visitor) {
-    int mark = Wedge::internal_mark++;
-    vector<Wedge*> bfs;
-    do {
-        bfs.push_back(hull->mate);
-        hull->mark = mark, hull = hull->next;
-    } while (hull->mark != mark);
-
-    for (int i = 0, S = bfs.size(); i < S; i++) {
-        Wedge* face = bfs[i];
-        if (face->mark == mark) {
-            continue;
-        }
-        int a = face->vertex, b = face->target(), c = face->next->target();
-        visitor(a, b, c);
-        for (Wedge* edge : {face, face->next, face->prev}) {
-            edge->mark = mark;
-            if (edge->mate->mark != mark) {
-                bfs.push_back(edge->mate), S++;
-            }
-        }
-    }
-}
-
-// Call visitor(a,b) for every edge [ab]. This destroys the data.
-template <typename TriangleFn>
-void triangulation_visit_edges(Wedge* data, TriangleFn&& visitor) {
-    int mark = Wedge::internal_mark++;
-    vector<Wedge*> bfs;
-    do {
-        bfs.push_back(data->mate);
-        if (data->mate->mark != mark) {
-            visitor(data->vertex, data->mate->vertex);
-        }
-        data->mark = mark, data = data->next;
-    } while (data->mark != mark);
-
-    for (int i = 0, S = bfs.size(); i < S; i++) {
-        Wedge* face = bfs[i];
-        if (face->mark == mark) {
-            continue;
-        }
-        for (Wedge* edge : {face, face->next, face->prev}) {
-            edge->mark = mark;
-            if (edge->mate->mark != mark) {
-                bfs.push_back(edge->mate), S++;
-                visitor(edge->vertex, edge->mate->vertex);
-            }
-        }
-    }
 }

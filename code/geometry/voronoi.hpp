@@ -33,18 +33,13 @@ auto voronoi(const vector<Pt2>& pts) {
         }
     }
 
-    return make_pair(move(dual), move(centers));
+    return make_tuple(F, hull, move(dual), move(centers));
 }
-
-struct VoronoiBox {
-    Pd2 lo = Pd2(Pd2::inf, Pd2::inf), hi = Pd2(Pd2::inf, Pd2::inf);
-    double pad = 0.0; // extra padding, must be >=0
-};
 
 // Wrap voronoi diagram in a finite squarish bounding box. O(n). Reasonably stable
 // The size of the box is noised to avoid the rays hitting the corners exactly
 // T must be some edge emanating out from the point at infinity (vertex 0), e.g. dual[0]
-auto box_voronoi(const vector<Pt2>& pts, Wedge* T, vector<Pd2>& centers, VoronoiBox box) {
+auto box_voronoi(const vector<Pt2>& pts, Wedge* T, vector<Pd2>& centers) {
     int N = pts.size(), V = centers.size();
     assert(T->vertex == 0);
 
@@ -59,20 +54,11 @@ auto box_voronoi(const vector<Pt2>& pts, Wedge* T, vector<Pd2>& centers, Voronoi
         hi = max(hi, centers[i]);
     }
 
-    if (box.lo != Pd2(Pd2::inf, Pd2::inf)) {
-        lo = min(lo, box.lo);
-        hi = max(hi, box.lo);
-    }
-    if (box.hi != Pd2(Pd2::inf, Pd2::inf)) {
-        lo = min(lo, box.hi);
-        hi = max(hi, box.hi);
-    }
-
     static mt19937 rng(random_device{}());
     static uniform_real_distribution<double> noised(0.007, 0.073);
 
     // Increase the size of the minimum bounding box by at least width
-    double spacing = (1.0 + box.pad) * norm(hi - lo);
+    double spacing = 1.5 * norm(hi - lo);
     Pd2 offset(spacing, spacing);
     lo -= offset, hi += offset;
 

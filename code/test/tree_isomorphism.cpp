@@ -3,75 +3,68 @@
 #include "lib/graph_operations.hpp"
 #include "lib/graph_generator.hpp"
 
-auto relabel_nonroot_inplace(int V, edges_t& g) {
-    vector<int> label(V);
-    iota(begin(label), end(label), 0);
-    shuffle(begin(label) + 1, end(label), mt);
-    for (auto& [u, v] : g) {
-        u = label[u], v = label[v];
-    }
-}
-
-void stress_test_unrooted_tree_isomorphism() {
-    const int V = 10000;
-    int errors = 0;
-
-    LOOP_FOR_DURATION_TRACKED (3s, now) {
-        print_time(now, 3s, "stress test unrooted tree isomorphism");
-
-        auto g = random_tree(V);
-        random_relabel_graph_inplace(V, g);
-        random_flip_graph_inplace(g);
-        auto ghash = hash_unrooted_tree(V, g);
-        auto gvhash = hash_unrooted_tree_vertices(V, g);
-        sort(begin(gvhash), end(gvhash));
-
-        LOOP_FOR_DURATION (50ms) {
-            auto h = g;
-            random_relabel_graph_inplace(V, h);
-            random_flip_graph_inplace(h);
-            auto hhash = hash_unrooted_tree(V, h);
-            auto hvhash = hash_unrooted_tree_vertices(V, h);
-            sort(begin(hvhash), end(hvhash));
-            errors += ghash != hhash;
-            errors += gvhash != hvhash;
+void unit_test_build_branches() {
+    const int N = 40, B = 8;
+    auto ans = build_branches(N, B, true, false);
+    vector<int> hashes;
+    for (int V = 1; V <= N; V++) {
+        for (int b = 0; b <= B; b++) {
+            for (int c = 0; c < V; c++) {
+                for (auto G : ans[{V, b, c}]) {
+                    hashes.push_back(unrooted_topology::hash_tree(V, G));
+                }
+            }
         }
     }
-
-    printcl("ERRORS: {}\n", errors);
+    sort(begin(hashes), end(hashes));
+    int H1 = hashes.size();
+    hashes.erase(unique(begin(hashes), end(hashes)), end(hashes));
+    int H2 = hashes.size();
+    putln(H1, H2);
 }
 
-void stress_test_rooted_tree_isomorphism() {
-    const int V = 10000;
-    int errors = 0;
-
-    LOOP_FOR_DURATION_TRACKED (3s, now) {
-        print_time(now, 3s, "stress test rooted tree isomorphism");
-
-        auto g = random_tree(V);
-        relabel_nonroot_inplace(V, g);
-        random_flip_graph_inplace(g);
-        auto ghash = hash_rooted_tree(V, g, 0);
-        auto gvhash = hash_rooted_tree_vertices(V, g, 0);
-        sort(begin(gvhash), end(gvhash));
-
-        LOOP_FOR_DURATION (50ms) {
-            auto h = g;
-            relabel_nonroot_inplace(V, h);
-            random_flip_graph_inplace(h);
-            auto hhash = hash_rooted_tree(V, h, 0);
-            auto hvhash = hash_rooted_tree_vertices(V, h, 0);
-            sort(begin(hvhash), end(hvhash));
-            errors += ghash != hhash;
-            errors += gvhash != hvhash;
+void unit_test_build_forks() {
+    const int N = 30, B = 3;
+    auto ans = build_branches(N, B, false, true);
+    vector<int> hashes;
+    for (int V = 1; V <= N; V++) {
+        for (int b = 0; b <= B; b++) {
+            for (int c = 0; c < V; c++) {
+                for (auto G : ans[{V, b, c}]) {
+                    hashes.push_back(unrooted_topology::hash_tree(V, G));
+                }
+            }
         }
     }
+    sort(begin(hashes), end(hashes));
+    int H1 = hashes.size();
+    hashes.erase(unique(begin(hashes), end(hashes)), end(hashes));
+    int H2 = hashes.size();
+    putln(H1, H2);
+}
 
-    printcl("ERRORS: {}\n", errors);
+void unit_test_unrooted_binaries() {
+    const int N = 20;
+    auto ans = build_unrooted_binary_trees(N);
+    vector<int> hashes, counts;
+    for (int v = 0; v <= N; v++) {
+        counts.push_back(ans[v].size());
+        for (const auto& G : ans[v]) {
+            int V = G.size() + 1;
+            hashes.push_back(unrooted_topology::hash_tree(V, G));
+        }
+    }
+    putln(counts);
+    sort(begin(hashes), end(hashes));
+    int H1 = hashes.size();
+    hashes.erase(unique(begin(hashes), end(hashes)), end(hashes));
+    int H2 = hashes.size();
+    assert(H1 == H2);
 }
 
 int main() {
-    RUN_BLOCK(stress_test_unrooted_tree_isomorphism());
-    RUN_BLOCK(stress_test_rooted_tree_isomorphism());
+    RUN_BLOCK(unit_test_build_branches());
+    RUN_BLOCK(unit_test_build_forks());
+    RUN_BLOCK(unit_test_unrooted_binaries());
     return 0;
 }
