@@ -96,7 +96,12 @@ struct Fibonacci {
 
     Fibonacci() : cache({{{0, 1}, {1, 1}}}) {}
 
+    // Fib(x)
     auto get(int64_t x) const { return cache.get(x + 1)[0][0]; }
 
+    // {Fib(x),Fib(x+1)}
     auto get_pair(int64_t x) const { return cache.get(x + 1)[0]; }
+
+    // Given a=SUM Fib(x) and b=SUM Fib(x+1), compute SUM Fib(x+c) and SUM Fib(x+1+c)
+    auto shift(V a, V b, int64_t c) { return cache.get(c) * Vec<V, 2>({a, b}); }
 };

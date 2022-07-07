@@ -8,7 +8,9 @@ void scaling_test_random_regular() {
     auto run = [&](int n, int k) {
         printcl("scaling test random regular n,k={},{}", n, k);
         START(regular);
-        LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) { auto g = random_regular(n, k); }
+        LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
+            auto g = random_regular(n, k);
+        }
         TIME(regular);
 
         long E = 1L * runs * (n * k / 2);

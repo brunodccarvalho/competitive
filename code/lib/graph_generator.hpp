@@ -516,7 +516,9 @@ auto johnson_graph(int n, int k) {
 
     unordered_map<int, int> label;
     int l = 0, fmask = (1 << n) - 1;
-    FOR_EACH_MASK (u, k, n) { label[u] = l++; }
+    FOR_EACH_MASK (u, k, n) {
+        label[u] = l++;
+    }
     (void)V, assert(l == V);
 
     FOR_EACH_MASK (u, k, n)
@@ -533,7 +535,9 @@ auto kneser_graph(int n, int k) {
 
     unordered_map<int, int> label;
     int l = 0;
-    FOR_EACH_MASK (u, k, n) { label[u] = l++; }
+    FOR_EACH_MASK (u, k, n) {
+        label[u] = l++;
+    }
     assert(l == choose(n, k));
 
     // TODO: improve complexity
@@ -769,7 +773,7 @@ auto random_forest(const vector<int>& tree_sizes) {
     g.reserve(accumulate(begin(tree_sizes), end(tree_sizes), 0));
     int T = tree_sizes.size();
     for (int i = 0, s = 0; i < T; s += tree_sizes[i++]) {
-        for (auto [u, v] : random_tree(T)) {
+        for (auto [u, v] : random_tree(tree_sizes[i])) {
             g.push_back({u + s, v + s});
         }
     }

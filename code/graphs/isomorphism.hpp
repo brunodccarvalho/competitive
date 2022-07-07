@@ -5,42 +5,62 @@
 
 using edges_t = vector<array<int, 2>>;
 
-/**
- * Compute topological hash of a general graph, based on number of paths of length V
- * between every pair of vertices.
- * Complexity: O(V^3 log(V)) time
- *             O(V^2) memory
- */
-auto hash_graph_vertices(int V, const edges_t& g) {
-    static hash<vector<size_t>> hasher;
-    mat<size_t> m({V, V});
-    for (auto [u, v] : g)
-        m[u][v] = m[v][u] = 1;
-    m = m ^ V;
+// O(V³ log V) topology, has false positives
+struct graph_topology {
+    using num = modnum<999999893>;
+    static inline unordered_map<vector<int>, int, Hasher> node_cache, graph_cache;
+    using Edges = vector<array<int, 2>>;
+    using Graph = vector<basic_string<int>>;
 
-    vector<size_t> hashtable(V);
-    for (int n = 0; n < V; n++) {
-        vector<size_t> hashes(m[n], m[n + 1]);
-        sort(begin(hashes), end(hashes));
-        hashtable[n] = hasher(hashes);
+    static auto make_graph(int V, const Edges& edges) {
+        Graph graph(V);
+        for (auto [u, v] : edges) {
+            graph[u].push_back(v);
+            graph[v].push_back(u);
+        }
+        return graph;
     }
-    return hashtable;
-}
 
-/**
- * Compute the topological hash of a graph, irrespective of its labels (0-indexed)
- */
-size_t hash_graph(int V, const edges_t& g) {
-    static hash<vector<size_t>> hasher;
-    auto hashtable = hash_graph_vertices(V, g);
-    sort(begin(hashtable), end(hashtable));
-    hashtable.push_back(V), hashtable.push_back(g.size());
-    return hasher(hashtable);
-}
+    static auto get_node(const vector<int>& node) {
+        if (auto pos = node_cache.find(node); pos != end(node_cache)) {
+            return pos->second;
+        } else {
+            int S = node_cache.size();
+            return node_cache[node] = S;
+        }
+    }
 
-/**
- * Isomorphism heuristic for two graphs (0-indexed)
- */
-bool isomorphic(int V, const edges_t& g1, const edges_t& g2) {
-    return g1.size() == g2.size() && hash_graph(V, g1) == hash_graph(V, g2);
-}
+    static auto get_graph(const vector<int>& graph) {
+        if (auto pos = graph_cache.find(graph); pos != end(graph_cache)) {
+            return pos->second;
+        } else {
+            int S = graph_cache.size();
+            return graph_cache[graph] = S;
+        }
+    }
+
+    static auto undirected_vertex_hashes(int V, const Edges& edges) {
+        mat<num> A({V, V});
+        for (auto [u, v] : edges) {
+            A[u][v] += 1, A[v][u] += 1;
+        }
+        A = A ^ V;
+        vector<int> ids(V);
+        for (int u = 0; u < V; u++) {
+            vector<int> vs;
+            for (int i = 0; i < V; i++) {
+                vs.push_back(int(A[u][i]));
+            }
+            swap(vs[0], vs[u]);
+            sort(begin(vs) + 1, end(vs));
+            ids[u] = get_node(vs);
+        }
+        return ids;
+    }
+
+    static auto undirected_graph_hash(int V, const Edges& edges) {
+        auto ids = undirected_vertex_hashes(V, edges);
+        sort(begin(ids), end(ids));
+        return get_graph(ids);
+    }
+};

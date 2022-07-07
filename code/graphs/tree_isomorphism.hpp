@@ -4,12 +4,33 @@
 #include "struct/tensor.hpp"
 
 struct unrooted_topology {
-    static inline unordered_map<vector<int>, int, Hasher> subt_cache;
-    static inline unordered_map<pair<int, int>, int, Hasher> cache;
+    static inline unordered_map<vector<int>, int, Hasher> cache;
+    static inline unordered_set<int> visited_topologies;
     using Edges = vector<array<int, 2>>;
     using Tree = vector<basic_string<int>>;
 
+    static void clear() { cache.clear(), visited_topologies.clear(); }
+
     // * Auxiliary stuff...
+
+    static auto make_tree(int V, const Edges& edges) {
+        Tree tree(V);
+        for (auto [u, v] : edges) {
+            tree[u].push_back(v);
+            tree[v].push_back(u);
+        }
+        return tree;
+    }
+
+    static auto get(const vector<int>& hashes) {
+        if (auto pos = cache.find(hashes); pos != end(cache)) {
+            return pos->second;
+        } else {
+            int S = cache.size();
+            return cache[hashes] = S;
+        }
+    }
+
     static auto get_nodes_in_tree(int V, int r, int p, const Tree& tree) {
         static thread_local int S = 0;
         static thread_local vector<int> parent;
@@ -28,50 +49,7 @@ struct unrooted_topology {
         return bfs;
     }
 
-    static auto get_reps_in_forest(int V, const Tree& tree) {
-        static thread_local vector<int8_t> open;
-        open.assign(V, 1);
-        vector<int> reps;
-        for (int u = 0; u < V; u++) {
-            if (open[u]) {
-                reps.push_back(u);
-                for (int v : get_nodes_in_tree(V, u, -1, tree)) {
-                    open[v] = false;
-                }
-            }
-        }
-        return reps;
-    }
-
-    static auto make_tree(int V, const Edges& edges) {
-        Tree tree(V);
-        for (auto [u, v] : edges) {
-            tree[u].push_back(v);
-            tree[v].push_back(u);
-        }
-        return tree;
-    }
-
-    static auto get_subt(const vector<int>& hashes) {
-        if (auto pos = subt_cache.find(hashes); pos != end(subt_cache)) {
-            return make_pair(pos->second, false);
-        } else {
-            int S = subt_cache.size();
-            subt_cache[hashes] = S;
-            return make_pair(S, true);
-        }
-    }
-
-    static auto get_cache(int a, int b) {
-        if (auto pos = cache.find({a, b}); pos != end(cache)) {
-            return make_pair(pos->second, false);
-        } else {
-            int S = cache.size();
-            cache[{a, b}] = cache[{b, a}] = S;
-            return make_pair(S, true);
-        }
-    }
-
+    // Compute rooted hash for r's tree and not passing through the edge towards p
     static int hash_rooted(int V, int r, int p, const Tree& tree) {
         static thread_local int S = 0;
         static thread_local vector<vector<int>> hashes;
@@ -91,16 +69,17 @@ struct unrooted_topology {
         for (int i = B - 1; i > 0; i--) {
             int u = bfs[i];
             sort(begin(hashes[u]), end(hashes[u]));
-            int h = get_subt(hashes[u]).first;
+            int h = get(hashes[u]);
             hashes[u].clear();
             hashes[parent[u]].push_back(h);
         }
         sort(begin(hashes[r]), end(hashes[r]));
-        int h = get_subt(hashes[r]).first;
+        int h = get(hashes[r]);
         hashes[r].clear();
         return h;
     }
 
+    // Compute (unrooted hash, centroid), prefering centroid with largest rooted hash
     static auto hash_unrooted(int V, int r, int p, const Tree& tree) {
         static thread_local int S = 0;
         static thread_local vector<int> subt, ok, bfs, parent;
@@ -117,38 +96,79 @@ struct unrooted_topology {
                 }
             }
         }
-        vector<int> ans;
-        for (int i = B - 1; i >= 0 && ans.size() < 2u; i--) {
+        auto ans = make_pair(-1, -1);
+        int A = 0;
+        for (int i = B - 1; i >= 0 && A < 2; i--) {
             int u = bfs[i];
             if (ok[u] && B - subt[u] <= B / 2) {
-                ans.push_back(hash_rooted(V, u, p, tree));
+                ans = max(ans, make_pair(hash_rooted(V, u, p, tree), u)), A++;
             }
             if (parent[u] != -1) {
                 subt[parent[u]] += subt[u];
                 ok[parent[u]] &= subt[u] <= B / 2;
             }
         }
-        int A = ans.size();
-        assert(A == 1 || A == 2);
-        return get_cache(ans[0], A == 2 ? ans[1] : -1);
+        return ans;
+    }
+
+    // For every node u compute ordered set of (h,v) among u's kids and populate kids[]
+    static auto dfs_hashing(int V, int r, int p, const Tree& tree,
+                            vector<vector<pair<int, int>>>& kids) {
+        static thread_local int S = 0;
+        static thread_local vector<vector<int>> hashes;
+        static thread_local vector<int> bfs, parent;
+        S = max(S, V), hashes.resize(S), bfs.resize(S), parent.resize(S);
+        bfs[0] = r, parent[r] = -1;
+        int B = 1;
+        for (int i = 0; i < B && B < V; i++) {
+            int u = bfs[i];
+            for (int v : tree[u]) {
+                if (v != parent[u] && v != p) {
+                    bfs[B++] = v;
+                    parent[v] = u;
+                }
+            }
+        }
+        for (int i = B - 1; i > 0; i--) {
+            int u = bfs[i];
+            sort(begin(hashes[u]), end(hashes[u]));
+            sort(begin(kids[u]), end(kids[u]));
+            int h = get(hashes[u]);
+            hashes[u].clear();
+            kids[parent[u]].emplace_back(h, u);
+            hashes[parent[u]].push_back(h);
+        }
+        sort(begin(hashes[r]), end(hashes[r]));
+        sort(begin(kids[r]), end(kids[r]));
+        int h = get(hashes[r]);
+        hashes[r].clear();
+        return h;
+    }
+
+    // Run dfs and use akids[] and bkids[] to match nodes between A and B with same hash
+    static void dfs_matching(int V, int a, int b,
+                             const vector<vector<pair<int, int>>>& akids,
+                             const vector<vector<pair<int, int>>>& bkids,
+                             vector<int>& atob) {
+        atob[a] = b;
+        assert(akids[a].size() == bkids[b].size());
+        for (int i = 0, S = akids[a].size(); i < S; i++) {
+            dfs_matching(V, akids[a][i].second, bkids[b][i].second, akids, bkids, atob);
+        }
     }
 
     // * Main interface...
-    static void clear() { subt_cache.clear(), cache.clear(); }
 
-    // Compute unrooted hash for given tree
     static int hash_tree(int V, const Edges& edges) {
         auto tree = make_tree(V, edges);
         return hash_unrooted(V, 0, -1, tree).first;
     }
 
-    // Compute unrooted hash for given tree
-    static int hash_tree(int V, int r, const Edges& edges) {
+    static int hash_tree_in_forest(int V, int r, const Edges& edges) {
         auto tree = make_tree(V, edges);
         return hash_unrooted(V, r, -1, tree).first;
     }
 
-    // Compute unrooted hash for each tree
     static auto hash_forest_by_node(int V, const Edges& edges) {
         auto tree = make_tree(V, edges);
         vector<int> hashes(V);
@@ -158,13 +178,39 @@ struct unrooted_topology {
         return hashes;
     }
 
-    // Compute set of hashes for forest
+    // The hash of a forest is the sorted vector of hashes of each of its trees
     static auto hash_forest(int V, const Edges& edges) {
+        static thread_local vector<int8_t> open;
+        open.assign(V, 1);
+        auto tree = make_tree(V, edges);
+        vector<int> hashes;
+        for (int u = 0; u < V; u++) {
+            if (open[u]) {
+                hashes.push_back(hash_unrooted(V, u, -1, tree).first);
+                for (int v : get_nodes_in_tree(V, u, -1, tree)) {
+                    open[v] = false;
+                }
+            }
+        }
+        sort(begin(hashes), end(hashes));
+        return hashes;
+    }
+
+    // Compute vector of (tree hash,tree centroid) with the primary centroid on each tree
+    static auto compute_forest_hashsets(int V, const Edges& edges) {
+        static thread_local vector<int8_t> open;
+        open.assign(V, 1);
         auto tree = make_tree(V, edges);
         vector<pair<int, int>> hashes;
-        for (int u : get_reps_in_forest(V, tree)) {
-            hashes.emplace_back(u, hash_unrooted(V, u, -1, tree).first);
+        for (int u = 0; u < V; u++) {
+            if (open[u]) {
+                hashes.push_back(hash_unrooted(V, u, -1, tree));
+                for (int v : get_nodes_in_tree(V, u, -1, tree)) {
+                    open[v] = false;
+                }
+            }
         }
+        sort(begin(hashes), end(hashes));
         return hashes;
     }
 
@@ -177,8 +223,8 @@ struct unrooted_topology {
         return make_pair(a, b);
     }
 
-    // Compute the 2n-2 unrooted hashes for given tree with each edge removed. O(V^2)
-    static auto hash_removed_edges(int V, const Edges& edges) {
+    // Compute the 2E unrooted hashes for given trees with each edge removed. O(V^2)
+    static auto hash_removed_each_edge(int V, const Edges& edges) {
         auto tree = make_tree(V, edges);
         vector<pair<int, int>> hashes;
         for (auto [u, v] : edges) {
@@ -189,7 +235,7 @@ struct unrooted_topology {
         return hashes;
     }
 
-    // Compute the deg(n) unrooted hash sets for given tree with vertex removed. O(V deg)
+    // Compute the deg(n) unrooted hash sets for given tree with u removed. O(V deg)
     static auto hash_removed_vertex(int V, const Edges& edges, int u) {
         auto tree = make_tree(V, edges);
         vector<pair<int, int>> hashes;
@@ -201,7 +247,7 @@ struct unrooted_topology {
     }
 
     // Compute the 2n-2 unrooted hash sets for given tree with each vertex removed. O(V^2)
-    static auto hash_removed_vertices(int V, const Edges& edges) {
+    static auto hash_removed_each_vertex(int V, const Edges& edges) {
         auto tree = make_tree(V, edges);
         vector<vector<pair<int, int>>> hashes(V);
         for (int u = 0; u < V; u++) {
@@ -213,14 +259,40 @@ struct unrooted_topology {
         return hashes;
     }
 
+    // If A and B are isomorphic forests return mapping of nodes from A to B, else nothing
+    static auto isomorphic_mapping(int V, const Edges& A, const Edges& B) {
+        auto areps = compute_forest_hashsets(V, A);
+        auto breps = compute_forest_hashsets(V, B);
+        if (areps.size() != breps.size()) {
+            return vector<int>();
+        }
+        int T = areps.size();
+        for (int i = 0; i < T; i++) {
+            if (areps[i].first != breps[i].first) {
+                return vector<int>();
+            }
+        }
+        auto atree = make_tree(V, A);
+        auto btree = make_tree(V, B);
+        vector<vector<pair<int, int>>> akids(V), bkids(V);
+        vector<int> ans(V, -1);
+        for (int i = 0; i < T; i++) {
+            int a = areps[i].second, b = breps[i].second;
+            dfs_hashing(V, a, -1, atree, akids);
+            dfs_hashing(V, b, -1, btree, bkids);
+            dfs_matching(V, a, b, akids, bkids, ans);
+        }
+        return ans;
+    }
+
     // Dfs postorder on all isomorphically distinct subtrees of the given tree
     // Only visits new hashes. Signature: (V, hash, edges[], tree[][])
     // Number of trees is O(2^(2V/3)) worst-case
     template <typename Fn>
     static bool visit_subtrees(int V, const Edges& edges, Fn&& visitor) {
         auto tree = make_tree(V, edges);
-        auto [h, ok] = hash_unrooted(V, 0, -1, tree);
-        if (!ok) {
+        auto [h, c] = hash_unrooted(V, 0, -1, tree);
+        if (!visited_topologies.insert(h).second) {
             return false;
         }
         vector<int8_t> checked(V);
@@ -281,7 +353,7 @@ struct rooted_topology {
         return make_pair(B, move(ans));
     }
 
-    static auto get_cache(const vector<int>& hashes) {
+    static auto get(const vector<int>& hashes) {
         if (auto pos = cache.find(hashes); pos != end(cache)) {
             return make_pair(pos->second, false);
         } else {
@@ -310,12 +382,12 @@ struct rooted_topology {
         for (int i = B - 1; i > 0; i--) {
             int u = bfs[i];
             sort(begin(hashes[u]), end(hashes[u]));
-            int h = get_cache(hashes[u]).first;
+            int h = get(hashes[u]).first;
             hashes[u].clear();
             hashes[parent[u]].push_back(h);
         }
         sort(begin(hashes[r]), end(hashes[r]));
-        int h = get_cache(hashes[r]).first;
+        int h = get(hashes[r]).first;
         hashes[r].clear();
         return h;
     }
@@ -368,7 +440,7 @@ struct rooted_topology {
         auto tree = make_tree(V, edges);
         vector<int> hashes;
         for (int u = 0; u < V; u++) {
-            int a = r == u ? get_cache({}).first : hash_rooted(V, r, u, tree);
+            int a = r == u ? get({}).first : hash_rooted(V, r, u, tree);
             hashes.push_back(a);
         }
         return hashes;
@@ -396,7 +468,7 @@ struct rooted_topology {
         for (int i = B - 1; i >= 0; i--) {
             int u = bfs[i];
             sort(begin(hashes[u]), end(hashes[u]));
-            auto [h, ok] = get_cache(hashes[u]);
+            auto [h, ok] = get(hashes[u]);
             if (ok) {
                 auto [S, subt_edges] = make_subtree(V, u, parent[u], tree);
                 auto subt = make_tree(S, subt_edges);
@@ -486,6 +558,33 @@ auto build_branches(int N, int B, bool chains = true, bool forks = true) {
                             T.push_back({0, S});
                             ans[{V, b, c}].push_back(move(T));
                         }
+                    }
+                }
+            }
+        }
+    }
+    return ans;
+}
+
+// Generate all isomorphically distinct trees with at most N nodes and degree at most D
+auto build_bounded_degree(int N, int D) {
+    using Edges = vector<array<int, 2>>;
+    vector<vector<Edges>> ans(N + 1);
+    ans[1].push_back({});
+    for (int V = 2; V <= N; V++) {
+        unordered_set<int> seen;
+        for (const Edges& G : ans[V - 1]) {
+            vector<int> deg(V - 1);
+            for (auto [u, v] : G) {
+                deg[u]++, deg[v]++;
+            }
+            for (int u = 0; u < V - 1; u++) {
+                if (deg[u] < D) {
+                    Edges H = G;
+                    H.push_back({u, V - 1});
+                    int h = unrooted_topology::hash_tree(V, H);
+                    if (seen.insert(h).second) {
+                        ans[V].push_back(move(H));
                     }
                 }
             }

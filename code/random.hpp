@@ -121,7 +121,7 @@ template <typename T, typename O = T> // inclusive [a,b], ordered pair u<v
 array<O, 2> different(common_type_t<T> a, common_type_t<T> b) {
     assert(a < b);
     auto x = rand_unif<T, O>(a, b), y = rand_unif<T, O>(a, b - 1);
-    y += !(y < x);
+    y += y >= x;
     return x < y ? array<O, 2>{x, y} : array<O, 2>{y, x};
 }
 
