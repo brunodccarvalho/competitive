@@ -1,17 +1,18 @@
 #include "test_utils.hpp"
 #include "struct/segtree.hpp"
+#include "struct/segtree_nodes.hpp"
 
 auto after_searcher(int t) {
-    return [t](Segnode v) { return v.value >= t; };
+    return [t](simple_segnode v) { return v.value >= t; };
 }
 auto strict_after_searcher(int t) {
-    return [t](Segnode v) { return v.value > t; };
+    return [t](simple_segnode v) { return v.value > t; };
 }
 auto before_searcher(int t) {
-    return [t](Segnode v) { return v.value <= t; };
+    return [t](simple_segnode v) { return v.value <= t; };
 }
 auto strict_before_searcher(int t) {
-    return [t](Segnode v) { return v.value < t; };
+    return [t](simple_segnode v) { return v.value < t; };
 }
 
 void stress_test_segtree_binary_search() {
@@ -21,7 +22,7 @@ void stress_test_segtree_binary_search() {
         int N = rand_unif<int>(1, 200);
         auto arr = rands_unif<int>(N, 1, 10000);
 
-        segtree<Segnode> seg(N, arr);
+        segtree<simple_segnode> seg(N, arr);
 
         // Prefix search whole segtree
         {

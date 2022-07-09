@@ -475,3 +475,169 @@ struct top_clusters {
 
     void pushdown(bool, top_clusters&, top_clusters&, top_clusters&) {}
 };
+
+struct top_sum_min_max_node {
+    static constexpr bool FULL_PUSHUP = false, FULL_PUSHDOWN = false;
+    using V = int64_t;
+    static constexpr V NONE = std::numeric_limits<V>::lowest();
+    static constexpr V MIN = std::numeric_limits<V>::lowest();
+    static constexpr V MAX = std::numeric_limits<V>::max();
+
+    int path_size = 0;
+    int rest_size = 0;
+    int virt_size = 0;
+
+    V virt_sum = 0; // virtual
+    V virt_min = MAX;
+    V virt_max = MIN;
+    V rest_sum = 0; // virtual + virtuals of path children
+    V rest_min = MAX;
+    V rest_max = MIN;
+    V path_sum = 0; // node + path
+    V path_min = MAX;
+    V path_max = MIN;
+
+    V subt_size() const { return path_size + rest_size; }
+    V subt_sum() const { return path_sum + rest_sum; }
+    V subt_min() const { return min(path_min, rest_min); }
+    V subt_max() const { return max(path_max, rest_max); }
+    V under_sum() const { return self + virt_sum; }
+    V under_min() const { return min(self, virt_min); }
+    V under_max() const { return max(self, virt_max); }
+    bool safe() const { return path_size + rest_size > 0; }
+
+    V lazy_path = 0;
+    V lazy_subt = 0;
+    V lazy_virt = 0;
+
+    V set_path = NONE;
+    V set_subt = NONE;
+    V set_virt = NONE;
+    V self = 0;
+
+    top_sum_min_max_node() = default;
+    top_sum_min_max_node(bool is, V v = 0)
+        : path_size(is), path_sum(v), path_min(is ? v : MAX), path_max(is ? v : MIN),
+          self(v) {}
+
+    void put_virt(V x) {
+        if (safe() && x != NONE) {
+            self = x;
+            set_virt = x;
+        }
+    }
+    void put_subt(bool is_node, V x) {
+        if (safe() && x != NONE) {
+            virt_sum = x * virt_size;
+            virt_min = virt_size ? x : MAX;
+            virt_max = virt_size ? x : MIN;
+            rest_sum = x * rest_size;
+            rest_min = rest_size ? x : MAX;
+            rest_max = rest_size ? x : MIN;
+            path_sum = x * path_size;
+            path_min = path_size ? x : MAX;
+            path_max = path_size ? x : MIN;
+
+            lazy_subt = lazy_path = 0;
+            set_path = NONE;
+            self = is_node ? x : 0;
+            set_subt = x;
+        }
+    }
+    void put_path(V x) {
+        if (safe() && x != NONE) {
+            path_sum = x * path_size;
+            path_min = path_size ? x : MAX;
+            path_max = path_size ? x : MIN;
+
+            lazy_path = 0;
+            self = x;
+            set_path = x;
+        }
+    }
+    void add_virt(V x) {
+        if (safe()) {
+            self += x;
+            lazy_virt += x;
+        }
+    }
+    void add_subt(bool is_node, V x) {
+        if (safe()) {
+            virt_sum += x * virt_size;
+            virt_min += virt_size ? x : 0;
+            virt_max += virt_size ? x : 0;
+            rest_sum += x * rest_size;
+            rest_min += rest_size ? x : 0;
+            rest_max += rest_size ? x : 0;
+            path_sum += x * path_size;
+            path_min += path_size ? x : 0;
+            path_max += path_size ? x : 0;
+
+            self += is_node ? x : 0;
+            set_subt != NONE ? set_subt += x : lazy_subt += x;
+            set_path != NONE ? set_path += x : set_path += 0;
+        }
+    }
+    void add_path(V x) {
+        if (safe()) {
+            path_sum += x * path_size;
+            path_min += path_size ? x : 0;
+            path_max += path_size ? x : 0;
+
+            self += x;
+            set_path != NONE ? set_path += x : lazy_path += x;
+        }
+    }
+
+    void flip_path() {}
+
+    void pushup(bool is, const top_sum_min_max_node& lhs, const top_sum_min_max_node& rhs,
+                const top_sum_min_max_node& tree) {
+        path_size = is + lhs.path_size + rhs.path_size;
+        rest_size = lhs.rest_size + rhs.rest_size + tree.subt_size();
+        virt_size = tree.subt_size();
+        path_sum = self + lhs.path_sum + rhs.path_sum;
+        rest_sum = lhs.rest_sum + rhs.rest_sum + tree.subt_sum();
+        virt_sum = tree.subt_sum();
+        path_min = !is ? MAX : min({self, lhs.path_min, rhs.path_min});
+        path_max = !is ? MIN : max({self, lhs.path_max, rhs.path_max});
+        rest_min = min({lhs.rest_min, rhs.rest_min, tree.subt_min()});
+        rest_max = max({lhs.rest_max, rhs.rest_max, tree.subt_max()});
+        virt_min = tree.subt_min();
+        virt_max = tree.subt_max();
+    }
+
+    void pushdown(bool is_node, top_sum_min_max_node& lhs, top_sum_min_max_node& rhs,
+                  top_sum_min_max_node& tree) {
+        if (set_virt != NONE) {
+            tree.put_subt(!is_node, set_virt);
+            set_virt = NONE;
+        }
+        if (lazy_virt) {
+            tree.add_subt(!is_node, lazy_virt);
+            lazy_virt = 0;
+        }
+        if (set_subt != NONE) {
+            lhs.put_subt(is_node, set_subt);
+            rhs.put_subt(is_node, set_subt);
+            tree.put_subt(!is_node, set_subt);
+            set_subt = NONE;
+        }
+        if (lazy_subt) {
+            lhs.add_subt(is_node, lazy_subt);
+            rhs.add_subt(is_node, lazy_subt);
+            tree.add_subt(!is_node, lazy_subt);
+            lazy_subt = 0;
+        }
+        if (set_path != NONE) {
+            lhs.put_path(set_path);
+            rhs.put_path(set_path);
+            set_path = NONE;
+        }
+        if (lazy_path) {
+            lhs.add_path(lazy_path);
+            rhs.add_path(lazy_path);
+            lazy_path = 0;
+        }
+    }
+};

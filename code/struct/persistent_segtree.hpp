@@ -188,7 +188,7 @@ struct persistent_segtree {
                 assert(0 <= version && version < versions());
                 vers[i] = roots[version];
             }
-            return run_prefix_parallel_search(vers, L, R, l, r, init, bs);
+            return run_prefix_psearch(vers, L, R, l, r, init, bs);
         }
     }
 
@@ -202,12 +202,28 @@ struct persistent_segtree {
             return make_pair(r, move(init));
         } else {
             for (unsigned i = 0; i < A; i++) {
-                int version = vers[i];
-                assert(0 <= version && version < versions());
-                vers[i] = roots[version];
+                assert(0 <= vers[i] && vers[i] < versions());
+                vers[i] = roots[vers[i]];
             }
-            return run_suffix_parallel_search(vers, L, R, l, r, init, bs);
+            return run_suffix_psearch(vers, L, R, l, r, init, bs);
         }
+    }
+
+    int meld(int v1, int v2, int L, int R, int zero) {
+        assert(L < R && v1 != v2);
+        return add_root(run_meld(roots[v1], roots[v2], L, R, zero));
+    }
+
+    int meld(const vector<int>& vers, int L, int R, int zero) {
+        static_assert(!Node::LAZY && "Unimplemented you moron");
+        assert(L < R);
+        vector<int> pts;
+        for (int v : vers) {
+            if (v != zero) {
+                pts.push_back(roots[v]);
+            }
+        }
+        return add_root(run_meld(pts, L, R, zero));
     }
 
   private:
@@ -427,35 +443,27 @@ struct persistent_segtree {
 
     template <typename Bs>
     auto run_prefix_search(int u, int L, int R, int ql, int qr, Node prefix, Bs&& bs) {
-        if (ql <= L && R <= qr) {
-            Node extra = combine(prefix, node[u]);
-            if (!bs(extra, R)) {
-                return make_pair(R, move(extra));
-            }
-            while (L + 1 < R) {
-                pushdown(u, R - L);
-                int M = (L + R) / 2;
-                auto [a, b] = kids[u];
-                Node v = combine(prefix, node[a]);
-                if (bs(v, M)) {
-                    u = a, R = M;
-                } else {
-                    prefix = move(v);
-                    u = b, L = M;
-                }
-            }
-            Node v = combine(prefix, node[u]);
-            return bs(v, R) ? make_pair(L, move(prefix)) : make_pair(R, move(v));
+        if (L + 1 == R) {
+            Node full = combine(prefix, node[u]);
+            return bs(full) ? make_pair(L, move(prefix)) : make_pair(R, move(full));
         }
         pushdown(u, R - L);
         int x, M = (L + R) / 2;
         auto [a, b] = kids[u];
+        if (ql <= L && R <= qr) {
+            Node middle = combine(prefix, node[a]);
+            if (bs(middle)) {
+                return run_prefix_search(a, L, M, ql, qr, move(prefix), bs);
+            } else {
+                return run_prefix_search(b, M, R, ql, qr, move(middle), bs);
+            }
+        }
         if (qr <= M) {
             return run_prefix_search(a, L, M, ql, qr, move(prefix), bs);
         } else if (M <= ql) {
             return run_prefix_search(b, M, R, ql, qr, move(prefix), bs);
         }
-        tie(x, prefix) = run_prefix_search(a, L, M, ql, M, move(prefix), bs);
+        tie(x, prefix) = run_prefix_search(a, L, M, ql, qr, move(prefix), bs);
         if (x < M) {
             return make_pair(x, move(prefix));
         } else {
@@ -465,29 +473,21 @@ struct persistent_segtree {
 
     template <typename Bs>
     auto run_suffix_search(int u, int L, int R, int ql, int qr, Node suffix, Bs&& bs) {
-        if (ql <= L && R <= qr) {
-            Node extra = combine(node[u], suffix);
-            if (bs(extra, L)) {
-                return make_pair(L, move(extra));
-            }
-            while (L + 1 < R) {
-                pushdown(u, R - L);
-                int M = (L + R) / 2;
-                auto [a, b] = kids[u];
-                Node v = combine(node[b], suffix);
-                if (bs(v, M)) {
-                    suffix = move(v);
-                    u = a, R = M;
-                } else {
-                    u = b, L = M;
-                }
-            }
-            Node v = combine(node[u], suffix);
-            return bs(v, L) ? make_pair(L, move(v)) : make_pair(R, move(suffix));
+        if (L + 1 == R) {
+            Node full = combine(node[u], suffix);
+            return bs(full) ? make_pair(L, move(full)) : make_pair(R, move(suffix));
         }
         pushdown(u, R - L);
         int x, M = (L + R) / 2;
         auto [a, b] = kids[u];
+        if (ql <= L && R <= qr) {
+            Node middle = combine(node[b], suffix);
+            if (bs(middle)) {
+                return run_suffix_search(a, L, M, ql, qr, move(middle), bs);
+            } else {
+                return run_suffix_search(b, M, R, ql, qr, move(suffix), bs);
+            }
+        }
         if (qr <= M) {
             return run_suffix_search(a, L, M, ql, qr, move(suffix), bs);
         } else if (M <= ql) {
@@ -502,122 +502,136 @@ struct persistent_segtree {
     }
 
     template <size_t A, typename Bs>
-    auto run_prefix_parallel_search(array<int, A> who, int L, int R, int ql, int qr,
-                                    array<Node, A> prefix, Bs&& bs) {
-        if (ql <= L && R <= qr) {
-            array<Node, A> extra;
+    auto get_kids(const array<int, A>& who, int s) {
+        array<int, A> under;
+        for (unsigned i = 0; i < A; i++) {
+            under[i] = kids[who[i]][s];
+        }
+        return under;
+    }
+
+    template <size_t A, typename Bs>
+    auto run_prefix_psearch(array<int, A> who, int L, int R, int ql, int qr,
+                            array<Node, A> prefix, Bs&& bs) {
+        if (L + 1 == R) {
+            array<Node, A> full;
             for (unsigned i = 0; i < A; i++) {
-                extra[i] = combine(prefix[i], node[who[i]]);
+                full[i] = combine(prefix[i], node[who[i]]);
             }
-            if (!bs(extra, R)) {
-                return make_pair(R, move(extra));
-            }
-            while (L + 1 < R) {
-                int M = (L + R) / 2;
-                array<Node, A> query;
-                for (unsigned i = 0; i < A; i++) {
-                    int u = who[i];
-                    pushdown(u, R - L);
-                    auto [a, b] = kids[u];
-                    query[i] = combine(prefix[i], node[a]);
-                }
-                if (bs(query, M)) {
-                    for (unsigned i = 0; i < A; i++) {
-                        who[i] = kids[who[i]][0];
-                    }
-                    R = M;
-                } else {
-                    for (unsigned i = 0; i < A; i++) {
-                        who[i] = kids[who[i]][1];
-                    }
-                    prefix = move(query);
-                    L = M;
-                }
-            }
-            array<Node, A> query;
-            for (unsigned i = 0; i < A; i++) {
-                query[i] = combine(prefix[i], node[who[i]]);
-            }
-            return bs(query, R) ? make_pair(L, move(prefix)) : make_pair(R, move(query));
+            return bs(full) ? make_pair(L, move(prefix)) : make_pair(R, move(full));
+        }
+        for (unsigned i = 0; i < A; i++) {
+            pushdown(who[i], R - L);
         }
         int x, M = (L + R) / 2;
-        array<int, A> left, right;
-        for (unsigned i = 0; i < A; i++) {
-            int u = who[i];
-            pushdown(u, R - L);
-            auto [a, b] = kids[u];
-            left[i] = a, right[i] = b;
+        if (ql <= L && R <= qr) {
+            array<Node, A> middle;
+            for (unsigned i = 0; i < A; i++) {
+                auto [a, b] = kids[who[i]];
+                middle[i] = combine(prefix[i], node[a]);
+            }
+            if (bs(middle)) {
+                return run_prefix_psearch(aget(who, 0), L, M, ql, qr, move(prefix), bs);
+            } else {
+                return run_prefix_psearch(aget(who, 1), M, R, ql, qr, move(middle), bs);
+            }
         }
         if (qr <= M) {
-            return run_prefix_parallel_search(left, L, M, ql, qr, move(prefix), bs);
+            return run_prefix_psearch(aget(who, 0), L, M, ql, qr, move(prefix), bs);
         } else if (M <= ql) {
-            return run_prefix_parallel_search(right, M, R, ql, qr, move(prefix), bs);
+            return run_prefix_psearch(aget(who, 1), M, R, ql, qr, move(prefix), bs);
         }
-        tie(x, prefix) = run_prefix_parallel_search(left, L, M, ql, M, move(prefix), bs);
+        tie(x, prefix) = run_prefix_psearch(aget(who, 0), L, M, ql, qr, move(prefix), bs);
         if (x < M) {
             return make_pair(x, move(prefix));
         } else {
-            return run_prefix_parallel_search(right, M, R, M, qr, move(prefix), bs);
+            return run_prefix_psearch(aget(who, 1), M, R, M, qr, move(prefix), bs);
         }
     }
 
     template <size_t A, typename Bs>
-    auto run_suffix_parallel_search(array<int, A> who, int L, int R, int ql, int qr,
-                                    array<Node, A> suffix, Bs&& bs) {
-        if (ql <= L && R <= qr) {
-            array<Node, A> extra;
+    auto run_suffix_psearch(array<int, A> who, int L, int R, int ql, int qr,
+                            array<Node, A> suffix, Bs&& bs) {
+        if (L + 1 == R) {
+            array<Node, A> full;
             for (unsigned i = 0; i < A; i++) {
-                extra[i] = combine(node[who[i]], suffix[i]);
+                full[i] = combine(node[who[i]], suffix[i]);
             }
-            if (bs(extra, L)) {
-                return make_pair(L, move(extra));
-            }
-            while (L + 1 < R) {
-                int M = (L + R) / 2;
-                array<Node, A> query;
-                for (unsigned i = 0; i < A; i++) {
-                    int u = who[i];
-                    pushdown(u, R - L);
-                    auto [a, b] = kids[u];
-                    query[i] = combine(node[b], suffix[i]);
-                }
-                if (bs(query, M)) {
-                    for (unsigned i = 0; i < A; i++) {
-                        who[i] = kids[who[i]][0];
-                    }
-                    suffix = move(query);
-                    R = M;
-                } else {
-                    for (unsigned i = 0; i < A; i++) {
-                        who[i] = kids[who[i]][1];
-                    }
-                    L = M;
-                }
-            }
-            array<Node, A> query;
-            for (unsigned i = 0; i < A; i++) {
-                query[i] = combine(node[who[i]], suffix[i]);
-            }
-            return bs(query, L) ? make_pair(L, move(query)) : make_pair(R, move(suffix));
+            return bs(full) ? make_pair(L, move(full)) : make_pair(R, move(suffix));
+        }
+        for (unsigned i = 0; i < A; i++) {
+            pushdown(who[i], R - L);
         }
         int x, M = (L + R) / 2;
-        array<int, A> left, right;
-        for (unsigned i = 0; i < A; i++) {
-            int u = who[i];
-            pushdown(u, R - L);
-            auto [a, b] = kids[u];
-            left[i] = a, right[i] = b;
+        if (ql <= L && R <= qr) {
+            array<Node, A> middle;
+            for (unsigned i = 0; i < A; i++) {
+                auto [a, b] = kids[who[i]];
+                middle[i] = combine(node[b], suffix[i]);
+            }
+            if (bs(middle)) {
+                return run_suffix_psearch(aget(who, 0), L, M, ql, qr, move(middle), bs);
+            } else {
+                return run_suffix_psearch(aget(who, 1), M, R, ql, qr, move(suffix), bs);
+            }
         }
         if (qr <= M) {
-            return run_suffix_parallel_search(left, L, M, ql, qr, move(suffix), bs);
+            return run_suffix_psearch(aget(who, 0), L, M, ql, qr, move(suffix), bs);
         } else if (M <= ql) {
-            return run_suffix_parallel_search(right, M, R, ql, qr, move(suffix), bs);
+            return run_suffix_psearch(aget(who, 1), M, R, ql, qr, move(suffix), bs);
         }
-        tie(x, suffix) = run_suffix_parallel_search(right, M, R, M, qr, move(suffix), bs);
+        tie(x, suffix) = run_suffix_psearch(aget(who, 1), M, R, M, qr, move(suffix), bs);
         if (x > M) {
             return make_pair(x, move(suffix));
         } else {
-            return run_suffix_parallel_search(left, L, M, ql, M, move(suffix), bs);
+            return run_suffix_psearch(aget(who, 0), L, M, ql, M, move(suffix), bs);
+        }
+    }
+
+    int run_meld(int u, int v, int L, int R, int zero) {
+        if (u == zero || v == zero) {
+            return u ^ v ^ zero;
+        } else if (L + 1 == R) {
+            int x = clone_node(zero);
+            node[x].meld(node[u]);
+            node[x].meld(node[v]);
+            return x;
+        } else {
+            pushdown(u, R - L);
+            pushdown(v, R - L);
+            int M = (L + R) / 2;
+            int a = run_meld(kids[u][0], kids[v][0], L, M, kids[zero][0]);
+            int b = run_meld(kids[u][1], kids[v][1], M, R, kids[zero][1]);
+            return add_node(a, b, combine(node[a], node[b]));
+        }
+    }
+
+    int run_meld(const vector<int>& pts, int L, int R, int zero) {
+        if (int D = pts.size(); D == 0) {
+            return zero;
+        } else if (D == 1) {
+            return pts[0];
+        } else if (L + 1 == R) {
+            int u = clone_node(zero);
+            for (int i = 0; i < D; i++) {
+                node[u].meld(node[pts[i]]);
+            }
+            return u;
+        } else {
+            vector<int> left, right;
+            for (int i = 0; i < D; i++) {
+                auto [a, b] = kids[pts[i]];
+                if (a != kids[zero][0]) {
+                    left.push_back(a);
+                }
+                if (b != kids[zero][1]) {
+                    right.push_back(b);
+                }
+            }
+            int M = (L + R) / 2;
+            int a = run_meld(left, L, M, kids[zero][0]);
+            int b = run_meld(right, M, R, kids[zero][1]);
+            return add_node(a, b, combine(node[a], node[b]));
         }
     }
 };

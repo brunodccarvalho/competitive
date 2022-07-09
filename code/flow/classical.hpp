@@ -143,45 +143,41 @@ auto decompose_dag_flow_matching(Solver& mf, int s, int t) {
 
 // We have N nodes, and we want to assign each to either side A or side B.
 // Assigning node i to A yields A[i] profit, and assigning it to B yields B[i] profit.
-// For several pairs (i,j) there is a penalty of c(i,j) if i,j are assigned differently.
+// For pairs (i,j,c), add a penalty of c if i is assigned to A and j is assigned to B.
 // Find maximum profit and the assignment.
-// This can be adjusted easily to support one-sided penalties.
 auto max_segmentation(const vector<int64_t>& A, //
-                      const vector<int64_t>& B,
+                      const vector<int64_t>& B, //
                       const vector<tuple<int, int, int64_t>>& costs) {
-    using Solver = dinitz_flow<int64_t>;
+    using Solver = tidal_flow<int64_t>;
 
     assert(A.size() == B.size());
     int N = A.size();
     int s = N, t = N + 1;
     Solver mf(N + 2);
-
-    for (int i = 0; i < N; i++) {
-        mf.add(s, i, A[i]);
-    }
-    for (int i = 0; i < N; i++) {
-        mf.add(i, t, B[i]);
-    }
-    for (auto [i, j, c] : costs) {
-        if (i != j && c > 0) {
-            mf.add(i, j, c), mf.add(j, i, c);
-        }
-    }
-
-    int64_t maxflow = mf.maxflow(s, t);
-    vector<int8_t> side(N);
     int64_t revenue = 0;
 
     for (int i = 0; i < N; i++) {
-        side[i] = !mf.left_of_mincut(i);
-        revenue += side[i] == 0 ? A[i] : B[i];
+        int64_t c = min(A[i], B[i]);
+        revenue += max(A[i], B[i]);
+        if (A[i] > c) {
+            mf.add(s, i, A[i] - c);
+        }
+        if (B[i] > c) {
+            mf.add(i, t, B[i] - c);
+        }
     }
     for (auto [i, j, c] : costs) {
-        if (side[i] != side[j]) {
-            revenue -= c;
+        assert(0 <= i && i < N && 0 <= j && j < N && c >= 0);
+        if (i != j && c > 0) {
+            mf.add(i, j, c);
         }
     }
 
+    revenue -= mf.maxflow(s, t);
+    vector<int8_t> side(N);
+    for (int i = 0; i < N; i++) {
+        side[i] = !mf.left_of_mincut(i);
+    }
     return make_pair(revenue, move(side));
 }
 

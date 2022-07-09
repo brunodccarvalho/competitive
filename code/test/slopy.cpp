@@ -15,7 +15,7 @@ void unit_test_slopy() {
                 value.push_back(value.back() + s);
             }
         }
-        int V = value.size(), R = V - 1;
+        int V = value.size();
         int A = *min_element(begin(value), end(value));
         int B = *max_element(begin(value), end(value));
 
@@ -36,6 +36,7 @@ void unit_test_slopy() {
         }
 
         assert(V >= 12);
+        int R = V - 1;
 
         for (int i = 0; i < V; i++) {
             assert(fn.query(i) == value[i]);

@@ -365,6 +365,12 @@ struct slow_tree {
         }
     }
 
+    void set_tree(int u, int64_t value) {
+        for (int w : *tree_of[u]) {
+            val[w] = value;
+        }
+    }
+
     // ***** ROOTED SUBTREES
 
     auto query_subtree(int u) {
@@ -372,6 +378,24 @@ struct slow_tree {
         int64_t sum = 0;
         for (int i = 0, S = bfs_subtree(u); i < S; i++) {
             sum += val[bfs[i]];
+        }
+        return sum;
+    }
+
+    auto query_subtree_min(int u) {
+        static_assert(rooted);
+        int64_t sum = INT64_MAX;
+        for (int i = 0, S = bfs_subtree(u); i < S; i++) {
+            sum = min(sum, val[bfs[i]]);
+        }
+        return sum;
+    }
+
+    auto query_subtree_max(int u) {
+        static_assert(rooted);
+        int64_t sum = INT_MIN;
+        for (int i = 0, S = bfs_subtree(u); i < S; i++) {
+            sum = max(sum, val[bfs[i]]);
         }
         return sum;
     }
@@ -388,6 +412,13 @@ struct slow_tree {
         }
     }
 
+    void set_subtree(int u, int64_t value) {
+        static_assert(rooted);
+        for (int i = 0, S = bfs_subtree(u); i < S; i++) {
+            val[bfs[i]] = value;
+        }
+    }
+
     // ***** UNROOTED SUBTREES
 
     auto query_subtree(int u, int v) {
@@ -396,6 +427,26 @@ struct slow_tree {
         int64_t sum = 0;
         for (int i = 0, S = bfs_subtree(u); i < S; i++) {
             sum += val[bfs[i]];
+        }
+        return sum;
+    }
+
+    auto query_subtree_min(int u, int v) {
+        static_assert(!rooted);
+        reroot(v);
+        int64_t sum = INT64_MAX;
+        for (int i = 0, S = bfs_subtree(u); i < S; i++) {
+            sum = min(sum, val[bfs[i]]);
+        }
+        return sum;
+    }
+
+    auto query_subtree_max(int u, int v) {
+        static_assert(!rooted);
+        reroot(v);
+        int64_t sum = INT64_MIN;
+        for (int i = 0, S = bfs_subtree(u); i < S; i++) {
+            sum = max(sum, val[bfs[i]]);
         }
         return sum;
     }
@@ -414,6 +465,14 @@ struct slow_tree {
         }
     }
 
+    void set_subtree(int u, int v, int64_t value) {
+        static_assert(!rooted);
+        reroot(v);
+        for (int i = 0, S = bfs_subtree(u); i < S; i++) {
+            val[bfs[i]] = value;
+        }
+    }
+
     // ***** PATHS
 
     auto query_path(int u, int v) {
@@ -424,11 +483,33 @@ struct slow_tree {
         return sum;
     }
 
+    auto query_path_min(int u, int v) {
+        int64_t sum = INT64_MAX;
+        for (int w : get_path(u, v)) {
+            sum = min(sum, val[w]);
+        }
+        return sum;
+    }
+
+    auto query_path_max(int u, int v) {
+        int64_t sum = INT64_MIN;
+        for (int w : get_path(u, v)) {
+            sum = max(sum, val[w]);
+        }
+        return sum;
+    }
+
     int path_length(int u, int v) { return get_path(u, v).size(); }
 
     void update_path(int u, int v, int64_t value) {
         for (int w : get_path(u, v)) {
             val[w] += value;
+        }
+    }
+
+    void set_path(int u, int v, int64_t value) {
+        for (int w : get_path(u, v)) {
+            val[w] = value;
         }
     }
 };

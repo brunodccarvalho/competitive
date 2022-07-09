@@ -414,34 +414,26 @@ struct segtree {
 
     template <typename Bs>
     auto run_prefix_search(int u, int L, int R, int ql, int qr, Node prefix, Bs&& bs) {
-        if (ql <= L && R <= qr) {
-            Node extra = combine(prefix, node[u]);
-            if (bs(extra)) {
-                while (L + 1 < R) {
-                    pushdown(u, R - L);
-                    int M = (L + R) / 2;
-                    Node v = combine(prefix, node[u << 1]);
-                    if (bs(v)) {
-                        u = u << 1, R = M;
-                    } else {
-                        prefix = move(v);
-                        u = u << 1 | 1, L = M;
-                    }
-                }
-                Node v = combine(prefix, node[u]);
-                return bs(v) ? make_pair(L, move(prefix)) : make_pair(R, move(v));
-            } else {
-                return make_pair(R, move(extra));
-            }
+        if (L + 1 == R) {
+            Node full = combine(prefix, node[u]);
+            return bs(full) ? make_pair(L, move(prefix)) : make_pair(R, move(full));
         }
         pushdown(u, R - L);
         int x, M = (L + R) / 2;
+        if (ql <= L && R <= qr) {
+            Node middle = combine(prefix, node[u << 1]);
+            if (bs(middle)) {
+                return run_prefix_search(u << 1, L, M, ql, qr, move(prefix), bs);
+            } else {
+                return run_prefix_search(u << 1 | 1, M, R, ql, qr, move(middle), bs);
+            }
+        }
         if (qr <= M) {
             return run_prefix_search(u << 1, L, M, ql, qr, move(prefix), bs);
         } else if (M <= ql) {
             return run_prefix_search(u << 1 | 1, M, R, ql, qr, move(prefix), bs);
         }
-        tie(x, prefix) = run_prefix_search(u << 1, L, M, ql, M, move(prefix), bs);
+        tie(x, prefix) = run_prefix_search(u << 1, L, M, ql, qr, move(prefix), bs);
         if (x < M) {
             return make_pair(x, move(prefix));
         } else {
@@ -451,28 +443,20 @@ struct segtree {
 
     template <typename Bs>
     auto run_suffix_search(int u, int L, int R, int ql, int qr, Node suffix, Bs&& bs) {
-        if (ql <= L && R <= qr) {
-            Node extra = combine(node[u], suffix);
-            if (!bs(extra)) {
-                while (L + 1 < R) {
-                    pushdown(u, R - L);
-                    int M = (L + R) / 2;
-                    Node v = combine(node[u << 1 | 1], suffix);
-                    if (bs(v)) {
-                        suffix = move(v);
-                        u = u << 1, R = M;
-                    } else {
-                        u = u << 1 | 1, L = M;
-                    }
-                }
-                Node v = combine(node[u], suffix);
-                return bs(v) ? make_pair(L, move(v)) : make_pair(R, move(suffix));
-            } else {
-                return make_pair(L, move(extra));
-            }
+        if (L + 1 == R) {
+            Node full = combine(node[u], suffix);
+            return bs(full) ? make_pair(L, move(full)) : make_pair(R, move(suffix));
         }
         pushdown(u, R - L);
         int x, M = (L + R) / 2;
+        if (ql <= L && R <= qr) {
+            Node middle = combine(node[u << 1 | 1], suffix);
+            if (bs(middle)) {
+                return run_suffix_search(u << 1, L, M, ql, qr, move(middle), bs);
+            } else {
+                return run_suffix_search(u << 1 | 1, M, R, ql, qr, move(suffix), bs);
+            }
+        }
         if (qr <= M) {
             return run_suffix_search(u << 1, L, M, ql, qr, move(suffix), bs);
         } else if (M <= ql) {

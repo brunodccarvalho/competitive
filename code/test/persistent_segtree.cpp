@@ -1,6 +1,7 @@
 #include "test_utils.hpp"
 #include "struct/persistent_segtree.hpp"
 #include "struct/segtree_nodes.hpp"
+#include "lib/graph_generator.hpp"
 
 struct slow_version_array {
     int L, R;
@@ -113,7 +114,61 @@ void stress_test_lazy_persistent_segtree() {
     print("          nodes / ops: {}\n", ratio);
 }
 
+void stress_test_linear_meld_count_nodes() {
+    const int M = 1'000'000;
+    for (int N = 4; N <= 1'200'000; N *= 2) {
+        auto G = random_tree(N);
+        vector<vector<int>> tree(N);
+        for (auto [u, v] : G) {
+            tree[u].push_back(v);
+            tree[v].push_back(u);
+        }
+
+        auto as = rands_unif<int>(N, 0, M - 1);
+
+        persistent_segtree<simple_segnode> seg;
+        int root = seg.add_root(seg.build_sparse(0));
+        vector<int> version(N), parent(N, -1);
+
+        y_combinator([&](auto self, int u, int p) -> void {
+            vector<int> kids;
+            for (int v : tree[u]) {
+                if (v != p) {
+                    parent[v] = u;
+                    self(v, u);
+                    kids.push_back(version[v]);
+                }
+            }
+            kids.push_back(seg.update_point(root, 0, M, as[u], u));
+            version[u] = seg.meld(kids, 0, M, root);
+        })(0, -1);
+
+        auto query = [&](int L, int R, int r) {
+            return y_combinator([&](auto self, int u) -> int64_t {
+                int64_t ans = L <= as[u] && as[u] < R ? u : 0;
+                for (int v : tree[u]) {
+                    if (v != parent[u]) {
+                        ans += self(v);
+                    }
+                }
+                return ans;
+            })(r);
+        };
+
+        LOOP_FOR_DURATION_OR_RUNS (2s, 1000) {
+            auto [L, R] = different<int>(0, M);
+            int u = rand_unif<int>(0, N - 1);
+            int64_t expect = query(L, R, u);
+            int64_t actual = seg.query_range(version[u], 0, M, L, R).value;
+            assert(expect == actual);
+        }
+
+        putln(N, seg.num_nodes());
+    }
+}
+
 int main() {
     RUN_BLOCK(stress_test_lazy_persistent_segtree());
+    RUN_BLOCK(stress_test_linear_meld_count_nodes());
     return 0;
 }

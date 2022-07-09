@@ -124,7 +124,16 @@ auto biconnected_components(const vector<vector<int>>& adj) {
         }
     }
 
-    return make_pair(B, move(bmap));
+    vector<int> block_parent(B, -1);
+    for (int u = 0; u < N; u++) {
+        for (int v : adj[u]) {
+            if (depth[v] < depth[u] && bmap[u] != bmap[v]) {
+                block_parent[bmap[u]] = bmap[v];
+            }
+        }
+    }
+
+    return make_tuple(B, move(bmap), move(block_parent));
 }
 
 template <typename Fn>
@@ -181,9 +190,9 @@ auto visit_cutpoints(const vector<vector<int>>& adj, Fn&& visitor) {
                     children++;
                 }
             }
-            if (children > 1 && p == -1) {
-                visitor(u); // root cutpoint
-            }
+        }
+        if (children > 1 && p == -1) {
+            visitor(u); // root cutpoint
         }
     });
 

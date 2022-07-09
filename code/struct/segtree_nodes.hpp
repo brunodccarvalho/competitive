@@ -2,6 +2,22 @@
 
 #include "numeric/modnum.hpp"
 
+struct simple_segnode {
+    static constexpr bool LAZY = false, RANGES = false;
+    int64_t value = 0;
+
+    simple_segnode(int64_t value = 0) : value(value) {}
+    operator int64_t() const { return value; }
+
+    void pushup(const simple_segnode& lhs, const simple_segnode& rhs) {
+        value = lhs.value + rhs.value;
+    }
+
+    void apply(int64_t add) { value += add; }
+
+    void meld(simple_segnode& other) { value += other.value; }
+};
+
 struct sum_segnode {
     using V = int64_t;
     static constexpr bool LAZY = true, RANGES = true;
