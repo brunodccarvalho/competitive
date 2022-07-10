@@ -1,7 +1,6 @@
 #pragma once
 
-#include <bits/stdc++.h>
-using namespace std;
+#include "algo/y_combinator.hpp"
 
 // Generalized FFT-like fast convolutions in O(N log N)
 template <char type, bool inverse, typename T>
@@ -260,7 +259,7 @@ auto log_conv(const vector<T>& f) {
 }
 
 template <bool inverse, typename T>
-void lcm_transform(vector<T> &a, const vector<int> &primes) {
+void lcm_transform(vector<T>& a, const vector<int>& primes) {
     int n = a.size() - 1;
     for (int i = 0, P = primes.size(); i < P && primes[i] <= n; i++) {
         if constexpr (inverse) {
@@ -269,7 +268,6 @@ void lcm_transform(vector<T> &a, const vector<int> &primes) {
             }
         } else {
             for (int p = primes[i], k = 1; k <= n / p; k++) {
-                // for (int p = primes[i], k = 1; k <= n / p; k++) {
                 a[k * p] += a[k];
             }
         }
@@ -277,7 +275,7 @@ void lcm_transform(vector<T> &a, const vector<int> &primes) {
 }
 
 template <bool inverse, typename T>
-void gcd_transform(vector<T> &a, const vector<int> &primes) {
+void gcd_transform(vector<T>& a, const vector<int>& primes) {
     int n = a.size() - 1;
     for (int i = 0, P = primes.size(); i < P && primes[i] <= n; i++) {
         if constexpr (inverse) {
@@ -286,7 +284,6 @@ void gcd_transform(vector<T> &a, const vector<int> &primes) {
             }
         } else {
             for (int p = primes[i], k = n / p; k > 0; k--) {
-                // for (int p = primes[i], k = 1; k <= n / p; k++) {
                 a[k] += a[k * p];
             }
         }
@@ -299,7 +296,7 @@ void gcd_transform(vector<T> &a, const vector<int> &primes) {
  * Complexity: O(n log n), https://judge.yosupo.jp/problem/gcd_convolution
  */
 template <typename T>
-auto gcd_convolution(vector<T> a, vector<T> b, const vector<int> &primes) {
+auto gcd_convolution(vector<T> a, vector<T> b, const vector<int>& primes) {
     int N = max(a.size(), b.size());
     a.resize(N, 0), b.resize(N, 0);
     gcd_transform<0>(a, primes);
@@ -317,7 +314,7 @@ auto gcd_convolution(vector<T> a, vector<T> b, const vector<int> &primes) {
  * Complexity: O(n log n), https://judge.yosupo.jp/problem/lcm_convolution
  */
 template <typename T>
-auto lcm_convolution(vector<T> a, vector<T> b, const vector<int> &primes) {
+auto lcm_convolution(vector<T> a, vector<T> b, const vector<int>& primes) {
     int N = max(a.size(), b.size());
     a.resize(N, 0), b.resize(N, 0);
     lcm_transform<0>(a, primes);
@@ -327,4 +324,204 @@ auto lcm_convolution(vector<T> a, vector<T> b, const vector<int> &primes) {
     }
     lcm_transform<1>(a, primes);
     return a;
+}
+
+// Compute min plus convolution c[k] = min{i+j=k}(a[i]+b[j]), for convex a & b. O(N + M)
+template <typename V>
+auto min_plus_convex_minkowski(const vector<V>& a, const vector<V>& b) {
+    int N = a.size(), M = b.size();
+    if (N == 0 || M == 0) {
+        return N ? a : b;
+    }
+    vector<V> c(N + M - 1);
+    int i = 0, j = 0;
+    while (i < N - 1 || j < N - 1) {
+        if (j == M - 1) {
+            c[i + j] = a[i++] + b[j];
+        } else if (i == N - 1) {
+            c[i + j] = a[i] + b[j++];
+        } else if (a[i + 1] - a[i] <= b[j + 1] - b[j]) {
+            c[i + j] = a[i++] + b[j];
+        } else {
+            c[i + j] = a[i] + b[j++];
+        }
+    }
+    return c;
+}
+
+// Compute max plus convolution c[k] = max{i+j=k}(a[i]+b[j]), for concave a & b. O(N + M)
+template <typename V>
+auto max_plus_concave_minkowski(const vector<V>& a, const vector<V>& b) {
+    int N = a.size(), M = b.size();
+    if (N == 0 || M == 0) {
+        return N ? a : b;
+    }
+    vector<V> c(N + M - 1);
+    int i = 0, j = 0;
+    while (i < N - 1 || j < N - 1) {
+        if (j == M - 1) {
+            c[i + j] = a[i++] + b[j];
+        } else if (i == N - 1) {
+            c[i + j] = a[i] + b[j++];
+        } else if (a[i + 1] - a[i] >= b[j + 1] - b[j]) {
+            c[i + j] = a[i++] + b[j];
+        } else {
+            c[i + j] = a[i] + b[j++];
+        }
+    }
+    return c;
+}
+
+// Compute min plus convolution c[k] = min{i+j=k}(a[i]+b[j]), for concave a & b. O(N + M)
+template <typename V>
+auto min_plus_concave_border(const vector<V>& a, const vector<V>& b) {
+    int N = a.size(), M = b.size();
+    if (N == 0 || M == 0) {
+        return N ? a : b;
+    }
+    vector<V> c(N + M - 1);
+    for (int k = 0; k < N + M - 1; k++) {
+        int li = max(0, k - M + 1), ri = min(k, N - 1);
+        int lj = max(0, k - N + 1), rj = min(k, M - 1);
+        c[k] = min(a[li] + b[rj], a[ri] + b[lj]);
+    }
+    return c;
+}
+
+// Compute max plus convolution c[k] = min{i+j=k}(a[i]+b[j]), for convex a & b. O(N + M)
+template <typename V>
+auto max_plus_convex_border(const vector<V>& a, const vector<V>& b) {
+    int N = a.size(), M = b.size();
+    if (N == 0 || M == 0) {
+        return N ? a : b;
+    }
+    vector<V> c(N + M - 1);
+    for (int k = 0; k < N + M - 1; k++) {
+        int li = max(0, k - M + 1), ri = min(k, N - 1);
+        int lj = max(0, k - N + 1), rj = min(k, M - 1);
+        c[k] = max(a[li] + b[rj], a[ri] + b[lj]);
+    }
+    return c;
+}
+
+// Compute row-minima index for totally monotone f(x,y). Ties not broken. O(N + M)
+template <typename Fn>
+auto min_smawk(Fn&& f, int R, int C) {
+    using vi = vector<int>;
+    vi initrow(R), initcol(C);
+    iota(begin(initrow), end(initrow), 0);
+    iota(begin(initcol), end(initcol), 0);
+    return y_combinator([&](auto self, const vi& row, vi col) -> vi {
+        int N = row.size(), M = col.size();
+        if (N == 1) {
+            int ans = *min_element(begin(col), end(col), [&](int a, int b) {
+                return make_pair(f(row[0], a), a) < make_pair(f(row[0], b), b);
+            });
+            return {ans};
+        }
+        if (N < M) {
+            // Reduce number of columns to number of rows
+            vector<array<int, 2>> minima;
+            for (int c : col) {
+                while (!minima.empty()) {
+                    auto [r, p] = minima.back();
+                    if (f(r, c) < f(r, p)) {
+                        minima.pop_back();
+                    } else if (r + 1 < N) {
+                        minima.push_back({r + 1, c});
+                        break;
+                    } else {
+                        break;
+                    }
+                }
+                if (minima.empty()) {
+                    minima.push_back({0, c});
+                }
+            }
+            while (minima.back()[0] >= N) {
+                minima.pop_back();
+            }
+            M = minima.size();
+            for (int i = 0; i < M; i++) {
+                col[i] = minima[i][1];
+            }
+        }
+        vector<int> even(N / 2), ans(N);
+        for (int i = 1; i < N; i += 2) {
+            even[i >> 1] = row[i];
+        }
+        auto even_ans = self(even, col);
+        for (int i = 0, it = 0; i < N; i++) {
+            if (i % 2) {
+                ans[i] = even_ans[i >> 1];
+            } else {
+                int last = i < N - 1 ? even_ans[i >> 1] : col.back();
+                ans[i] = col[it];
+                while (it < last) {
+                    if (f(row[i], col[++it]) < f(row[i], ans[i])) {
+                        ans[i] = col[it];
+                    }
+                }
+            }
+        }
+        return ans;
+    })(initrow, initcol);
+}
+
+// Compute row-maxima index for totally monotone f(x,y). Ties not broken. O(N + M)
+template <typename Fn>
+auto max_smawk(Fn&& f, int R, int C) {
+    return min_smawk([&f](auto r, auto c) { return -f(r, c); }, R, C);
+}
+
+// Compute min plus convolution c[k] = min{i+j=k}(a[i]+b[j]) for convex b. O(N + M)
+template <typename V>
+auto min_plus_smawk(const vector<V>& a, const vector<V>& b) {
+    static constexpr V inf = numeric_limits<V>::max() / 3;
+    int N = a.size();
+    int M = b.size();
+    if (N == 0 || M == 0) {
+        return N ? a : b;
+    }
+    auto f = [&](int r, int c) {
+        if (r < c) {
+            return inf + r + c;
+        } else if (r - c >= M) {
+            return inf - r - c;
+        } else {
+            return a[c] + b[r - c];
+        }
+    };
+    auto cols = min_smawk(f, N + M - 1, N);
+    vector<V> d(N + M - 1);
+    for (int r = 0; r < N + M - 1; r++) {
+        d[r] = f(r, cols[r]);
+    }
+    return d;
+}
+
+// Compute max plus convolution c[k] = min{i+j=k}(a[i]+b[j]) for concave b. O(N + M)
+template <typename V>
+auto max_plus_smawk(const vector<V>& a, const vector<V>& b) {
+    static constexpr V inf = numeric_limits<V>::lowest() / 3;
+    int N = a.size();
+    int M = b.size();
+    if (N == 0 || M == 0) {
+        return N ? a : b;
+    }
+    auto f = [&](int r, int c) {
+        if (r < c) {
+            return inf - r - c;
+        } else if (r - c >= M) {
+            return inf + r + c;
+        } else {
+            return a[c] + b[r - c];
+        }
+    };
+    auto cols = max_smawk(f, N + M - 1, N);
+    vector<V> d(N + M - 1);
+    for (int r = 0; r < N + M - 1; r++) {
+        d[r] = f(r, cols[r]);
+    }
+    return d;
 }

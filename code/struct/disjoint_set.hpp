@@ -22,12 +22,7 @@ struct disjoint_set {
         }
     }
 
-    int find(int i) {
-        while (i != nxt[i]) {
-            i = nxt[i] = nxt[nxt[i]];
-        }
-        return i;
-    }
+    int find(int i) { return i != nxt[i] ? nxt[i] = find(nxt[i]) : i; }
 
     bool join(int i, int j) {
         i = find(i);
@@ -291,12 +286,7 @@ struct tracking_disjoint_set {
         }
     }
 
-    int find(int i) {
-        while (i != nxt[i]) {
-            i = nxt[i] = nxt[nxt[i]];
-        }
-        return i;
-    }
+    int find(int i) { return i != nxt[i] ? nxt[i] = find(nxt[i]) : i; }
 
     bool join(int i, int j) {
         i = find(i);
