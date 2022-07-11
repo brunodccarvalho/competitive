@@ -83,7 +83,6 @@ struct buckets_queue {
     explicit buckets_queue(int N, int B) : N(N), B(B) { clear(); }
 
     void push(int u, int bucket) {
-        assert(S <= bucket && bucket < B);
         if (ll.next[u] != u) {
             ll.erase(u);
         }
@@ -113,13 +112,63 @@ struct buckets_queue {
     }
 
     void clear() {
-        S = 0, ll.assign(B, N);
-        for (int i = 0; i < N; i++) {
-            ll.wrap(i);
+        S = M = 0, ll.assign(B, N);
+        for (int u = 0; u < N; u++) {
+            ll.wrap(u);
         }
     }
 
     bool empty() { return top() == -1; }
     int universe() const { return N; }
     int buckets() const { return B; }
+    void assign(int N, int B) { this->N = N, this->B = B, clear(); }
+};
+
+struct circular_buckets_queue {
+    int N = 0, B = 0, S = 0, C = 0;
+    linked_lists ll;
+
+    explicit circular_buckets_queue(int N, int B) : N(N), B(B) { clear(); }
+
+    void push(int u, int bucket) {
+        if (ll.next[u] != u) {
+            ll.erase(u), C--;
+        }
+        ll.push_back(bucket % B, u), C++;
+    }
+
+    int top() {
+        if (C == 0) {
+            return -1;
+        }
+        while (ll.empty(S)) {
+            S = (S + 1) % B;
+        }
+        return ll.head(S);
+    }
+
+    int pop() {
+        if (C == 0) {
+            return -1;
+        }
+        while (ll.empty(S)) {
+            S = (S + 1) % B;
+        }
+        int u = ll.head(S);
+        ll.pop_front(S);
+        ll.wrap(u), C--;
+        return u;
+    }
+
+    void clear() {
+        S = C = 0, ll.assign(B, N);
+        for (int u = 0; u < N; u++) {
+            ll.wrap(u);
+        }
+    }
+
+    bool empty() { return top() == -1; }
+    int universe() const { return N; }
+    int buckets() const { return B; }
+    void assign(int N, int B) { this->N = N, this->B = B, clear(); }
 };
