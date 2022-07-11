@@ -1,5 +1,6 @@
 #include "test_utils.hpp"
 #include "../numeric/convolution.hpp"
+#include "../algo/optimization.hpp"
 
 auto naive_min_plus_tracked(const vector<int>& a, const vector<int>& b) {
     int N = a.size(), M = b.size();
@@ -87,19 +88,28 @@ auto random_concave_vector(int N) {
     return A;
 }
 
-void stress_test_nested_min_plus_concave() {
+void stress_test_min_plus_one_concave() {
     LOOP_FOR_DURATION_OR_RUNS_TRACKED (5s, now, 100'000, runs) {
         print_time(now, 5s, "stress minplus concave check ({} runs)", runs);
-        int N = rand_unif<int>(1, 50);
-        int M = rand_unif<int>(1, 50);
-        auto a = random_sorted_vector(N);
+        int N = rand_unif<int>(1, 100);
+        int M = rand_unif<int>(1, 100);
+        auto a = rands_unif<int>(N, -60, 60);
         auto b = random_concave_vector(M);
-        reverse(begin(a), end(a));
-        reverse(begin(b), end(b));
-        auto c = min_plus_smawk(a, b);
+        auto c = min_plus_concave_one(a, b);
         auto d = naive_min_plus(a, b);
-        reverse(begin(c), end(c));
-        reverse(begin(d), end(d));
+        assert(c == d);
+    }
+}
+
+void stress_test_max_plus_one_convex() {
+    LOOP_FOR_DURATION_OR_RUNS_TRACKED (5s, now, 100'000, runs) {
+        print_time(now, 5s, "stress maxplus convex check ({} runs)", runs);
+        int N = rand_unif<int>(1, 100);
+        int M = rand_unif<int>(1, 100);
+        auto a = rands_unif<int>(N, -60, 60);
+        auto b = random_convex_vector(M);
+        auto c = max_plus_convex_one(a, b);
+        auto d = naive_max_plus(a, b);
         assert(c == d);
     }
 }
@@ -157,7 +167,8 @@ void stress_test_max_plus_smawk() {
 }
 
 int main() {
-    RUN_BLOCK(stress_test_nested_min_plus_concave());
+    RUN_BLOCK(stress_test_min_plus_one_concave());
+    RUN_BLOCK(stress_test_max_plus_one_convex());
     RUN_BLOCK(stress_test_min_plus_concave_border());
     RUN_BLOCK(stress_test_max_plus_convex_border());
     RUN_BLOCK(stress_test_min_plus_smawk());

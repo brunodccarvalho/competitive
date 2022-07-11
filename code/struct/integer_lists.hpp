@@ -17,6 +17,7 @@ struct linked_lists {
 
     int add_list() { return next.push_back(rep(L)), prev.push_back(rep(L)), L++; }
     void clear(int l) { assert(0 <= l && l < L), next[rep(l)] = prev[rep(l)] = rep(l); }
+    void wrap(int n) { meet(n, n); }
 
     void init(int l, int n) { meet(rep(l), n, rep(l)); }
     void push_front(int l, int n) { meet(rep(l), n, head(l)); }

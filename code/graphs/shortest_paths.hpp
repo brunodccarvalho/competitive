@@ -359,3 +359,26 @@ auto astar(int s, int t, const vector<vector<pair<int, Cost>>>& adj, Fn&& heuris
 
     return dist[t];
 }
+
+auto dial(int s, int B, const vector<vector<pair<int, int>>>& adj) {
+    constexpr int inf = 1e8;
+
+    int V = adj.size();
+    vector<int> dist(V, inf);
+    dist[s] = 0;
+
+    buckets_queue heap(V, B);
+    heap.push(s, 0);
+
+    do {
+        int u = heap.pop();
+        for (auto [v, w] : adj[u]) {
+            if (dist[v] > dist[u] + w) {
+                dist[v] = dist[u] + w;
+                heap.push(v, dist[v]);
+            }
+        }
+    } while (!heap.empty());
+
+    return dist;
+}

@@ -76,41 +76,50 @@ struct spfa_deque {
     int N = 0, i = 0, j = 0, S = 0;
 };
 
-struct dial_queue {
-    explicit dial_queue(int N, int B) : N(N), B(B), head(B), next(N) {}
+struct buckets_queue {
+    int N = 0, B = 0, S = 0, M = 0;
+    linked_lists ll;
+
+    explicit buckets_queue(int N, int B) : N(N), B(B) { clear(); }
 
     void push(int u, int bucket) {
-        assert(bucket >= S);
-        next[u] = head[bucket], head[bucket] = u;
-        E = max(E, bucket + 1);
+        assert(S <= bucket && bucket < B);
+        if (ll.next[u] != u) {
+            ll.erase(u);
+        }
+        ll.push_back(bucket, u);
+        M = max(M, bucket + 1);
     }
 
     int top() {
-        while (S < B && head[S] == -1) {
+        while (S < M && ll.empty(S)) {
             S++;
         }
-        return S == B ? -1 : head[S];
+        return S == M ? -1 : ll.head(S);
     }
 
     int pop() {
-        while (S < B && head[S] == -1) {
+        while (S < M && ll.empty(S)) {
             S++;
         }
-        if (S == B) {
+        if (S == M) {
             return -1;
         } else {
-            int ans = head[B];
-            head[B] = next[ans];
-            return ans;
+            int u = ll.head(S);
+            ll.pop_front(S);
+            ll.wrap(u);
+            return u;
         }
     }
 
-    bool empty() const { return S == 0; }
+    void clear() {
+        S = 0, ll.assign(B, N);
+        for (int i = 0; i < N; i++) {
+            ll.wrap(i);
+        }
+    }
+
+    bool empty() { return top() == -1; }
     int universe() const { return N; }
     int buckets() const { return B; }
-    void clear() { S = E = 0, std::fill(begin(head) + S, begin(head) + E + 1, -1); }
-
-  private:
-    int N = 0, B = 0, S = 0, E = 0;
-    vector<int> head, next;
 };

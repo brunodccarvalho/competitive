@@ -388,7 +388,7 @@ auto min_plus_concave_border(const vector<V>& a, const vector<V>& b) {
     return c;
 }
 
-// Compute max plus convolution c[k] = min{i+j=k}(a[i]+b[j]), for convex a & b. O(N + M)
+// Compute max plus convolution c[k] = max{i+j=k}(a[i]+b[j]), for convex a & b. O(N + M)
 template <typename V>
 auto max_plus_convex_border(const vector<V>& a, const vector<V>& b) {
     int N = a.size(), M = b.size();
@@ -500,7 +500,7 @@ auto min_plus_smawk(const vector<V>& a, const vector<V>& b) {
     return d;
 }
 
-// Compute max plus convolution c[k] = min{i+j=k}(a[i]+b[j]) for concave b. O(N + M)
+// Compute max plus convolution c[k] = max{i+j=k}(a[i]+b[j]) for concave b. O(N + M)
 template <typename V>
 auto max_plus_smawk(const vector<V>& a, const vector<V>& b) {
     static constexpr V inf = numeric_limits<V>::lowest() / 3;
@@ -524,4 +524,202 @@ auto max_plus_smawk(const vector<V>& a, const vector<V>& b) {
         d[r] = f(r, cols[r]);
     }
     return d;
+}
+
+// Compute min plus convolution c[k] = min{i+j=k}(a[i]+b[j]) for concave b. O((N+M) log M)
+template <typename V>
+auto min_plus_concave_one(const vector<V>& a, const vector<V>& b) {
+    int N = a.size();
+    int M = b.size();
+    if (N == 0 || M == 0) {
+        return N ? a : b;
+    }
+
+    const int C = N + M - 1;
+    vector<V> c(N + M - 1, numeric_limits<V>::max());
+    vector<array<int, 2>> stk;
+
+    auto cost = [&](int j, int i) { return a[j] + b[i - j]; };
+
+    // Solve c[L,R] with prefix concave 1d1d
+    auto solve_prefix = [&](int L, int R) {
+        auto improv = [&](int j, int i, int t, int k) {
+            int l = k - 1, r = t;
+            while (l + 1 < r) {
+                int m = (l + r) / 2;
+                cost(j, m) <= cost(i, m) ? r = m : l = m;
+            }
+            return l;
+        };
+
+        for (int i = L, k = L, S = -1; k < R; i++, k++) {
+            while (S >= 0 && i < N) {
+                auto [j, t] = stk[S];
+                if (cost(i, t) <= cost(j, t)) {
+                    stk.pop_back(), S--;
+                } else {
+                    break;
+                }
+            }
+
+            if (i < N) {
+                int t = S < 0 ? R - 1 : improv(stk[S][0], i, stk[S][1], k);
+                if (t >= k) {
+                    stk.push_back({i, t}), S++;
+                }
+            }
+
+            c[k] = min(c[k], cost(stk[S][0], k));
+
+            if (stk[S][1] == k) {
+                stk.pop_back(), S--;
+            }
+        }
+    };
+
+    // Solve c[L,R] with suffix concave 1d1d
+    auto solve_suffix = [&](int L, int R) {
+        auto improv = [&](int j, int i, int t, int k) {
+            int l = t, r = k + 1;
+            while (l + 1 < r) {
+                int m = (l + r) / 2;
+                cost(j, m) <= cost(i, m) ? l = m : r = m;
+            }
+            return r;
+        };
+
+        for (int k = R - 1, i = k - M + 1, S = -1; k >= L; i--, k--) {
+            while (S >= 0 && i >= 0) {
+                auto [j, t] = stk[S];
+                if (cost(i, t) <= cost(j, t)) {
+                    stk.pop_back(), S--;
+                } else {
+                    break;
+                }
+            }
+
+            if (i >= 0) {
+                int t = S < 0 ? L : improv(stk[S][0], i, stk[S][1], k);
+                if (t <= k) {
+                    stk.push_back({i, t}), S++;
+                }
+            }
+
+            c[k] = min(c[k], cost(stk[S][0], k));
+
+            if (stk[S][1] == k) {
+                stk.pop_back(), S--;
+            }
+        }
+    };
+
+    solve_prefix(0, M);
+    solve_suffix(C - M, C);
+
+    // Still need to solve c[M,C-M)
+    for (int K = M; K < C - M; K += M) {
+        solve_prefix(K, K + M);
+        solve_suffix(K, K + M);
+    }
+
+    return c;
+}
+
+// Compute max plus convolution c[k] = max{i+j=k}(a[i]+b[j]) for convex b. O((N+M) log M)
+template <typename V>
+auto max_plus_convex_one(const vector<V>& a, const vector<V>& b) {
+    int N = a.size();
+    int M = b.size();
+    if (N == 0 || M == 0) {
+        return N ? a : b;
+    }
+
+    const int C = N + M - 1;
+    vector<V> c(N + M - 1, numeric_limits<V>::lowest());
+    vector<array<int, 2>> stk;
+
+    auto cost = [&](int j, int i) { return a[j] + b[i - j]; };
+
+    // Solve c[L,R] with prefix concave 1d1d
+    auto solve_prefix = [&](int L, int R) {
+        auto improv = [&](int j, int i, int t, int k) {
+            int l = k - 1, r = t;
+            while (l + 1 < r) {
+                int m = (l + r) / 2;
+                cost(j, m) >= cost(i, m) ? r = m : l = m;
+            }
+            return l;
+        };
+
+        for (int i = L, k = L, S = -1; k < R; i++, k++) {
+            while (S >= 0 && i < N) {
+                auto [j, t] = stk[S];
+                if (cost(i, t) >= cost(j, t)) {
+                    stk.pop_back(), S--;
+                } else {
+                    break;
+                }
+            }
+
+            if (i < N) {
+                int t = S < 0 ? R - 1 : improv(stk[S][0], i, stk[S][1], k);
+                if (t >= k) {
+                    stk.push_back({i, t}), S++;
+                }
+            }
+
+            c[k] = max(c[k], cost(stk[S][0], k));
+
+            if (stk[S][1] == k) {
+                stk.pop_back(), S--;
+            }
+        }
+    };
+
+    // Solve c[L,R] with suffix concave 1d1d
+    auto solve_suffix = [&](int L, int R) {
+        auto improv = [&](int j, int i, int t, int k) {
+            int l = t, r = k + 1;
+            while (l + 1 < r) {
+                int m = (l + r) / 2;
+                cost(j, m) >= cost(i, m) ? l = m : r = m;
+            }
+            return r;
+        };
+
+        for (int k = R - 1, i = k - M + 1, S = -1; k >= L; i--, k--) {
+            while (S >= 0 && i >= 0) {
+                auto [j, t] = stk[S];
+                if (cost(i, t) >= cost(j, t)) {
+                    stk.pop_back(), S--;
+                } else {
+                    break;
+                }
+            }
+
+            if (i >= 0) {
+                int t = S < 0 ? L : improv(stk[S][0], i, stk[S][1], k);
+                if (t <= k) {
+                    stk.push_back({i, t}), S++;
+                }
+            }
+
+            c[k] = max(c[k], cost(stk[S][0], k));
+
+            if (stk[S][1] == k) {
+                stk.pop_back(), S--;
+            }
+        }
+    };
+
+    solve_prefix(0, M);
+    solve_suffix(C - M, C);
+
+    // Still need to solve c[M,C-M)
+    for (int K = M; K < C - M; K += M) {
+        solve_prefix(K, K + M);
+        solve_suffix(K, K + M);
+    }
+
+    return c;
 }
