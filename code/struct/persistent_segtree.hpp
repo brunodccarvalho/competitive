@@ -254,7 +254,7 @@ struct persistent_segtree {
         if constexpr (Node::RANGES) {
             node[u].apply(update..., s);
         } else {
-            node[u].apply(update...);
+            node[u].apply(update...), (void)s;
         }
     }
 
@@ -326,8 +326,8 @@ struct persistent_segtree {
             }
         }
         apply(u, 1, update...);
-        for (int B = dfs.size(), i = B - 1; i >= 0; i--) {
-            pushup(dfs[i]);
+        for (int B = dfs.size(), j = B - 1; j >= 0; j--) {
+            pushup(dfs[j]);
         }
         dfs.clear();
         return x;

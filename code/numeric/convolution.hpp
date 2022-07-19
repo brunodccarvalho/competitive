@@ -526,7 +526,7 @@ auto max_plus_smawk(const vector<V>& a, const vector<V>& b) {
     return d;
 }
 
-// Compute min plus convolution c[k] = min{i+j=k}(a[i]+b[j]) for concave b. O((N+M) log M)
+// Compute min plus convolution c[k] = min{i+j=k}(a[i]+b[j]) for concave b. O(N log M + M)
 template <typename V>
 auto min_plus_concave_one(const vector<V>& a, const vector<V>& b) {
     int N = a.size();
@@ -536,12 +536,12 @@ auto min_plus_concave_one(const vector<V>& a, const vector<V>& b) {
     }
 
     const int C = N + M - 1;
-    vector<V> c(N + M - 1, numeric_limits<V>::max());
+    vector<V> c(C, numeric_limits<V>::max());
     vector<array<int, 2>> stk;
 
     auto cost = [&](int j, int i) { return a[j] + b[i - j]; };
 
-    // Solve c[L,R] with prefix concave 1d1d
+    // Solve c[L,R) with prefix concave 1d1d
     auto solve_prefix = [&](int L, int R) {
         auto improv = [&](int j, int i, int t, int k) {
             int l = k - 1, r = t;
@@ -577,7 +577,7 @@ auto min_plus_concave_one(const vector<V>& a, const vector<V>& b) {
         }
     };
 
-    // Solve c[L,R] with suffix concave 1d1d
+    // Solve c[L,R) with suffix concave 1d1d
     auto solve_suffix = [&](int L, int R) {
         auto improv = [&](int j, int i, int t, int k) {
             int l = t, r = k + 1;
@@ -617,15 +617,15 @@ auto min_plus_concave_one(const vector<V>& a, const vector<V>& b) {
     solve_suffix(C - M, C);
 
     // Still need to solve c[M,C-M)
-    for (int K = M; K < C - M; K += M) {
-        solve_prefix(K, K + M);
+    for (int K = M; K < C - M; K += M + 1) {
+        solve_prefix(K + 1, K + M + 1);
         solve_suffix(K, K + M);
     }
 
     return c;
 }
 
-// Compute max plus convolution c[k] = max{i+j=k}(a[i]+b[j]) for convex b. O((N+M) log M)
+// Compute max plus convolution c[k] = max{i+j=k}(a[i]+b[j]) for convex b. O(N log M + M)
 template <typename V>
 auto max_plus_convex_one(const vector<V>& a, const vector<V>& b) {
     int N = a.size();
@@ -635,12 +635,12 @@ auto max_plus_convex_one(const vector<V>& a, const vector<V>& b) {
     }
 
     const int C = N + M - 1;
-    vector<V> c(N + M - 1, numeric_limits<V>::lowest());
+    vector<V> c(C, numeric_limits<V>::lowest());
     vector<array<int, 2>> stk;
 
     auto cost = [&](int j, int i) { return a[j] + b[i - j]; };
 
-    // Solve c[L,R] with prefix concave 1d1d
+    // Solve c[L,R) with prefix concave 1d1d
     auto solve_prefix = [&](int L, int R) {
         auto improv = [&](int j, int i, int t, int k) {
             int l = k - 1, r = t;
@@ -676,7 +676,7 @@ auto max_plus_convex_one(const vector<V>& a, const vector<V>& b) {
         }
     };
 
-    // Solve c[L,R] with suffix concave 1d1d
+    // Solve c[L,R) with suffix concave 1d1d
     auto solve_suffix = [&](int L, int R) {
         auto improv = [&](int j, int i, int t, int k) {
             int l = t, r = k + 1;
@@ -716,8 +716,8 @@ auto max_plus_convex_one(const vector<V>& a, const vector<V>& b) {
     solve_suffix(C - M, C);
 
     // Still need to solve c[M,C-M)
-    for (int K = M; K < C - M; K += M) {
-        solve_prefix(K, K + M);
+    for (int K = M; K < C - M; K += M + 1) {
+        solve_prefix(K + 1, K + M + 1);
         solve_suffix(K, K + M);
     }
 

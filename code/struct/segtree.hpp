@@ -35,12 +35,10 @@ struct segtree {
 
     template <typename... Us>
     void update_point(int i, Us&&... update) {
-        static thread_local vector<int> dfs;
         assert(0 <= i && i < n);
         int u = 1, L = 0, R = n;
         while (L + 1 < R) {
             pushdown(u, R - L);
-            dfs.push_back(u);
             int M = (L + R) / 2;
             if (i < M) {
                 u = u << 1, R = M;
@@ -49,10 +47,11 @@ struct segtree {
             }
         }
         apply(u, 1, update...);
-        for (int B = dfs.size(), j = B - 1; j >= 0; j--) {
-            pushup(dfs[j]);
+        u >>= 1;
+        while (u >= 1) {
+            pushup(u);
+            u >>= 1;
         }
-        dfs.clear();
     }
 
     template <typename... Us>

@@ -61,10 +61,10 @@ auto operator^(const Mat<V, M>& a, int64_t k) {
 
 // Matrix cache for fast matrix exponentiation
 template <typename V, size_t M, int B, int S>
-struct MatrixCache {
+struct matrix_cache {
     Mat<V, M> A, jmp[B][S + 1];
 
-    explicit MatrixCache(Mat<V, M> A) : A(A) { build(); }
+    explicit matrix_cache(Mat<V, M> A) : A(A) { build(); }
 
     void build() {
         jmp[0][0] = identity<V, M>();
@@ -92,7 +92,7 @@ struct MatrixCache {
 
 template <typename V>
 struct Fibonacci {
-    MatrixCache<V, 2, 4, 2 << 16> cache;
+    matrix_cache<V, 2, 4, 2 << 16> cache;
 
     Fibonacci() : cache({{{0, 1}, {1, 1}}}) {}
 

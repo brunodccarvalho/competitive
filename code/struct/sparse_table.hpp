@@ -69,8 +69,10 @@ struct sparse_table {
     vector<vector<T>> table;
     BinOp binop;
 
+    explicit sparse_table() = default;
+
     template <typename It>
-    sparse_table(It first, It last, const BinOp& op) : binop(op) {
+    sparse_table(It first, It last, const BinOp& op = BinOp()) : binop(op) {
         table.emplace_back(first, last);
         int N = table[0].size();
         for (int len = 1, k = 1; 2 * len <= N; len *= 2, k++) {
@@ -82,7 +84,7 @@ struct sparse_table {
         }
     }
 
-    sparse_table(const vector<T>& v, const BinOp& op)
+    sparse_table(const vector<T>& v, const BinOp& op = BinOp())
         : sparse_table(begin(v), end(v), op) {}
 
     // query range [a,b)

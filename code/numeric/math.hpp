@@ -293,9 +293,9 @@ constexpr int primitive_root_prime(int p) {
     for (int i = 3; i * i <= x; i += 2) {
         if (x % i == 0) {
             divs[cnt++] = i;
-            while (x % i == 0) {
+            do {
                 x /= i;
-            }
+            } while (x % i == 0);
         }
     }
     if (x > 1) {

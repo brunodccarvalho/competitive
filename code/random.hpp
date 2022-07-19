@@ -60,6 +60,11 @@ O rand_grav(common_type_t<T> a, common_type_t<T> b, int gravity) {
     return ans;
 }
 
+template <typename T, typename O = T>
+O rand_expo(common_type_t<T> a, common_type_t<T> b, double base = 2) {
+    return pow(base, rand_unif<double>(a, b));
+}
+
 template <typename T, typename O = T> // inclusive [a,b]
 vector<O> rands_unif(int n, common_type_t<T> a, common_type_t<T> b) {
     vector<O> vec(n);

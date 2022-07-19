@@ -45,7 +45,7 @@ struct frac {
         if (a.d == 0 || b.d == 0) {
             return infsign(a) - infsign(b);
         } else if constexpr (SAFE) {
-            return a.n * b.d < b.n * a.d;
+            return sign(a.n * b.d - b.n * a.d);
         }
         T x = floor(a), y = floor(b);
         while (x == y) {

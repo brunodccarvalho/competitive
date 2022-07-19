@@ -21,6 +21,14 @@ void printcl(Ts&&... args) {
     flush(dest);
 }
 
+template <typename... Ts>
+void putcln(Ts&&... args) {
+    auto& dest = log_destination();
+    print(dest, "\r\003[2K");
+    putln(dest, forward<Ts>(args)...);
+    flush(dest);
+}
+
 void print_progress(long i, long N) {
     double percent = 100.0 * (i + 1) / N;
     int digits = to_string(N).size();

@@ -80,12 +80,19 @@ struct hash<__uint128_t> : Int128Hasher {};
 struct polyhasher {
     using V1 = modnum<998244353>;
     using V2 = modnum<999999893>;
-    static constexpr int B1 = 73, B2 = 37;
+    static inline vector<int> B1list = {3, 5, 6, 10, 11, 12, 13, 20, 22, 24, 26, 27, 35};
+    static inline vector<int> B2list = {2, 3, 5, 8, 11, 12, 14, 18, 20, 21, 23, 26, 27};
+    static inline int B1 = 5, B2 = 5;
     using Hash = tuple<V1, V2, int>;
 
     static inline vector<Hash> cache;
     static void init(int N) {
-        cache.resize(N + 1);
+        uniform_int_distribution<int> b1dist(0, B1list.size() - 1);
+        uniform_int_distribution<int> b2dist(0, B2list.size() - 1);
+        uint64_t RANDOM = chrono::steady_clock::now().time_since_epoch().count();
+        mt19937 rng(RANDOM);
+        B1 = B1list[b1dist(rng)];
+        B2 = B2list[b1dist(rng)];
         cache[0] = {1, 1, 0};
         for (int i = 1; i <= N; i++) {
             auto [h1, h2, _] = cache[i - 1];
