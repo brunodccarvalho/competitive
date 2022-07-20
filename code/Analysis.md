@@ -528,14 +528,12 @@ Test on the following generated distributions:
 Consider a linear program with $N=3$ variables and $M=2$ constraints.
 Adding dual (slack) variables we can write it as follows:
 
-$$
-\text{Primal Program}\\
+$$\text{Primal Program}\\
 \begin{matrix}
 \max & c_1x_1 &+& c_2x_2 &+& c_3x_3 && \\
 (1) & a_{11}x_1 &+& a_{12}x_2 &+& a_{13}x_3 &+& y_1 &=& b_1 \\
 (2) & a_{21}x_1 &+& a_{22}x_2 &+& a_{23}x_3 &+& y_2 &=& b_2
-\end{matrix}
-$$
+\end{matrix}$$
 
 We don't make any assumptions on $A$, $B$ or $C$, but we do assume $N>0$ and $M>0$.
 
@@ -564,15 +562,13 @@ Denote by $T$ the average time it takes to pivot.
 
 The dual program is the following, *by definition*:
 
-$$
-\text{Dual Program}\\
+$$\text{Dual Program}\\
 \begin{matrix}
 \min & b_1y_1 &+& b_2y_2  && \\
 (1) & a_{11}y_1 &+& a_{21}y_2 &-& x_1 &=& c_1 \\
 (2) & a_{12}y_1 &+& a_{22}y_2 &-& x_2 &=& c_2 \\
 (3) & a_{13}y_1 &+& a_{23}y_2 &-& x_3 &=& c_3
-\end{matrix}
-$$
+\end{matrix}$$
 
 Note the minus signs on the basic variables! We could flip all coefficient signs in this
 program and get another $\max$ program.
@@ -621,48 +617,38 @@ Suppose $x_1$ is to enter the basis and $y_1$ is to leave. In the first equation
 we want $x_1$ to go to the basis column, and $y_1$ to take $x_1$'s place in the first
 column. We can divide row (1) by $a_{11}$:
 
-$$
-\begin{matrix}
+$$\begin{matrix}
 \max & c_1x_1 &+& c_2x_2 &+& c_3x_3 && \\
 (1) & x_1 &+& \frac{a_{12}}{a_{11}}x_2 &+& \frac{a_{13}}{a_{11}}x_3 &+& \frac{1}{a_{11}}y_1 &=& \frac{b_1}{a_{11}} \\
 (2) & a_{21}x_1 &+& a_{22}x_2 &+& a_{23}x_3 &+& y_2 &=& b_2
-\end{matrix}
-$$
+\end{matrix}$$
 
-$$
-\begin{matrix}
+$$\begin{matrix}
 \max & c_1x_1 &+& c_2x_2 &+& c_3x_3 && \\
 (1) & \frac{1}{a_{11}}y_1 &+& \frac{a_{12}}{a_{11}}x_2 &+& \frac{a_{13}}{a_{11}}x_3 &+& x_1 &=& \frac{b_1}{a_{11}} \\
 (2) & a_{21}x_1 &+& a_{22}x_2 &+& a_{23}x_3 &+& y_2 &=& b_2
-\end{matrix}
-$$
+\end{matrix}$$
 
 Now substitute for $x_1$ in the coefficients row and row (2):
 
-$$
-\begin{matrix}
+$$\begin{matrix}
 \max & c_1(\frac{b_1}{a_{11}}-\frac{1}{a_{11}}y_1 - \frac{a_{12}}{a_{11}}x_2 - \frac{a_{13}}{a_{11}}x_3) &+& c_2x_2 &+& c_3x_3 && \\
 (1) & \frac{1}{a_{11}}y_1 &+& \frac{a_{12}}{a_{11}}x_2 &+& \frac{a_{13}}{a_{11}}x_3 &+& x_1 &=& \frac{b_1}{a_{11}} \\
 (2) & a_{21}(\frac{b_1}{a_{11}}-\frac{1}{a_{11}}y_1 - \frac{a_{12}}{a_{11}}x_2 - \frac{a_{13}}{a_{11}}x_3) &+& a_{22}x_2 &+& a_{23}x_3 &+& y_2 &=& b_2
-\end{matrix}
-$$
+\end{matrix}$$
 
 Expanding gives
 
-$$
-\begin{matrix}
+$$\begin{matrix}
 \max & -\frac{c_1}{a_{11}}y_1 &+& (c_2-\frac{c_1a_{12}}{a_{11}})x_2 &+& (c_3-\frac{c_1a_{13}}{a_{11}})x_3 &+& \frac{c_1b_1}{a_{11}} \\
 (1) & \frac{1}{a_{11}}y_1 &+& \frac{a_{12}}{a_{11}}x_2 &+& \frac{a_{13}}{a_{11}}x_3 &+& x_1 &=& \frac{b_1}{a_{11}} \\
 (2) & -\frac{a_{21}}{a_{11}}y_1 &+& (a_{22}- \frac{a_{21}a_{12}}{a_{11}})x_2 &+& (a_{23}- \frac{a_{21}a_{13}}{a_{11}})x_3 &+& y_2 &=& b_2-\frac{b_1a_{21}}{a_{11}}
-\end{matrix}
-$$
+\end{matrix}$$
 
 That is how we pivot and maintain a tableau with the same shape.
 
 Because all our variables should be non-negative - **primal feasibility**, we *should* have
-$$
-y_2=b_2-\frac{b_1a_{21}}{a_{11}}\geq 0\Leftrightarrow \frac{b_2}{a_{21}}\geq\frac{b_1}{a_{11}}
-$$
+$$y_2=b_2-\frac{b_1a_{21}}{a_{11}}\geq 0\Leftrightarrow \frac{b_2}{a_{21}}\geq\frac{b_1}{a_{11}}$$
 If we *chose* to enter variable $x_1$, we should pick for the leaving variable $y_i$ the
 one which minimizes $\frac{b_i}{a_{i1}}$, so we can maintain primal feasibility.
 We do this *even if* we actually don't yet have primal feasibility!
@@ -673,7 +659,7 @@ So our optimum value increased by $\frac{c_1b_1}{a_{11}}$.
 To work towards **primal optimality** we should pick $c_1>0$. There are many pivot rules:
 
 - We can check the entire tableau and pick the column variable
-$\argmax_j\left(c_j\min_i\frac{b_i}{a_{ij}}\right)$.
+$\text{argmax}_j\left(c_j\min_i\frac{b_i}{a_{ij}}\right)$.
   - We'll call this **largest-immediate-gain**, $O(N+AM)$.
 - We can also just pick the largest $c_i$ then find the corresponding $j$.
   - This is **dantzig-rule**, $O(N+M)$.
@@ -751,29 +737,26 @@ are basic and should not appear in this new constraint row:
 
 For example:
 
-$$
-\text{Current tableau}\\
+$$\text{Current tableau}\quad
 \begin{matrix}
-\max & c^*_1y_1 &+& c^*_2x_2 &+& c^*_3y_2 &&&& \text{optimum} \\
-(1) & a^*_{11}y_1 &+& a^*_{12}x_2 &+& a^*_{13}y_2 &+& x_1 &=& b^*_1 \\
-(2) & a^*_{21}y_1 &+& a^*_{22}x_2 &+& a^*_{23}y_2 &+& x_3 &=& b^*_2
-\end{matrix}
-$$
-$$
-\text{Want to add:}\\
+\max & c_1y_1 &+& c_2x_2 &+& c_3y_2 &&&& \text{optimum} \\
+(1) & a_{11}y_1 &+& a_{12}x_2 &+& a_{13}y_2 &+& x_1 &=& b_1 \\
+(2) & a_{21}y_1 &+& a_{22}x_2 &+& a_{23}y_2 &+& x_3 &=& b_2
+\end{matrix}$$
+
+$$\text{Want to add:}\quad
 \begin{matrix}
 (3) & d_1x_1 &+& d_2x_2 &+& d_3x_3 &+& y_3 &=& b_3
-\end{matrix}
-$$
+\end{matrix}$$
 
 The algorithm is simple, simply substitute $x_1$ and $x_3$ into the constraint's left
 hand side. We get:
 
-$$
-d_1x_1 + d_2x_2 + d_3x_3 + y_3 = b_3 \Leftrightarrow\\
-d_1(b^*_1 - a^*_{11}y_1 - a^*_{12}x_2 - a^*_{13}y_2) + d_2x_2 + d_3(b^*_2 - a^*_{21}y_1 - a^*_{22}x_2 - a^*_{23}y_2) + y_3 = b_3 \Leftrightarrow\\
-(-d_1a^*_{11}-d_3a^*_{21})y_1 + (d_2-d_1a^*_{12}-d_3a^*_{22})x_2 + (-d_1a^*_{13}-d_3a^*_{23})y_2 + y_3 = b_3 - d_1b^*_1-d_3b^*_2 \Leftrightarrow\\
-$$
+$$d_1x_1 + d_2x_2 + d_3x_3 + y_3 = b_3 \Leftrightarrow$$
+
+$$d_1(b_1 - a_{11}y_1 - a_{12}x_2 - a_{13}y_2) + d_2x_2 + d_3(b_2 - a_{21}y_1 - a_{22}x_2 - a_{23}y_2) + y_3 = b_3 \Leftrightarrow$$
+
+$$(-d_1a_{11}-d_3a_{21})y_1 + (d_2-d_1a_{12}-d_3a_{22})x_2 + (-d_1a_{13}-d_3a_{23})y_2 + y_3 = b_3 - d_1b_1-d_3b_2 \Leftrightarrow$$
 
 To do this efficiently we maintain the rows/columns position for each $x_j$ and $y_i$
 and vice-versa as we pivot the tableau. In total this takes $O(n\phi)$ time to insert
@@ -785,8 +768,8 @@ is maintained iff the value of $y_{M+1}$, $b_{M+1}$, is non-negative.
 ### Adding a primal variable
 
 Just add the equivalent constraint to the *dual program*. The process is very similar,
-but because the basic variables are negated in the dual program's row, the monomial $-d_ja^*_{ij}$
-above has its sign flipped to $d_ja^*_{ij}$. The primal variable added is $x_{N+1}$ and
+but because the basic variables are negated in the dual program's row, the monomial $-d_ja_{ij}$
+above has its sign flipped to $d_ja_{ij}$. The primal variable added is $x_{N+1}$ and
 starts off non-basic. In total this takes $O(m\phi)$ time to insert the variable.
 
 If the initial tableau was primal feasible then so is the new one. But primal optimality
@@ -825,7 +808,7 @@ $$\dots+\frac{1}{a_{ri}}z_r+\dots+y_i=\frac{b_r}{a_{ri}}+\triangle b$$
 
 Now undo the pivot:
 
-$$\dots+a_{ri}y_i+\dots+z_i=a_{ri}(\frac{b_r}{a_{ri}}+\triangle b)=b_r+a_{ri}\triangle b$$
+$$\dots+a_{ri}y_i+\dots+z_r=a_{ri}(\frac{b_r}{a_{ri}}+\triangle b)=b_r+a_{ri}\triangle b$$
 
 Alternatively, think of the above transform as follows. The $y_i$ was non-basic, so the
 constraint was *tight*. We changed the *slack* of constraint by $\triangle b$, so the
