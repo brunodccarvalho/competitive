@@ -38,7 +38,7 @@ auto least_prime_sieve(int N) {
         }
     }
 
-    return lp;
+    return make_tuple(move(primes), move(lp), move(nxt));
 }
 
 // Compute the number of unique prime divisors of all n<=N. O(N log log N)

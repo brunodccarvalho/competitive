@@ -399,7 +399,7 @@ auto fft_split_multiply(const vector<T>& a, const vector<T>& b) {
 // NTT-SPLIT for modnums (2 ffts) | 110,250,520ms for 250K,500K,1M
 namespace fft {
 
-template <typename C, uint32_t MOD, typename T = int>
+template <uint32_t MOD, typename T = int, typename C>
 auto fft_split_lower_upper_mod(T d, const vector<modnum<MOD>>& a, vector<C>& comp) {
     for (int i = 0, A = a.size(); i < A; i++) {
         T y = T(a[i]), v = abs(y) <= abs(y - T(MOD)) ? y : y - T(MOD);
@@ -420,17 +420,19 @@ auto fft_multiply(const vector<modnum<MOD>>& a, const vector<modnum<MOD>>& b) {
     }
 
     int H = sqrt(MOD) + 3, Q = H * H;
-    auto [ac, bc] = fft_roots_cache<C>::get_scratch(N);
-    fft_split_lower_upper_mod(H, a, ac);
-    fft_split_lower_upper_mod(H, b, bc);
-    fft_transform<0, 0>(ac, N);
-    fft_transform<0, 0>(bc, N);
+    auto [fa, fb] = fft_roots_cache<C>::get_scratch(N);
+    fft_split_lower_upper_mod(H, a, fa);
+    fft_split_lower_upper_mod(H, b, fb);
+    fill_n(begin(fa) + A, N - A, C(0));
+    fill_n(begin(fb) + B, N - B, C(0));
+    fft_transform<0, 0>(fa, N);
+    fft_transform<0, 0>(fb, N);
     vector<C> h0(N), h1(N);
     for (int i = 0, j = 0; i < N; i++, j = N - i) {
-        auto f_small = (ac[i] + conj(ac[j])) * 0.5;
-        auto f_large = (ac[i] - conj(ac[j])) * C(0, -0.5);
-        auto g_small = (bc[i] + conj(bc[j])) * 0.5;
-        auto g_large = (bc[i] - conj(bc[j])) * C(0, -0.5);
+        auto f_small = (fa[i] + conj(fa[j])) * 0.5;
+        auto f_large = (fa[i] - conj(fa[j])) * C(0, -0.5);
+        auto g_small = (fb[i] + conj(fb[j])) * 0.5;
+        auto g_large = (fb[i] - conj(fb[j])) * C(0, -0.5);
         h0[i] = f_small * g_small + C(0, 1) * f_large * g_large;
         h1[i] = f_small * g_large + f_large * g_small;
     }
