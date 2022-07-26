@@ -141,8 +141,11 @@ struct link_cut_tree_edge_path {
 
     Node* access_edge(int u, int v) {
         reroot(u), access(v), fixup(u, v);
-        assert(is_one(st[u].kids[1]));
-        return &st[st[u].kids[1]].data;
+        if (is_one(st[u].kids[1])) {
+            return &st[st[u].kids[1]].data;
+        } else {
+            return nullptr;
+        }
     }
 
   protected:

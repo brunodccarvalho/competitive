@@ -210,20 +210,9 @@ struct persistent_segtree {
     }
 
     int meld(int v1, int v2, int L, int R, int zero) {
+        static_assert(!Node::LAZY);
         assert(L < R && v1 != v2);
-        return add_root(run_meld(roots[v1], roots[v2], L, R, zero));
-    }
-
-    int meld(const vector<int>& vers, int L, int R, int zero) {
-        static_assert(!Node::LAZY && "Unimplemented you moron");
-        assert(L < R);
-        vector<int> pts;
-        for (int v : vers) {
-            if (v != zero) {
-                pts.push_back(roots[v]);
-            }
-        }
-        return add_root(run_meld(pts, L, R, zero));
+        return add_root(run_meld(roots[v1], roots[v2], L, R, roots[zero]));
     }
 
   private:
@@ -602,35 +591,6 @@ struct persistent_segtree {
             int M = (L + R) / 2;
             int a = run_meld(kids[u][0], kids[v][0], L, M, kids[zero][0]);
             int b = run_meld(kids[u][1], kids[v][1], M, R, kids[zero][1]);
-            return add_node(a, b, combine(node[a], node[b]));
-        }
-    }
-
-    int run_meld(const vector<int>& pts, int L, int R, int zero) {
-        if (int D = pts.size(); D == 0) {
-            return zero;
-        } else if (D == 1) {
-            return pts[0];
-        } else if (L + 1 == R) {
-            int u = clone_node(zero);
-            for (int i = 0; i < D; i++) {
-                node[u].meld(node[pts[i]]);
-            }
-            return u;
-        } else {
-            vector<int> left, right;
-            for (int i = 0; i < D; i++) {
-                auto [a, b] = kids[pts[i]];
-                if (a != kids[zero][0]) {
-                    left.push_back(a);
-                }
-                if (b != kids[zero][1]) {
-                    right.push_back(b);
-                }
-            }
-            int M = (L + R) / 2;
-            int a = run_meld(left, L, M, kids[zero][0]);
-            int b = run_meld(right, M, R, kids[zero][1]);
             return add_node(a, b, combine(node[a], node[b]));
         }
     }

@@ -11,9 +11,11 @@ struct wavelet_tree {
     int A, min_sigma, max_sigma; // [min_sigma, max_sigma)
     vector<vector<int>> data;
 
-    wavelet_tree(int min_sigma, int max_sigma, const vector<int>& arr)
+    wavelet_tree() = default;
+
+    explicit wavelet_tree(int min_sigma, int max_sigma, const vector<int>& arr)
         : A(arr.size()), min_sigma(min_sigma), max_sigma(max_sigma),
-          data((max_sigma - min_sigma) << 1) {
+          data((max_sigma - min_sigma) << 2) {
         vector<int> brr(arr);
         build_dfs(1, min_sigma, max_sigma, 0, A, brr);
     }
@@ -40,16 +42,31 @@ struct wavelet_tree {
 
     // Count occurrences of [x,y) in arr[L,R)
     int count_within(int L, int R, int x, int y) const {
-        return count_dfs(1, min_sigma, max_sigma, x, y, L, R);
+        assert(0 <= L && L <= R && R <= A && min_sigma <= x && x <= y && y <= max_sigma);
+        if (L < R && x < y) {
+            return count_dfs(1, min_sigma, max_sigma, x, y, L, R);
+        } else {
+            return 0;
+        }
     }
 
     // Count elements less than x in arr[L,R)
     int order_of_key(int L, int R, int x) const {
-        return count_within(L, R, min_sigma, x);
+        assert(0 <= L && L <= R && R <= A && min_sigma <= x && x <= max_sigma);
+        if (L < R && min_sigma < x) {
+            return count_within(L, R, min_sigma, x);
+        } else {
+            return 0;
+        }
     }
 
     // Find k-th smallest element in [L,R)
     int find_by_order(int L, int R, int kth) const {
+        if (kth < 0) {
+            return min_sigma - 1;
+        } else if (kth >= R - L) {
+            return max_sigma;
+        }
         int u = 1, l = min_sigma, r = max_sigma;
         while (l + 1 < r) {
             int m = l + (r - l) / 2;
@@ -74,14 +91,16 @@ struct wavelet_tree {
                 data[u][i - aL + 1] = data[u][i - aL] + (arr[i] < m);
             }
             auto cmp = [&](int x) { return x < m; };
-            int mi = stable_partition(begin(arr) + aL, begin(arr) + aR, cmp) - begin(arr);
-            build_dfs(u << 1, l, m, aL, mi, arr);
-            build_dfs(u << 1 | 1, m, r, mi, aR, arr);
+            int aM = stable_partition(begin(arr) + aL, begin(arr) + aR, cmp) - begin(arr);
+            build_dfs(u << 1, l, m, aL, aM, arr);
+            build_dfs(u << 1 | 1, m, r, aM, aR, arr);
         }
     }
 
     int count_dfs(int u, int l, int r, int x, int y, int aL, int aR) const {
-        if ((x <= l && r <= y) || aR == aL) {
+        if (aL == aR) {
+            return 0;
+        } else if (x <= l && r <= y) {
             return aR - aL;
         }
         int m = l + (r - l) / 2;

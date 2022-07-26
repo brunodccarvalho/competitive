@@ -6,7 +6,7 @@ using namespace std;
 template <typename Node>
 struct dynamic_segtree {
     vector<Node> node;
-    vector<int8_t> lazy;
+    vector<int> lazy, freelist;
     vector<array<int, 2>> kids;
 
     dynamic_segtree() = default;
@@ -52,22 +52,24 @@ struct dynamic_segtree {
     void update_point(int root, int L, int R, int i, Us&&... update) {
         static thread_local vector<int> dfs;
         assert(L <= i && i < R);
-        int u = root;
-        while (L + 1 < R) {
-            dfs.push_back(u);
-            pushdown(u, R - L);
-            int M = (L + R) / 2;
-            if (i < M) {
-                u = kids[u][0] = maybe_clone_node(kids[u][0]), R = M;
-            } else {
-                u = kids[u][1] = maybe_clone_node(kids[u][1]), L = M;
-            }
+        update_point_dfs(root, L, R, i, update);
+    }
+
+    template <typename... Us>
+    void update_point_dfs(int u, int L, int R, int i, Us&&... update) {
+        if (L + 1 == R) {
+            apply(u, 1, update...);
+            return;
         }
-        apply(u, 1, update...);
-        for (int B = dfs.size(), i = B - 1; i >= 0; i--) {
-            pushup(dfs[i]);
+        pushdown(u, R - L);
+        int M = (L + R) / 2;
+        auto [a, b] = kids[u];
+        if (i < M) {
+            update_point_dfs(a, L, M, i, update...);
+        } else {
+            update_point_dfs(b, M, R, i, update...);
         }
-        dfs.clear();
+        pushup(u);
     }
 
     template <typename... Us>
@@ -195,6 +197,12 @@ struct dynamic_segtree {
                       : run_suffix_search(root, L, R, l, r, Node(), bs);
     }
 
+    int meld(int u, int v, int L, int R, int zero) {
+        static_assert(!Node::LAZY);
+        assert(L < R);
+        return run_meld(u, v, L, R, zero);
+    }
+
   private:
     static Node combine(const Node& x, const Node& y) {
         Node ans;
@@ -202,12 +210,36 @@ struct dynamic_segtree {
         return ans;
     }
 
+    inline int make_node() {
+        if (freelist.size()) {
+            int v = freelist.back();
+            freelist.pop_back();
+            node[v] = Node();
+            return v;
+        } else {
+            int v = node.size();
+            node.push_back(Node());
+            lazy.push_back(false);
+            kids.push_back({0, 0});
+            return v;
+        }
+    }
+
     inline int add_node(int l, int r, int8_t rdonly, Node v) {
-        int u = num_nodes();
-        node.push_back(move(v));
-        lazy.push_back(rdonly);
-        kids.push_back({l, r});
-        return u;
+        if (freelist.size()) {
+            int u = freelist.back();
+            freelist.pop_back();
+            node[u] = move(v);
+            lazy[u] = rdonly;
+            kids[u] = {l, r};
+            return u;
+        } else {
+            int u = node.size();
+            node.push_back(move(v));
+            lazy.push_back(rdonly);
+            kids.push_back({l, r});
+            return u;
+        }
     }
 
     inline int maybe_clone_node(int u) {
@@ -452,6 +484,26 @@ struct dynamic_segtree {
             return make_pair(x, move(suffix));
         } else {
             return run_suffix_search(a, L, M, ql, M, move(suffix), bs);
+        }
+    }
+
+    int run_meld(int u, int v, int L, int R, int zero) {
+        if (u == zero || v == zero) {
+            return u ^ v ^ zero;
+        } else if (L + 1 == R) {
+            node[u].meld(node[v]);
+            freelist.push_back(v);
+            return u;
+        } else {
+            pushdown(u, R - L);
+            pushdown(v, R - L);
+            int M = (L + R) / 2;
+            int a = run_meld(kids[u][0], kids[v][0], L, M, kids[zero][0]);
+            int b = run_meld(kids[u][1], kids[v][1], M, R, kids[zero][1]);
+            kids[u] = {a, b};
+            pushup(u);
+            freelist.push_back(v);
+            return u;
         }
     }
 };
