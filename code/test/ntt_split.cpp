@@ -25,10 +25,15 @@ void stress_test_fft_multiply_mod() {
         int B = rand_unif<int>(0, 1000);
         auto a = rands_grav_or_wide<int>(A, 0, MOD - 1, +5);
         auto b = rands_grav_or_wide<int>(B, 0, MOD - 1, +5);
+        vector<num> c(begin(a), end(a));
+        vector<num> d(begin(a), end(a));
 
-        auto c = fft::fft_multiply(MOD, a, b);
-        auto d = fft::naive_multiply(MOD, a, b);
-        assert(c == d);
+        auto e = fft::fft_multiply(MOD, a, b);
+        auto f = fft::naive_multiply(MOD, a, b);
+        auto g = fft::fft_multiply(c, d);
+        auto h = fft::naive_multiply(c, d);
+        assert(e == f);
+        assert(g == h);
     }
 }
 
@@ -83,9 +88,14 @@ void speed_test_fft_multiply_mod() {
             auto b = rands_unif<int>(B, 0, MOD - 1);
             vector<num> c(begin(a), end(a));
             vector<num> d(begin(b), end(b));
+            vector<int> e;
+            vector<num> f;
 
-            ADD_TIME_BLOCK(fft_mod) { fft::fft_multiply(MOD, a, b); }
-            ADD_TIME_BLOCK(fft_modnum) { fft::fft_multiply(c, d); }
+            ADD_TIME_BLOCK(fft_mod) { e = fft::fft_multiply(MOD, a, b); }
+            ADD_TIME_BLOCK(fft_modnum) { f = fft::fft_multiply(c, d); }
+            for (int i = 0, S = e.size(); i < S; i++) {
+                assert(e[i] == int(f[i]));
+            }
         }
 
         table[{A, B, "mod"}] = FORMAT_EACH(fft_mod, runs);
@@ -96,7 +106,7 @@ void speed_test_fft_multiply_mod() {
 }
 
 int main() {
-    RUN_BLOCK(killer_test_fft_multiply_mod());
+    // RUN_BLOCK(killer_test_fft_multiply_mod());
     RUN_BLOCK(stress_test_fft_multiply_mod());
     RUN_BLOCK(speed_test_fft_multiply_mod());
     return 0;

@@ -8,7 +8,7 @@ __int128_t abs(__int128_t x) { return x >= 0 ? x : -x; }
 // For 2D computational geometry problems
 
 struct Pt2 {
-    using T = int32_t;    // points, vectors, coefs, manh -- integer/frac/quot
+    using T = int64_t;    // points, vectors, coefs, manh -- integer/frac/quot
     using L = int64_t;    // crosses, dotes, dist2, norm2 -- integer/frac/quot
     using H = __int128_t; // huge (circle predicates) -- int128/double
     static constexpr bool FLOAT = false;
@@ -224,6 +224,15 @@ struct Ray {
     static Ray slope(Pt2 dt) { return Ray{Pt2(), dt}; }
     static Ray through(Pt2 u, Pt2 v) { return Ray{u, v - u}; }
     static Ray halfplane(Pt2 point, Pt2 normal) { return Ray{point, perp_cw(normal)}; }
+    static Ray upwards(Pt2 u, Pt2 v, bool upleft) {
+        if (u.x != v.x) {
+            return u.x < v.x ? Ray::through(u, v) : Ray::through(v, u);
+        } else if (u.y < v.y) {
+            return upleft ? Ray::through(u, v) : Ray::through(v, u);
+        } else {
+            return upleft ? Ray::through(v, u) : Ray::through(u, v);
+        }
+    }
 
     auto operator-() const { return Ray{p, -d}; }
     auto q() const { return p + d; }

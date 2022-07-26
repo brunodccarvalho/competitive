@@ -92,7 +92,7 @@ struct polyhasher {
         uint64_t RANDOM = chrono::steady_clock::now().time_since_epoch().count();
         mt19937 rng(RANDOM);
         B1 = B1list[b1dist(rng)];
-        B2 = B2list[b1dist(rng)];
+        B2 = B2list[b2dist(rng)];
         cache[0] = {1, 1, 0};
         for (int i = 1; i <= N; i++) {
             auto [h1, h2, _] = cache[i - 1];
