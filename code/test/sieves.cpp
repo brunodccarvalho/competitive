@@ -57,7 +57,7 @@ void unit_test_sieves() {
     constexpr int N = 100, M = 21;
 
     auto primes = classic_sieve(N);
-    auto least = least_prime_sieve(N);
+    auto least = get<0>(least_prime_sieve(N));
     auto tau_primes = num_prime_divisors_sieve(N);
     auto tau = num_divisors_sieve(N);
     auto sigma = sum_divisors_sieve(N);
@@ -88,7 +88,7 @@ void unit_test_sieves() {
 void unit_test_num_divisors_sieve() {
     constexpr int N = 1'000'000;
 
-    auto lp = least_prime_sieve(N);
+    auto lp = get<0>(least_prime_sieve(N));
     auto divs = num_divisors_sieve(N);
 
     for (int n = 2; n <= N; n++) {

@@ -1,5 +1,6 @@
 #include "test_utils.hpp"
 #include "struct/dynamic_segtree.hpp"
+#include "struct/dynamic_2dsegtree.hpp"
 #include "struct/segtree_nodes.hpp"
 
 void stress_test_dynamic_segtree() {

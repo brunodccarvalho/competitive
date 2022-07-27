@@ -52,7 +52,7 @@ struct dynamic_segtree {
     void update_point(int root, int L, int R, int i, Us&&... update) {
         static thread_local vector<int> dfs;
         assert(L <= i && i < R);
-        update_point_dfs(root, L, R, i, update);
+        update_point_dfs(root, L, R, i, update...);
     }
 
     template <typename... Us>
