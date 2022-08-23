@@ -1,6 +1,5 @@
 #pragma once
 
-#include "flow/dinitz_flow.hpp"
 #include "flow/edmonds_karp.hpp"
 #include "flow/network_simplex.hpp"
 #include "matching/hopcroft_karp.hpp"
@@ -10,7 +9,7 @@
 
 // Determine maximum number of edge disjoint paths between s and t (sample)
 auto max_edge_disjoint_paths(int N, const vector<array<int, 2>>& G, int s, int t) {
-    using Solver = edmonds_karp<int>;
+    using Solver = dinitz_flow<int>;
 
     Solver mf(N);
 
@@ -23,7 +22,7 @@ auto max_edge_disjoint_paths(int N, const vector<array<int, 2>>& G, int s, int t
 
 // Determine maximum number of vertex disjoint paths between s and t (sample)
 auto max_vertex_disjoint_paths(int N, const vector<array<int, 2>>& G, int s, int t) {
-    using Solver = edmonds_karp<int>;
+    using Solver = dinitz_flow<int>;
 
     Solver mf(2 * N);
 
@@ -148,7 +147,7 @@ auto decompose_dag_flow_matching(Solver& mf, int s, int t) {
 auto max_segmentation(const vector<int64_t>& A, //
                       const vector<int64_t>& B, //
                       const vector<tuple<int, int, int64_t>>& costs) {
-    using Solver = tidal_flow<int64_t>;
+    using Solver = dinitz_flow<int64_t>;
 
     assert(A.size() == B.size());
     int N = A.size();
@@ -316,8 +315,10 @@ auto max_weight_antichain(const vector<array<int, 2>>& G, const vector<int64_t>&
 auto balanced_representatives(int N, int C, int P, const vector<int>& party,
                               const vector<int>& portion,
                               const vector<array<int, 2>>& members) {
+    using Solver = dinitz_flow<int64_t>;
+
     int s = N + C + P, t = s + 1;
-    dinitz_flow<int> mf(N + C + P + 2);
+    Solver mf(N + C + P + 2);
 
     for (auto [c, u] : members) {
         mf.add(c, u + C, 1);

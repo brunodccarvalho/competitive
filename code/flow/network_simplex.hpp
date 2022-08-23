@@ -1,6 +1,7 @@
 #pragma once
 
-#include "struct/integer_lists.hpp" // linked_lists
+#include <bits/stdc++.h>
+using namespace std;
 
 // Network simplex for mincost circulation/flow with supply/demand at nodes
 // Supports edge lower bounds, negative costs and negative cost cycles
@@ -118,6 +119,35 @@ struct network_simplex {
     enum ArcState : int8_t { STATE_UPPER = -1, STATE_TREE = 0, STATE_LOWER = 1 };
     auto signed_reduced_cost(int e) const { return edge[e].state * reduced_cost(e); }
 
+    struct int_lists {
+        int L, N;
+        vector<int> next, prev;
+
+        // L: lists are [0...L), N: integers are [0...N)
+        explicit int_lists(int L = 0, int N = 0) { assign(L, N); }
+
+        int rep(int l) const { return l + N; }
+        int head(int l) const { return next[rep(l)]; }
+        int tail(int l) const { return prev[rep(l)]; }
+
+        void push_front(int l, int n) { meet(rep(l), n, head(l)); }
+        void push_back(int l, int n) { meet(tail(l), n, rep(l)); }
+        void erase(int n) { meet(prev[n], next[n]); }
+
+        void clear() {
+            iota(begin(next) + N, end(next), N);
+            iota(begin(prev) + N, end(prev), N);
+        }
+        void assign(int L, int N) {
+            this->L = L, this->N = N;
+            next.resize(N + L), prev.resize(N + L), clear();
+        }
+
+      private:
+        inline void meet(int u, int v) { next[u] = v, prev[v] = u; }
+        inline void meet(int u, int v, int w) { meet(u, v), meet(v, w); }
+    };
+
     struct Node {
         int parent, pred;
         Flow supply;
@@ -133,7 +163,7 @@ struct network_simplex {
     int V, E = 0;
     vector<Node> node;
     vector<Edge> edge;
-    linked_lists children;
+    int_lists children;
 
     int next_arc = 0, block_size = 0;
     vector<int> bfs, perm; // scratchpad for bfs and upwards walk / random permutation
@@ -318,7 +348,9 @@ struct network_simplex {
         for (i = 0, S = 1; i < S; i++) {
             int u = bfs[i];
             node[u].pi += pi_delta;
-            FOR_EACH_IN_LINKED_LIST (v, u, children) { bfs[S++] = v; }
+            for (int v = children.head(u); v != children.rep(u); v = children.next[v]) {
+                bfs[S++] = v;
+            }
         }
     }
 };

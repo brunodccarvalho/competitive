@@ -136,11 +136,14 @@ function main {
 		clean|debug|perfm)
 			run_make "$ACTION"
 		;;
-		make)
+		make|build)
 			run_make debug
 		;;
-		rebuild|remake)
+		redebug|rebuild|remake)
 			run_make clean && run_make debug
+		;;
+		reperfm)
+			run_make clean && run_make perfm
 		;;
 		# Make and run under valgrind
 		*invalg*|*valgin*|*valgrindin*)
