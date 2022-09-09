@@ -733,6 +733,43 @@ TTT auto taylor_shift(vector<T> p, T a) {
     return convert_to_egf(move(p));
 }
 
+// Find p(c),...,p(c+m-1) given p(0),...,p(n-1). Time: O(n log n)
+TTT auto sample_shift(vector<T> p, T delta, int m) {
+    // https://judge.yosupo.jp/submission/96478
+    using B = Binomial<T>;
+    int n = size(p);
+    assert(n >= 1 && m >= 0);
+    vector<T> q(n), r(n + m);
+    for (auto i = 0; i < n; ++i)
+        q[i] = p[i] * B::invfac(i) * B::invfac(n - 1 - i) * ((n - i) & 1 ? 1 : -1);
+    for (auto i = 0; i < n + m; ++i)
+        r[i] = delta + i - (n - 1) ? T(1) / (delta + i - (n - 1)) : T(0);
+    auto qr = q * r;
+    vector<T> seg(2 * (n + m));
+    for (auto i = 0; i < n + m; ++i)
+        seg[n + m + i] = delta - (n - 1) + i;
+    for (auto i = n + m - 1; i; --i)
+        seg[i] = seg[i << 1] * seg[i << 1 | 1];
+    vector<T> res(m, 1);
+    for (auto i = 0; i < m; ++i) {
+        if (int(delta + i) < n) {
+            res[i] = p[int(delta + i)]; // optimization
+            continue;
+        }
+        T d = 1;
+        for (auto l = n + m + i, r = 2 * n + m + i; l < r; l >>= 1, r >>= 1) {
+            if (l & 1) {
+                d *= seg[l++];
+            }
+            if (r & 1) {
+                d *= seg[--r];
+            }
+        }
+        res[i] = qr[n - 1 + i] * d;
+    }
+    return res;
+}
+
 // e^x = SUM x^k/k!
 TTT auto exponential(int n) {
     vector<T> etox(n + 1);
