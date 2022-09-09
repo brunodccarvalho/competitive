@@ -57,17 +57,17 @@ struct Binomial {
 
     // Layout n identical items over k distinct bins, >=a per bin
     static T layout(int n, int k, int a = 0) {
-        return k == 0 ? n == 0 : choose(n + (1 - a) * (k - 1), k - 1);
+        return k == 0 ? n == 0 : choose(n + (1 - a) * k - 1, k - 1);
     }
 
-    // Layout n identical items over k distinct bins, >=a and <b per bin. O(k)
-    static T bounded_layout(int n, int p, int a, int b) {
-        n -= a * p, b -= a;
-        T ans = 0;
-        for (int k = 0; k <= p && b * k <= n && b > 0; k++) {
-            ans += (k % 2 ? -1 : +1) * choose(p, k) * layout(n - b * k, p);
+    // Layout n identical items over k distinct bins, >=a and <=b per bin. O(k)
+    static T bounded_layout(int n, int k, int a, int b) {
+        n -= a * k, b -= a;
+        T ans = 0; // inclusion-exclusion
+        for (int i = 0; i <= k && b * i <= n && b > 0; i++) {
+            ans += (i % 2 ? -1 : +1) * choose(k, i) * layout(n - (b + 1) * i, k);
         }
-        return ans;
+        return b == 0 ? n == 0 : ans;
     }
 
     static T catalan(int n) {
@@ -248,10 +248,30 @@ struct Permutations {
         return n < 0 ? 0 : belln[n];
     }
 
+    // Number of permutations on n with k cycles
+    static T stirling_1st(int n, int k) {
+        ensure_stir1st(n);
+        return n < 0 || k < 0 || k > n ? 0 : stir1st[n][k];
+    }
+
+    // Number of ways to layout n labeled elements into k unlabelled nonempty boxes
+    static T stirling_2nd(int n, int k) {
+        ensure_stir2nd(n);
+        return n < 0 || k < 0 || k > n ? 0 : stir2nd[n][k];
+    }
+
+    // Number of ways to layout n labeled elements into k labelled nonempty boxes
+    static T compositions(int n, int k) {
+        ensure_stir2nd(n);
+        return n < 0 || k < 0 || k > n ? 0 : Binomial<T>::fac(k) * stir2nd[n][k];
+    }
+
     // Cache
     static inline vector<T> deran = {1, 0};
     static inline vector<T> belln = {1, 1};
     static inline vector<T> invol = {1, 1};
+    static inline vector<vector<T>> stir1st = {{1}};
+    static inline vector<vector<T>> stir2nd = {{1}};
 
     static void ensure_derangements(int n) {
         if (int m = deran.size(); n >= m) {
@@ -281,7 +301,33 @@ struct Permutations {
             n = 1 << (8 * sizeof(int) - __builtin_clz(n - 1));
             invol.resize(n + 1);
             for (int i = m; i <= n; i++) {
-                invol[i] = invol[i - 1] + T(n - 1) * invol[n - 2];
+                invol[i] = invol[i - 1] + T(i - 1) * invol[i - 2];
+            }
+        }
+    }
+
+    static void ensure_stir1st(int n) {
+        if (int m = stir1st.size(); n >= m) {
+            n = 1 << (8 * sizeof(int) - __builtin_clz(n - 1));
+            stir1st.resize(n + 1);
+            for (int i = m; i <= n; i++) {
+                stir1st[i].resize(i + 1), stir1st[i][i] = 1;
+                for (int k = 1; k < i; k++) {
+                    stir1st[i][k] = (i - 1) * stir1st[i - 1][k] + stir1st[i - 1][k - 1];
+                }
+            }
+        }
+    }
+
+    static void ensure_stir2nd(int n) {
+        if (int m = stir2nd.size(); n >= m) {
+            n = 1 << (8 * sizeof(int) - __builtin_clz(n - 1));
+            stir2nd.resize(n + 1);
+            for (int i = m; i <= n; i++) {
+                stir2nd[i].resize(i + 1), stir2nd[i][i] = 1;
+                for (int k = 1; k < i; k++) {
+                    stir2nd[i][k] = k * stir2nd[i - 1][k] + stir2nd[i - 1][k - 1];
+                }
             }
         }
     }

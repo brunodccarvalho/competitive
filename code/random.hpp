@@ -2,7 +2,6 @@
 
 #include "hash.hpp"
 #include "algo/sort.hpp"
-#include "numeric/frac.hpp"
 
 // *****
 

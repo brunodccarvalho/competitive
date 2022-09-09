@@ -76,7 +76,6 @@ struct mcmflow {
                 }
             }
         }
-        assert(B == V);
 
         reprice();
         return prev[t] != -1;
@@ -89,7 +88,7 @@ struct mcmflow {
         dist[s] = 0;
 
         vector<bool> in_queue(V, false);
-        deque<int> Q;
+        list<int> Q;
         Q.push_back(s);
 
         do {
@@ -160,13 +159,55 @@ struct mcmflow {
     }
 
     // Augment until we get F flow, C cost, P augmenting paths, or hit minimum cut.
-    auto mincost_flow(int s, int t, FlowSum F, CostSum C, int P) {
-        assert(F > 0 && C > 0 && P > 0);
+    auto slope(int s, int t, FlowSum F, CostSum C, int P) {
         FlowSum sflow = 0;
         CostSum scost = 0;
         int paths = 0;
 
-        if (prev[t] == -1) {
+        vector<tuple<FlowSum, CostSum, CostSum>> line = {{0, 0, 0}};
+
+        if (prev[t] == -1 || F <= 0 || C <= 0 || P <= 0) {
+            return line;
+        }
+        do {
+            auto augmenting_path = path(t);
+            Flow df = min(F - sflow, FlowSum(flowinf));
+            CostSum dc = 0;
+            for (int e : augmenting_path) {
+                df = min(df, edge[e].cap - edge[e].flow);
+                dc += edge[e].cost;
+            }
+            if (dc > 0 && df > (C - scost) / dc) {
+                df = (C - scost) / dc;
+                if (df == 0) {
+                    break; // can't augment without busting C
+                }
+            }
+            auto [lf, lc, ldc] = line.back();
+            if (dc == ldc) {
+                line.pop_back();
+            }
+            line.emplace_back(lf + df, lc + df * dc, dc);
+            sflow += df;
+            scost += df * dc;
+            paths++;
+            for (int e : augmenting_path) {
+                edge[e].flow += df;
+                edge[e ^ 1].flow -= df;
+            }
+        } while (sflow < F && scost < C && paths < P && dijkstra(s, t));
+
+        return line;
+    }
+
+    auto slope(int s, int t) { return slope(s, t, flowsuminf, costsuminf, INT_MAX); }
+
+    auto mincost_flow(int s, int t, FlowSum F, CostSum C, int P) {
+        FlowSum sflow = 0;
+        CostSum scost = 0;
+        int paths = 0;
+
+        if (prev[t] == -1 || F <= 0 || C <= 0 || P <= 0) {
             return make_tuple(sflow, scost, paths);
         }
         do {
@@ -198,18 +239,7 @@ struct mcmflow {
     auto mincost_flow(int s, int t) {
         return mincost_flow(s, t, flowsuminf, costsuminf, INT_MAX);
     }
-    // bound the number of augmenting paths
-    auto mincost_flow_bounded_paths(int s, int t, int P) {
-        return mincost_flow(s, t, flowsuminf, costsuminf, P);
-    }
-    // bound the flow from s to t
-    auto mincost_flow_bounded_flow(int s, int t, FlowSum F) {
-        return mincost_flow(s, t, F, costsuminf, INT_MAX);
-    }
-    // bound the flow cost from s to t
-    auto mincost_flow_bounded_cost(int s, int t, CostSum C) {
-        return mincost_flow(s, t, flowsuminf, C, INT_MAX);
-    }
+
     // reset the flow network; you must call *_init() again
     void clear_flow() {
         for (int e = 0; e < E; e++) {
