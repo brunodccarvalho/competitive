@@ -243,113 +243,12 @@ void speed_test_separating_line() {
     print_time_table(table, "Separating line");
 }
 
-void stress_test_sandwich_line() {
-    LOOP_FOR_DURATION_OR_RUNS_TRACKED (30s, now, 100'000, runs) {
-        print_time(now, 30s, "stress sandwich line ({} runs)", runs);
-
-        int R = rand_unif<int>(1, 500);
-        int B = rand_unif<int>(1, 500);
-        auto distr = rand_point_distribution();
-
-        auto pts = generate_points(R + B, distr, 0, 500'000);
-        vector<Pt2> reds(begin(pts), begin(pts) + R);
-        vector<Pt2> blues(begin(pts) + R, end(pts));
-
-        auto [r, b] = sandwich_line(reds, blues);
-        auto line = Ray::through(reds[r], blues[b]);
-        assert(check_sandwich_line(reds, blues, line));
-    }
-}
-
-void speed_test_sandwich_line() {
-    vector<int> Ns = {/*6000, 15000, 30000, 50000, 100000, 200000, 300000,*/ 500000,
-                      800000};
-
-    vector<tuple<int, PointDistrib>> inputs;
-    for (int N : Ns) {
-        for (int d = 0; d < int(PointDistrib::END); d = d + 1) {
-            inputs.emplace_back(N, PointDistrib(d));
-        }
-    }
-    auto runtime = 90'000ms / inputs.size();
-    map<pair<stringable, int>, stringable> table;
-
-    for (auto [N, distr] : inputs) {
-        START_ACC(sand);
-
-        LOOP_FOR_DURATION_OR_RUNS_TRACKED (runtime, now, 1000, runs) {
-            print_time(now, runtime, "speed sandwich line {} N={}", to_string(distr), N);
-
-            auto pts = generate_points(N, distr, 0, 300'000'000);
-            vector<Pt2> reds(begin(pts), begin(pts) + N / 2);
-            vector<Pt2> blues(begin(pts) + N / 2, end(pts));
-
-            ADD_TIME_BLOCK(sand) { sandwich_line(reds, blues); }
-        }
-
-        table[{distr, N}] = FORMAT_EACH(sand, runs);
-    }
-
-    print_time_table(table, "Sandwich line");
-}
-
-void stress_test_approximate_sandwich_line() {
-    LOOP_FOR_DURATION_OR_RUNS_TRACKED (30s, now, 100'000, runs) {
-        print_time(now, 30s, "stress approximate sandwich line ({} runs)", runs);
-
-        int N = rand_unif<int>(1, 500);
-
-        auto pts = generate_points(2 * N, PointDistrib::QUAD_MODULO, 0, 500'000);
-        vector<Pt2> reds(begin(pts), begin(pts) + N);
-        vector<Pt2> blues(begin(pts) + N, end(pts));
-
-        auto [r, b] = approximate_sandwich_line(reds, blues);
-        auto line = Ray::through(reds[r], blues[b]);
-        assert(check_approximate_sandwich_line(reds, blues, line));
-    }
-}
-
-void speed_test_approximate_sandwich_line() {
-    vector<int> Ns = {6000, 15000, 30000, 50000, 100000, 200000, 300000, 500000, 800000};
-
-    vector<tuple<int, PointDistrib>> inputs;
-    for (int N : Ns) {
-        inputs.emplace_back(N, PointDistrib::QUAD_MODULO);
-    }
-
-    auto runtime = 120'000ms / inputs.size();
-    map<pair<stringable, int>, stringable> table;
-
-    for (auto [N, distr] : inputs) {
-        START_ACC(sandw);
-
-        LOOP_FOR_DURATION_OR_RUNS_TRACKED (runtime, now, 5000, runs) {
-            print_time(now, runtime, "speed approximate sandwich {} N={}",
-                       to_string(distr), N);
-
-            auto pts = generate_points(N, distr, 0, 300'000'000);
-            vector<Pt2> reds(begin(pts), begin(pts) + N / 2);
-            vector<Pt2> blues(begin(pts) + N / 2, end(pts));
-
-            ADD_TIME_BLOCK(sandw) { approximate_sandwich_line(reds, blues); }
-        }
-
-        table[{distr, N}] = FORMAT_EACH(sandw, runs);
-    }
-
-    print_time_table(table, "Approximate sandwich line");
-}
-
 int main() {
-    // RUN_BLOCK(stress_test_hull2d());
-    // RUN_BLOCK(stress_test_merge_hulls());
+    RUN_BLOCK(stress_test_hull2d());
+    RUN_BLOCK(stress_test_merge_hulls());
     RUN_BLOCK(stress_test_all_point_pairs_radial_sweep());
-    // RUN_BLOCK(stress_test_separating_line());
-    // RUN_BLOCK(speed_test_separating_line());
-    // RUN_BLOCK(stress_test_sandwich_line());
-    // RUN_BLOCK(speed_test_sandwich_line());
-    // RUN_BLOCK(stress_test_approximate_sandwich_line());
-    // RUN_BLOCK(speed_test_approximate_sandwich_line());
-    // RUN_BLOCK(speed_test_hull2d());
+    RUN_BLOCK(stress_test_separating_line());
+    RUN_BLOCK(speed_test_separating_line());
+    RUN_BLOCK(speed_test_hull2d());
     return 0;
 }

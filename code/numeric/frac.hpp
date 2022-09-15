@@ -10,12 +10,9 @@ struct frac {
     using unit_type = T;
     T n, d; // n/d
 
-    frac() : n(0), d(1) {}
-    frac(T num) : n(num), d(1) {}
-    frac(T num, T den) : n(num), d(den) {
-        if (auto g = gcd(n, d)) {
-            (g < 0) == (d < 0) ? (n /= g, d /= g) : (n /= -g, d /= -g);
-        }
+    frac(T a = 0, T b = 1) : n(b >= 0 ? a : -a), d(b >= 0 ? b : -b) {
+        auto g = gcd(n, d);
+        n /= g, d /= g;
     }
 
     explicit operator bool() const noexcept { return n != 0 && d != 0; }
@@ -145,23 +142,94 @@ istream& operator>>(istream& in, frac<T>& f) {
 
 namespace std {
 
-template <typename T>
-struct hash<frac<T>> {
-    size_t operator()(const frac<T>& f) const noexcept {
+template <typename T, bool SAFE>
+struct hash<frac<T, SAFE>> {
+    size_t operator()(const frac<T, SAFE>& f) const noexcept {
         size_t a = hash<T>{}(f.n), b = hash<T>{}(f.d);
         return (a + b) * (a + b + 1) / 2 + b;
     }
 };
-template <typename T>
-struct numeric_limits<frac<T>> {
+template <typename T, bool SAFE>
+struct numeric_limits<frac<T, SAFE>> {
     static constexpr inline bool is_specialized = true, is_exact = true;
     static constexpr inline bool is_bounded = true, is_signed = true;
     static constexpr inline bool is_integer = false, has_infinity = true;
-    static inline auto lowest() { return frac<T>(numeric_limits<T>::min(), 1); }
-    static inline auto min() { return frac<T>(numeric_limits<T>::min(), 1); }
-    static inline auto max() { return frac<T>(numeric_limits<T>::max(), 1); }
-    static inline auto infinity() { return frac<T>(1, 0); }
-    static inline auto epsilon() { return frac<T>(0, 1); }
+    static inline auto lowest() { return frac<T, SAFE>(numeric_limits<T>::min(), 1); }
+    static inline auto min() { return frac<T, SAFE>(numeric_limits<T>::min(), 1); }
+    static inline auto max() { return frac<T, SAFE>(numeric_limits<T>::max(), 1); }
+    static inline auto infinity() { return frac<T, SAFE>(1, 0); }
+    static inline auto epsilon() { return frac<T, SAFE>(0, 1); }
 };
 
 } // namespace std
+
+// Given a predicate P that is ..false..true.., binary search for the smallest fraction f
+// such that P(f) is true, the numerator of f is at most N, and the denominator is at most
+// D. O(log ND) calls. If inflection point i meets the conditions, this returns i when
+// p(i) is true, otherwise it returns the next fraction. Based on kactl
+template <typename Pred, typename T = int64_t>
+auto frac_bounded_search(Pred&& p, T N, T D) {
+    int zero = p(0), right = true, A = true, B = true;
+    // If p(0) is true we binary search (-inf,0), and negate what we forward to p.
+    auto q = [&](const frac<T>& f) { return zero ? !p(-f) : p(f); };
+    frac<T> L(0, 1), R(1, 0);
+    while (A || B) {
+        T adv = 0, step = 1;
+        for (int s = 0; step; s ? step /= 2 : step *= 2) {
+            adv += step;
+            frac<T> mid(L.n * adv + R.n, L.d * adv + R.d);
+            if (mid.n > N || mid.d > D || (right ^ q(mid))) {
+                adv -= step, s = 1;
+            }
+        }
+        R.n += L.n * adv;
+        R.d += L.d * adv;
+        right = !right;
+        swap(L, R);
+        A = B, B = !!adv;
+    }
+    auto ans = right ^ zero ? R : L;
+    return zero ? -ans : ans;
+}
+
+template <typename Pred, typename T = int64_t>
+auto frac_bounded_search(Pred&& p, T N, const frac<T>& L, const frac<T>& R) {
+    auto q = [&](const frac<T>& f) { return f < L ? false : R < f ? true : p(f); };
+    return frac_bounded_search(q, N);
+}
+
+// Given a predicate P that is ..false..true.., binary search for the fraction f such that
+// P(f) is true, without knowing a bound on its numerator or denominator. Protocol:
+// 0 => too small go right, 1 => ok, 2 => too big go left. O(log ND) calls. Based on kactl
+template <typename Pred, typename T = int64_t>
+auto frac_binary_search(Pred&& p) {
+    int zero = p(0), right = 2;
+    if (zero == 1) {
+        return frac<T>(0);
+    }
+    // If p(0) is true we binary search (-inf,0), and negate what we forward to p.
+    auto q = [&](const frac<T>& f) { return zero ? 2 - p(-f) : p(f); };
+    frac<T> L(0, 1), R(1, 0);
+    while (true) {
+        T adv = 0, step = 1;
+        for (int s = 0; step; s ? step /= 2 : step *= 2) {
+            adv += step;
+            frac<T> mid(L.n * adv + R.n, L.d * adv + R.d);
+            if (auto res = q(mid); res == 1) {
+                return zero ? -mid : mid;
+            } else if (right != res) {
+                adv -= step, s = 1;
+            }
+        }
+        R.n += L.n * adv;
+        R.d += L.d * adv;
+        right = 2 - right;
+        swap(L, R);
+    }
+}
+
+template <typename Pred, typename T = int64_t>
+auto frac_binary_search(Pred&& p, const frac<T>& L, const frac<T>& R) {
+    auto q = [&](const frac<T>& f) { return f < L ? 0 : R < f ? 2 : p(f); };
+    return frac_binary_search(q);
+}

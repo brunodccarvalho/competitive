@@ -3,6 +3,7 @@
 #include "random.hpp"
 #include "geometry/geometry2d.hpp"
 #include "geometry/utils2d.hpp"
+#include "numeric/quot.hpp"
 
 using Pointset = std::unordered_set<array<int64_t, 2>>;
 
@@ -289,4 +290,90 @@ auto non_holding_sample(PGen&& gen, int S, const vector<array<Pt2, 2>>& blockers
 
     shuffle(begin(segments), end(segments), mt);
     return segments;
+}
+
+// Verify if any triple of points are collinear. O(n^2 log n) and O(n) memory
+auto find_three_collinear(const vector<Pt2>& pts) {
+    int N = pts.size();
+    if (N <= 2) {
+        return make_tuple(-1, -1, -1);
+    }
+
+    vector<int> order(N);
+    iota(begin(order), end(order), 0);
+    sort(begin(order), end(order), [&](int u, int v) { return pts[u] < pts[v]; });
+
+    vector<int> rank(N);
+    for (int i = 0; i < N; i++) {
+        rank[order[i]] = i;
+    }
+
+    for (int i = 1; i < N; i++) {
+        if (pts[order[i]] == pts[order[i - 1]]) {
+            return make_tuple(order[i], order[i - 1], i > 1 ? 0 : N - 1);
+        }
+    }
+    for (int i = 2; i < N; i++) {
+        if (collinear(pts[order[i - 2]], pts[order[i - 1]], pts[order[i]])) {
+            return make_tuple(order[i - 2], order[i - 1], order[i]);
+        }
+    }
+
+    using Q = quot<Pt2::L, true>;
+
+    auto get_slope = [&](int u, int v) {
+        if (pts[u].x == pts[v].x) {
+            return Q(1, 0);
+        } else {
+            return Q(pts[u].y - pts[v].y, pts[u].x - pts[v].x);
+        }
+    };
+
+    set<pair<Q, int>> events;
+    vector<set<pair<Q, int>>::iterator> its(N);
+
+    auto insert_slope = [&](int i) {
+        if (pts[order[i - 1]].x < pts[order[i]].x) {
+            its[i] = events.emplace(get_slope(order[i - 1], order[i]), i).first;
+        }
+    };
+
+    for (int i = 1; i < N; i++) {
+        insert_slope(i);
+    }
+
+    while (events.size()) {
+        auto [s, i] = *events.begin();
+        events.erase(events.begin());
+
+        int u = order[i - 1], v = order[i];
+        int a = i > 1 ? order[i - 2] : -1;
+        int b = i + 1 < N ? order[i + 1] : -1;
+        if (a != -1 && collinear(pts[u], pts[v], pts[a])) {
+            return make_tuple(a, u, v);
+        }
+        if (b != -1 && collinear(pts[u], pts[v], pts[b])) {
+            return make_tuple(u, v, b);
+        }
+
+        if (i > 1) {
+            events.erase(its[i - 1]);
+        }
+        if (i + 1 < N) {
+            events.erase(its[i + 1]);
+        }
+
+        swap(rank[u], rank[v]);
+        swap(order[i - 1], order[i]);
+
+        if (i > 1) {
+            insert_slope(i - 1);
+        }
+        if (i + 1 < N) {
+            insert_slope(i + 1);
+        }
+        insert_slope(i);
+    }
+
+    return make_tuple(-1, -1, -1);
 }

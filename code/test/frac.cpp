@@ -2,12 +2,13 @@
 #include "numeric/frac.hpp"
 #include "numeric/quot.hpp"
 
-using F = frac<long>;
-using Q = quot<long>;
-using int128_t = __int128_t;
-using ld = long double;
+using F = frac<int64_t>;
+using Q = quot<int64_t>;
 
 void speed_test_rational_comparison() {
+    using int128_t = __int128_t;
+    using ld = long double;
+
     // Let vs = {{a,b,c,d}...}. We will compare a/b with c/d
     constexpr int32_t mx = INT32_MAX / 2;
 
@@ -48,7 +49,7 @@ void speed_test_rational_comparison() {
     TIME_BLOCK(quot32) {
         int count = 0;
         for (auto [a, b, c, d] : vs) {
-            quot<int32_t> x(a, b), y(c, d);
+            quot<int32_t, false> x(a, b), y(c, d);
             count += x < y;
         }
         assert(count == real_count);
@@ -56,7 +57,7 @@ void speed_test_rational_comparison() {
     TIME_BLOCK(quot64) {
         int count = 0;
         for (auto [a, b, c, d] : vs) {
-            quot<int64_t> x(a, b), y(c, d);
+            quot<int64_t, true> x(a, b), y(c, d);
             count += x < y;
         }
         assert(count == real_count);
@@ -64,7 +65,7 @@ void speed_test_rational_comparison() {
     TIME_BLOCK(quot128) {
         int count = 0;
         for (auto [a, b, c, d] : vs) {
-            quot<int128_t> x(a, b), y(c, d);
+            quot<int128_t, true> x(a, b), y(c, d);
             count += x < y;
         }
         assert(count == real_count);
@@ -72,7 +73,7 @@ void speed_test_rational_comparison() {
     TIME_BLOCK(frac32) {
         int count = 0;
         for (auto [a, b, c, d] : vs) {
-            frac<int32_t> x(a, b), y(c, d);
+            frac<int32_t, false> x(a, b), y(c, d);
             count += x < y;
         }
         assert(count == real_count);
@@ -80,7 +81,7 @@ void speed_test_rational_comparison() {
     TIME_BLOCK(frac64) {
         int count = 0;
         for (auto [a, b, c, d] : vs) {
-            frac<int64_t> x(a, b), y(c, d);
+            frac<int64_t, true> x(a, b), y(c, d);
             count += x < y;
         }
         assert(count == real_count);
@@ -203,12 +204,71 @@ void unit_test_read() {
     assert(stofrac<F>(" -712412/71231") == -F(712412, 71231));
 }
 
+void stress_test_quot_binary_search() {
+    LOOP_FOR_DURATION_OR_RUNS_TRACKED (10s, now, 100'000'000, runs) {
+        print_time(now, 10s, "stress test frac binary search ({} runs)", runs);
+
+        const int64_t N = 100'000;
+        int64_t n = rand_unif<int64_t>(-N, N);
+        int64_t d = rand_unif<int64_t>(1, N);
+        F ans(n, d);
+        auto pred = [&](const auto& f) { return f < ans ? 0 : ans < f ? 2 : 1; };
+        F got = frac_binary_search(pred);
+        assert(ans == got);
+    }
+}
+
+void stress_test_frac_binary_search() {
+    LOOP_FOR_DURATION_OR_RUNS_TRACKED (10s, now, 100'000'000, runs) {
+        print_time(now, 10s, "stress test quot binary search ({} runs)", runs);
+
+        const int64_t N = 100'000;
+        int64_t n = rand_unif<int64_t>(-N, N);
+        int64_t d = rand_unif<int64_t>(1, N);
+        Q ans(n, d);
+        auto pred = [&](const auto& f) { return f < ans ? 0 : ans < f ? 2 : 1; };
+        Q got = quot_binary_search(pred);
+        assert(ans == got);
+    }
+}
+
+void stress_test_frac_bounded_search() {
+    LOOP_FOR_DURATION_OR_RUNS_TRACKED (10s, now, 100'000'000, runs) {
+        print_time(now, 10s, "stress test frac upper bound ({} runs)", runs);
+
+        const int64_t N = 100'000;
+        int64_t n = rand_unif<int64_t>(-N, N);
+        int64_t d = rand_unif<int64_t>(1, N);
+        int64_t b = rand_wide<int64_t>(1, N, -2);
+        F ans(n, d);
+        auto pred = [&](const auto& f) { return f >= ans; };
+        F got = frac_bounded_search(pred, N, b);
+        assert(ans <= got && got - ans < F(1, b));
+    }
+}
+
+void stress_test_quot_bounded_search() {
+    LOOP_FOR_DURATION_OR_RUNS_TRACKED (10s, now, 100'000'000, runs) {
+        print_time(now, 10s, "stress test quot upper bound ({} runs)", runs);
+
+        const int64_t N = 100'000;
+        int64_t n = rand_unif<int64_t>(-N, N);
+        int64_t d = rand_unif<int64_t>(1, N);
+        int64_t b = rand_wide<int64_t>(1, N, -2);
+        Q ans(n, d);
+        auto pred = [&](const auto& f) { return f >= ans; };
+        Q got = quot_bounded_search(pred, N, b);
+        assert(ans <= got && got - ans < Q(1, b));
+    }
+}
+
 int main() {
     RUN_SHORT(unit_test_gcd());
     RUN_SHORT(unit_test_ops());
     RUN_SHORT(unit_test_read());
-    RUN_BLOCK(speed_test_rational_comparison());
-    RUN_BLOCK(stress_test_frac());
-    RUN_BLOCK(stress_test_quot());
+    RUN_BLOCK(stress_test_frac_binary_search());
+    RUN_BLOCK(stress_test_quot_binary_search());
+    RUN_BLOCK(stress_test_frac_bounded_search());
+    RUN_BLOCK(stress_test_quot_bounded_search());
     return 0;
 }
