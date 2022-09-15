@@ -41,17 +41,18 @@ function run_tests {
 	for input in *.in; do
 		output=${input%in}out
 		answer=${input%in}ans
-		if test -f "$output"; then
-			grep -svP "$TRACE" "$input" | ./solver > "$answer"
-			if cmp "$output" "$answer"; then
-				echo "$input OK"
-			else
-				diff -y --minimal "$output" "$answer" || true
-			fi
-		else
-			echo "-- $answer"
-			grep -svP "$TRACE" "$input" | ./solver > "$answer"
+		if ! ./solver < "$input" > "$answer"; then
+			echo "$input ERROR"
 			cat "$answer"
+		elif ! test -f "$output"; then
+			echo "$input ANS"
+			cat "$answer"
+		elif cmp --silent "$output" "$answer"; then
+			echo "$input OK"
+		else
+			echo "$input NOPE"
+			diff -y --minimal "$output" "$answer" | head -100
+			break
 		fi
 	done
 }
@@ -60,17 +61,17 @@ function run_valgrind_tests {
 	for input in *.in; do
 		output=${input%in}out
 		answer=${input%in}ans
-		if test -f "$output"; then
-			grep -svP "$TRACE" "$input" | "${VALGRIND[@]}" "$@" ./solver | tee "$answer"
-			if cmp "$output" "output.txt"; then
-				echo "$input OK"
-			else
-				diff -y --minimal "$output" "$answer" || true
-			fi
-		else
-			echo "-- $answer"
-			grep -svP "$TRACE" "$input" | "${VALGRIND[@]}" "$@" ./solver | tee "$answer"
+		if ! "${VALGRIND[@]}" "$@" ./solver < "$input" | tee "$answer"; then
+			echo "$input ERROR"
+		elif ! test -f "$output"; then
+			echo "$input ANS"
 			cat "$answer"
+		elif cmp --silent "$output" "$answer"; then
+			echo "$input OK"
+		else
+			echo "$input NOPE"
+			diff -y --minimal "$output" "$answer" | head -100
+			break
 		fi
 	done
 }

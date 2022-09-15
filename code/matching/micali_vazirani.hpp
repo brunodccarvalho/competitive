@@ -76,7 +76,7 @@ struct micali_vazirani {
     }
 
     int bootstrap() {
-        linked_lists buck(V, V);
+        linked_lists buck(V + 1, V);
         vector<int> cnt(V, 0);
         for (int u = 0; u < V; u++) {
             if (mate[u] == -1 && len(u)) {
