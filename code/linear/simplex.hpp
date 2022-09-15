@@ -22,7 +22,7 @@ struct simplex {
     vector<T> B, C;
     vector<Variable> row, col;
     vector<Location> primal, dual;
-    T optimum = 0, eps = 25 * numeric_limits<T>::epsilon();
+    T optimum = T(0), eps = T(25) * numeric_limits<T>::epsilon();
 
     explicit simplex(int n, int m)
         : N(n), M(m), A(m, vector<T>(n)), B(m), C(n), row(m), col(n), primal(n), dual(m) {
@@ -258,8 +258,8 @@ struct simplex {
              col_type == PRIMAL ? primal[col_var] : dual[col_var]);
         swap(row[r], col[c]);
 
-        T div = 1 / A[r][c];
-        A[r][c] = 1;
+        T div = T(1) / A[r][c];
+        A[r][c] = T(1);
 
         nonzero.clear();
 
@@ -276,7 +276,7 @@ struct simplex {
         for (int i = 0; i < M; i++) {
             if (i != r && abs(A[i][c]) > eps) {
                 auto mul = A[i][c];
-                A[i][c] = 0;
+                A[i][c] = T(0);
                 for (int j : nonzero) {
                     A[i][j] -= mul * A[r][j];
                 }
@@ -286,7 +286,7 @@ struct simplex {
 
         // Adjust the objective row. No need to multiply by div here (we already did)
         auto mul = C[c];
-        C[c] = 0;
+        C[c] = T(0);
         for (int j : nonzero) {
             C[j] -= mul * A[r][j];
         }
