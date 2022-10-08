@@ -320,10 +320,11 @@ struct unrooted_topology {
 
 struct rooted_topology {
     static inline unordered_map<vector<int>, int, Hasher> cache;
+    static inline unordered_map<pair<int, int>, int, Hasher> upper;
     using Edges = vector<array<int, 2>>;
     using Tree = vector<basic_string<int>>;
 
-    // * Auxiliary stuff...
+    // Build Tree from Edges
     static auto make_tree(int V, const Edges& edges) {
         vector<basic_string<int>> tree(V);
         for (auto [u, v] : edges) {
@@ -333,6 +334,7 @@ struct rooted_topology {
         return tree;
     }
 
+    // Build Edges from Tree
     static auto make_subtree(int V, int r, int p, const Tree& tree) {
         static thread_local int S = 0;
         static thread_local vector<int> bfs, parent;
@@ -359,6 +361,16 @@ struct rooted_topology {
         } else {
             int S = cache.size();
             cache[hashes] = S;
+            return make_pair(S, true);
+        }
+    }
+
+    static auto get_upper(int p, int u) {
+        if (auto pos = upper.find({p, u}); pos != end(upper)) {
+            return make_pair(pos->second, false);
+        } else {
+            int S = upper.size();
+            upper[{p, u}] = S;
             return make_pair(S, true);
         }
     }
@@ -390,6 +402,77 @@ struct rooted_topology {
         int h = get(hashes[r]).first;
         hashes[r].clear();
         return h;
+    }
+
+    static int hash_rooted(int r, int p, const Tree& tree) {
+        return hash_rooted(tree.size(), r, p, tree);
+    }
+
+    static auto subt_hash_rooted(int r, int p, const Tree& tree) {
+        static thread_local int S = 0;
+        static thread_local vector<vector<int>> hashes;
+        static thread_local vector<int> bfs, parent;
+        int V = tree.size();
+        S = max(S, V), hashes.resize(S), bfs.resize(S), parent.resize(S);
+        bfs[0] = r, parent[r] = -1;
+        int B = 1;
+        for (int i = 0; i < B && B < V; i++) {
+            int u = bfs[i];
+            for (int v : tree[u]) {
+                if (v != parent[u] && v != p) {
+                    bfs[B++] = v;
+                    parent[v] = u;
+                }
+            }
+        }
+        vector<int> ans(V);
+        for (int i = B - 1; i > 0; i--) {
+            int u = bfs[i];
+            sort(begin(hashes[u]), end(hashes[u]));
+            ans[u] = get(hashes[u]).first;
+            hashes[u].clear();
+            hashes[parent[u]].push_back(ans[u]);
+        }
+        sort(begin(hashes[r]), end(hashes[r]));
+        ans[r] = get(hashes[r]).first;
+        hashes[r].clear();
+        return ans;
+    }
+
+    static auto all_hash_rooted(int r, int p, const Tree& tree) {
+        static thread_local int S = 0;
+        static thread_local vector<vector<int>> hashes;
+        static thread_local vector<int> bfs, parent;
+        int V = tree.size();
+        S = max(S, V), hashes.resize(S), bfs.resize(S), parent.resize(S);
+        bfs[0] = r, parent[r] = -1;
+        int B = 1;
+        for (int i = 0; i < B && B < V; i++) {
+            int u = bfs[i];
+            for (int v : tree[u]) {
+                if (v != parent[u] && v != p) {
+                    bfs[B++] = v;
+                    parent[v] = u;
+                }
+            }
+        }
+        vector<int> ans(V), top(V);
+        for (int i = B - 1; i > 0; i--) {
+            int u = bfs[i];
+            sort(begin(hashes[u]), end(hashes[u]));
+            ans[u] = get(hashes[u]).first;
+            hashes[u].clear();
+            hashes[parent[u]].push_back(ans[u]);
+        }
+        sort(begin(hashes[r]), end(hashes[r]));
+        ans[r] = get(hashes[r]).first;
+        top[r] = ans[r];
+        hashes[r].clear();
+        for (int i = 1; i < B; i++) {
+            int u = bfs[i];
+            top[u] = get_upper(top[parent[u]], ans[u]).first;
+        }
+        return make_pair(move(ans), move(top));
     }
 
     template <typename Fn>

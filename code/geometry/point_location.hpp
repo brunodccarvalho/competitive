@@ -195,3 +195,70 @@ int strict_polygon_location(Pt2 q, const vector<Pt2>& poly) {
     int c = orientation(poly[R], poly[0], q);
     return min({a, b, c});
 }
+
+auto strict_nesting_tree(const vector<Pt2>& pts, const vector<array<int, 2>>& segments,
+                         const vector<int>& poly_begin) {
+    auto [above, below] = offline_point_location(pts, segments, HIT_IGNORE);
+    int N = pts.size();
+
+    queue<int> bfs;
+    vector<int> parent(N, -1), pushed(N);
+    vector<vector<int>> cands(N), tree(N + 1);
+
+    auto get_polygon = [&](int v) {
+        int i = upper_bound(begin(poly_begin), end(poly_begin), v) - begin(poly_begin);
+        return i - 1;
+    };
+
+    for (int i = 0; i < N; i++) {
+        bool root = false;
+        int L = poly_begin[i], R = poly_begin[i + 1];
+        for (int u = L; u < R; u++) {
+            root |= above[u] == -1 || below[u] == -1;
+        }
+        if (root) {
+            bfs.push(i);
+            pushed[i] = true;
+            parent[i] = N;
+            tree[N].push_back(i);
+            continue;
+        }
+        for (int u = L; u < R; u++) {
+            auto [bu, bv] = segments[below[u]];
+            int p = get_polygon(bu);
+            if (p == i) {
+                continue;
+            }
+            int o = orientation(pts[bu], pts[bv], pts[u]);
+            if (o == 1) {
+                parent[i] = p;
+                tree[p].push_back(i);
+                break;
+            } else if (o == -1) {
+                cands[p].push_back(i);
+            }
+        }
+    }
+
+    while (bfs.size()) {
+        int u = bfs.front();
+        bfs.pop();
+        int p = parent[u];
+        for (int v : cands[u]) {
+            if (!pushed[v]) {
+                pushed[v] = true;
+                bfs.push(v);
+                parent[v] = p;
+                tree[p].push_back(v);
+            }
+        }
+        for (int v : tree[u]) {
+            if (!pushed[v]) {
+                pushed[v] = true;
+                bfs.push(v);
+            }
+        }
+    }
+
+    return make_pair(move(parent), move(tree));
+}

@@ -21,22 +21,6 @@ fi
 declare -r TEMPLATES="$ROOT/templates"
 if test $# -gt 0; then shift; fi
 
-function run_make {
-	if test -f Makefile; then # use the Makefile in pwd if there is one
-		make "$@"
-	else
-		make -sf "$ROOT/common/Makefile" "$@"
-	fi
-}
-
-function run_make_solver {
-	if [[ "$ACTION" == *fast* || "$ACTION" == *perfm* ]]; then
-		run_make perfm "$@"
-	else
-		run_make debug "$@"
-	fi
-}
-
 function run_tests {
 	for input in *.in; do
 		output=${input%in}out
@@ -52,7 +36,7 @@ function run_tests {
 		else
 			echo "$input NOPE"
 			diff -y --minimal "$output" "$answer" | head -100
-			break
+			# break
 		fi
 	done
 }
@@ -76,9 +60,115 @@ function run_valgrind_tests {
 	done
 }
 
+function run_make {
+	if test -f Makefile; then # use the Makefile in pwd if there is one
+		make -j4 "$@"
+	else
+		make -j4 -sf "$ROOT/common/Makefile" "$@"
+	fi
+}
+
+function run_make_proper {
+	if [[ "$ACTION" == *fast* || "$ACTION" == *perfm* ]]; then
+		run_make perfm "$@"
+	else
+		run_make debug "$@"
+	fi
+}
+
+function run_viz {
+	for folder in simple sample; do
+		for i in $(ls "$folder"); do
+			echo ==== viz $i
+			./vizzer <<<"$folder $i"
+		done
+	done
+}
+
+function run_simple_study {
+	rm -f log.txt
+	for i in $(ls simple); do
+		echo ==== study $i | tee -a log.txt
+		./solver < "simple/$i" > "output/$i" 2>> log.txt
+		./vizzer <<<"simple $i" &
+	done
+}
+
+function run_simple_study_valg {
+	for i in $(ls simple); do
+		echo === simple $i
+		valgrind ./solver < "simple/$i" > "output/$i"
+		./vizzer <<<"simple $i" &
+	done
+}
+
+function run_sample_study {
+	rm -f log.txt
+	for i in $(ls sample); do
+		echo === sample $i | tee -a log.txt
+		./solver < "sample/$i" > "output/$i" 2>> log.txt
+		./vizzer <<<"sample $i" | tee -a log.txt
+	done
+}
+
+function run_sample_study_valg {
+	for i in $(ls sample); do
+		echo === sample $i
+		valgrind ./solver < "sample/$i" > "output/$i"
+		./vizzer <<<"sample $i"
+	done
+}
+
+function run_collect {
+	for folder in sample simple; do
+		for i in $(ls "$folder"); do
+			./collect <<<"$folder $i"
+		done
+	done
+}
+
+function run_checker {
+	for i in $(ls sample); do
+		echo === sample $i
+		python3 files/local_runner.py "sample/$i" "correct/$i" -- ./solver
+	done
+}
+
 # Ugly as fuck, but if it works it ain't broken
 function main {
 	case "$ACTION" in
+		*viz*)
+			run_make_proper
+			run_viz
+		;;
+		*generate*)
+			run_make_proper
+			./generator
+		;;
+		*simple*valg*)
+			run_make_proper
+			run_simple_study_valg
+		;;
+		*sample*valg*)
+			run_make_proper
+			run_sample_study_valg
+		;;
+		*simple*)
+			run_make_proper
+			run_simple_study
+		;;
+		*sample*)
+			run_make_proper
+			run_sample_study
+		;;
+		*collect*)
+			run_make_proper
+			run_collect
+		;;
+		*check*)
+			run_make_proper
+			run_checker
+		;;
 		hash)
 			zip output/output.zip code.cpp *out
 		;;
@@ -148,44 +238,44 @@ function main {
 		;;
 		# Make and run under valgrind
 		*invalg*|*valgin*|*valgrindin*)
-			run_make_solver
+			run_make_proper
 			echo "grep -svP "$TRACE" input.txt | "${VALGRIND[@]}" "$@" ./solver | tee output.txt"
 			grep -svP "$TRACE" input.txt | "${VALGRIND[@]}" "$@" ./solver | tee output.txt
 		;;
 		*testvalg*|*valgtest*|*valgrindtest*)
-			run_make_solver
+			run_make_proper
 			echo run_valgrind_tests "$@"
 			run_valgrind_tests "$@"
 		;;
 		*valg*)
-			run_make_solver
+			run_make_proper
 			"${VALGRIND[@]}" "$@" ./solver
 		;;
 		# Make and run commands
 		*test*)
-			run_make_solver
+			run_make_proper
 			run_tests "$@"
 		;;
 		in*|fastin*|infast*)
-			run_make_solver
+			run_make_proper
 			grep -svP "$TRACE" input.txt | ./solver | tee output.txt
 		;;
 		run*|fast*)
-			run_make_solver
+			run_make_proper
 			./solver
 		;;
 		# Run interactive with judge
 		judgepy*)
-			run_make_solver
+			run_make_proper
 			interactive_runner ./judge.py "$@" -- ./solver
 		;;
 		judge*)
-			run_make_solver
+			run_make_proper
 			interactive_runner ./judge "$@" -- ./solver
 		;;
 		# Run the hacker
 		hack*)
-			run_make_solver hacker
+			run_make_proper hacker
 			pipehack
 		;;
 		gen*)

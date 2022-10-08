@@ -25,7 +25,8 @@ string make_format_string(int n) { return repeat(n, "{}", " "); }
 
 template <typename... Ts>
 auto putln(Ts&&... args) {
-    return print(make_format_string(sizeof...(Ts)) + "\n", std::forward<Ts>(args)...);
+    return print(cout, make_format_string(sizeof...(Ts)) + "\n",
+                 std::forward<Ts>(args)...);
 }
 
 template <typename... Ts>
@@ -47,7 +48,7 @@ auto eputln(Ts&&... args) {
 
 template <typename... Ts>
 auto println(string fmt, Ts&&... args) {
-    return print(fmt + "\n", std::forward<Ts>(args)...);
+    return print(cout, fmt + "\n", std::forward<Ts>(args)...);
 }
 
 template <typename... Ts>
