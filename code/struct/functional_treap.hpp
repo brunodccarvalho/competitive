@@ -417,21 +417,19 @@ struct functional_treap {
         return join(a, c);
     }
 
-    // Meld two treaps, smaller into larger. O(B log A) time and memory if |A| >= |B|
     friend STreap meld(STreap A, STreap B) {
         if (!A || !B) {
             return A ? A : B;
         }
-        if (get_size(A) < get_size(B)) {
+        if (A->priority < B->priority) {
             swap(A, B);
         }
-        visit_inorder(B, [&A](STreap item) {
-            item = item->persistent_clone();
-            item->kids[0] = item->kids[1] = nullptr;
-            item->pushup();
-            insert_key(A, item);
-        });
-        meld_dfs(A, B);
+        A->pushdown(), B->pushdown();
+        auto [L, R] = split_key(B, get_key(A));
+        A = A->persistent_clone();
+        A->kids[0] = meld(L, A->kids[0]);
+        A->kids[1] = meld(R, A->kids[1]);
+        A->pushup();
         return A;
     }
 

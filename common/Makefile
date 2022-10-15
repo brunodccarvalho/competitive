@@ -20,7 +20,7 @@ export CXXFLAGS := $(WARNS) $(CXXFLAGS) $(EXTRA_CXXFLAGS) $(LIBS) $(INCLUDES)
 export OPTIM := -g -O3 -flto -funroll-loops -ftree-vectorize
 export DEBUG := -g -Og -ggdb $(USE_GLIBS_DEBUG)
 
-.PHONY: debug perfm clean dry-debug dry-perfm
+.PHONY: debug perfm clean
 
 debug: MODE := debug
 debug: CXXFLAGS += $(DEBUG)
@@ -31,7 +31,7 @@ perfm: CXXFLAGS += $(OPTIM)
 perfm: ./solver
 
 clean::
-	@rm -f solver hacker judger core vgcore.* *.log output.txt answer.txt
+	@rm -f solver hacker judger core vgcore.* *.ans *.log output.txt answer.txt
 
 ./solver: code.cpp
 	@echo CC ${COMPILER} ${MODE} $@

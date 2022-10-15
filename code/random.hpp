@@ -1,12 +1,10 @@
 #pragma once
 
 #include "hash.hpp"
-#include "algo/sort.hpp"
 
 // *****
 
 thread_local mt19937 mt(random_device{}());
-using chard = uniform_int_distribution<char>;
 using intd = uniform_int_distribution<int>;
 using longd = uniform_int_distribution<long>;
 using ulongd = uniform_int_distribution<size_t>;
@@ -20,7 +18,7 @@ using boold = bernoulli_distribution;
 
 bool cointoss(double p) { return boold(p)(mt); }
 
-template <typename T, typename O = T> // inclusive [a,b], uniform
+template <typename T, typename O = T> // ans=[a,b], uniform
 O rand_unif(common_type_t<T> a, common_type_t<T> b) {
     if constexpr (is_integral_v<T>) {
         return uniform_int_distribution<T>(T(a), T(b))(mt);
@@ -29,42 +27,107 @@ O rand_unif(common_type_t<T> a, common_type_t<T> b) {
     } else {
         assert(false);
     }
-    static_assert(is_integral_v<T> || is_floating_point_v<T>, "Invalid type T");
 }
 
-template <typename T, typename O = T> // inclusive [a,b], min/max
-O rand_wide(common_type_t<T> a, common_type_t<T> b, int repulsion) {
-    assert(-20 <= repulsion && repulsion <= 20);
+template <typename T, typename O = T> // ans=[a,b], uniform, <0=>min, >0=>max
+O rand_wide(common_type_t<T> a, common_type_t<T> b, int draw) {
+    assert(-20 <= draw && draw <= 20);
     auto ans = rand_unif<T>(a, b);
-    while (repulsion > 0)
-        ans = max(ans, rand_unif<T>(a, b)), repulsion--;
-    while (repulsion < 0)
-        ans = min(ans, rand_unif<T>(a, b)), repulsion++;
+    while (draw > 0)
+        ans = max(ans, rand_unif<T>(a, b)), draw--;
+    while (draw < 0)
+        ans = min(ans, rand_unif<T>(a, b)), draw++;
     return ans;
 }
 
-template <typename T, typename O = T> // inclusive [a,b], normalish distribution
-O rand_grav(common_type_t<T> a, common_type_t<T> b, int gravity) {
-    assert(-20 <= gravity && gravity <= 20);
-    auto ans = rand_unif<T, O>(a, b);
-    auto mid = a + (b - a) / T(2);
-    while (gravity > 0) {
-        auto nxt = rand_unif<T, O>(a, b);
-        ans = abs(ans - mid) <= abs(nxt - mid) ? ans : nxt, gravity--;
+template <typename T, typename O = T> // ans=[a,b], uniform, <0=>vee, >0=>normal
+O rand_grav(common_type_t<T> a, common_type_t<T> b, int grav) {
+    assert(-20 <= grav && grav <= 20);
+    auto ans = rand_unif<T>(a, b);
+    while (grav > 0) {
+        auto nxt = rand_unif<T>(a, b);
+        ans = max(ans - a, b - ans) <= max(nxt - a, b - nxt) ? ans : nxt, grav--;
     }
-    while (gravity < 0) {
-        auto nxt = rand_unif<T, O>(a, b);
-        ans = abs(ans - mid) >= abs(nxt - mid) ? ans : nxt, gravity++;
+    while (grav < 0) {
+        auto nxt = rand_unif<T>(a, b);
+        ans = max(ans - a, b - ans) >= max(nxt - a, b - nxt) ? ans : nxt, grav++;
     }
     return ans;
 }
 
-template <typename T, typename O = T>
-O rand_expo(common_type_t<T> a, common_type_t<T> b, double base = 2) {
-    return pow(base, rand_unif<double>(a, b));
+template <typename T, typename O = T> // ans=[a,b], exponential, slope 1/(c+i), c!=0
+O rand_expo(common_type_t<T> a, common_type_t<T> b, double c) {
+    if (a >= b) {
+        return a;
+    } else if (c < 0) {
+        return b - rand_expo<T, O>(a, b, -c) + a;
+    } else if constexpr (is_integral_v<T>) {
+        double e = rand_unif<double>(log(c), log(b - a + c + 1.0));
+        return clamp(T(a + exp(e) - c), T(a), T(b));
+    } else if constexpr (is_floating_point_v<T>) {
+        double e = rand_unif<double>(log(c), log(b - a + c));
+        return clamp(T(a + exp(e) - c), T(a), T(b));
+    } else {
+        assert(false);
+    }
 }
 
-template <typename T, typename O = T> // inclusive [a,b]
+template <typename T, typename O = T> // ans=[a,b], geometric, slope 1-p, -1<p<1, p!=0
+O rand_geom(common_type_t<T> a, common_type_t<T> b, double p) {
+    if (a >= b) {
+        return a;
+    } else if (p < 0.0) {
+        return b - rand_geom<T, O>(a, b, -p) + a;
+    } else if constexpr (is_integral_v<T>) {
+        double M_log_1_p = log1p(-p);
+        double largest = 1.0 - exp(M_log_1_p * (b + 1.0 - a));
+        double cand = a + log1p(-rand_unif<double>(0, largest)) / M_log_1_p;
+        return clamp(T(cand), T(a), T(b));
+    } else if constexpr (is_floating_point_v<T>) {
+        double M_log_1_p = log1p(-p);
+        double largest = 1.0 - exp(M_log_1_p * (b - a));
+        double cand = a + log1p(-rand_unif<double>(0, largest)) / M_log_1_p;
+        return clamp(T(cand), T(a), T(b));
+    } else {
+        assert(false);
+    }
+}
+
+// Find c for rand_expo<real>(0,n,c) so that freq(0)/freq(n)=r
+double real_expo_base_for_ratio(double n, double r) {
+    assert(r > 0);
+    return n <= 0 ? 1.0 : r >= 1 ? n / (r - 1) : n * r / (r - 1);
+}
+
+// Find c for rand_expo<int>(0,n,c) so that freq(0)/freq(n)=r
+double int_expo_base_for_ratio(int n, double r) {
+    assert(r > 0);
+    if (n <= 0) {
+        return 1.0;
+    }
+    double t = max(r, 1 / r), L = 0, R = 1e5;
+    for (int runs = 60; runs; runs--) {
+        double c = (L + R) / 2;
+        double f = log1p(1.0 / c) / log1p(1.0 / (c + n));
+        f >= t ? L = c : R = c;
+    }
+    double c = (L + R) / 2;
+    return r > 1 ? c : -c;
+}
+
+// Find p for rand_geom<real>(0,n,c) so that freq(0)/freq(n)=r
+double real_geom_prob_for_ratio(double n, double r) {
+    assert(r > 0);
+    return n <= 0 ? 0.5 : r > 1 ? 1.0 - pow(r, -1.0 / n) : -(1.0 - pow(1 / r, -1.0 / n));
+}
+
+// Find p for rand_geom<int>(0,n,c) so that freq(0)/freq(n)=r
+double int_geom_prob_for_ratio(int n, double r) {
+    assert(r > 0);
+    return n <= 0 ? 0.5 : r > 1 ? 1.0 - pow(r, -1.0 / n) : -(1.0 - pow(1 / r, -1.0 / n));
+}
+
+template <typename T, typename O = T> // ans=[a,b]
 vector<O> rands_unif(int n, common_type_t<T> a, common_type_t<T> b) {
     vector<O> vec(n);
     for (int i = 0; i < n; i++) {
@@ -73,16 +136,16 @@ vector<O> rands_unif(int n, common_type_t<T> a, common_type_t<T> b) {
     return vec;
 }
 
-template <typename T, typename O = T> // inclusive [a,b]
-vector<O> rands_wide(int n, common_type_t<T> a, common_type_t<T> b, int repulsion) {
+template <typename T, typename O = T> // ans=[a,b]
+vector<O> rands_wide(int n, common_type_t<T> a, common_type_t<T> b, int draw) {
     vector<O> vec(n);
     for (int i = 0; i < n; i++) {
-        vec[i] = rand_wide<T, O>(a, b, repulsion);
+        vec[i] = rand_wide<T, O>(a, b, draw);
     }
     return vec;
 }
 
-template <typename T, typename O = T> // inclusive [a,b]
+template <typename T, typename O = T> // ans=[a,b]
 vector<O> rands_grav(int n, common_type_t<T> a, common_type_t<T> b, int gravity) {
     vector<O> vec(n);
     for (int i = 0; i < n; i++) {
@@ -91,26 +154,47 @@ vector<O> rands_grav(int n, common_type_t<T> a, common_type_t<T> b, int gravity)
     return vec;
 }
 
-template <typename T, typename O = T> // inclusive [a,b], ordered pair u<=v
+template <typename T, typename O = T> // ans=[a,b]
+vector<O> rands_expo(int n, common_type_t<T> a, common_type_t<T> b, double c) {
+    vector<O> vec(n);
+    for (int i = 0; i < n; i++) {
+        vec[i] = rand_expo<T, O>(a, b, c);
+    }
+    return vec;
+}
+
+template <typename T, typename O = T> // ans=[a,b]
+vector<O> rands_geom(int n, common_type_t<T> a, common_type_t<T> b, double p) {
+    vector<O> vec(n);
+    for (int i = 0; i < n; i++) {
+        vec[i] = rand_geom<T, O>(a, b, p);
+    }
+    return vec;
+}
+
+template <typename T, typename O = T> // ans=(u,v), u,v=[a,b] and u<=v
 array<O, 2> ordered_unif(common_type_t<T> a, common_type_t<T> b) {
-    auto x = rand_unif<T, O>(a, b), y = rand_unif<T, O>(a, b);
+    static_assert(is_integral_v<T>);
+    assert(b < numeric_limits<T>::max());
+    auto x = rand_unif<T, O>(a, b);
+    auto y = rand_unif<T, O>(a, b + 1);
+    y -= y > x;
     return x <= y ? array<O, 2>{x, y} : array<O, 2>{y, x};
 }
 
-template <typename T, typename O = T> // inclusive [a,b], ordered pair u<=v
-array<O, 2> ordered_wide(common_type_t<T> a, common_type_t<T> b, int repulsion) {
-    auto x = rand_wide<T, O>(a, b, repulsion), y = rand_wide<T, O>(a, b, repulsion);
-    return x <= y ? array<O, 2>{x, y} : array<O, 2>{y, x};
+template <typename T, typename O = T> // ans=(u,v), u,v=[a,b] and u<v
+array<O, 2> diff_unif(common_type_t<T> a, common_type_t<T> b) {
+    static_assert(is_integral_v<T>);
+    assert(a < b);
+    auto x = rand_unif<T, O>(a, b);
+    auto y = rand_unif<T, O>(a, b - 1);
+    y += y >= x;
+    return x < y ? array<O, 2>{x, y} : array<O, 2>{y, x};
 }
 
-template <typename T, typename O = T> // inclusive [a,b], ordered pair u<=v
-array<O, 2> ordered_grav(common_type_t<T> a, common_type_t<T> b, int gravity) {
-    auto x = rand_grav<T, O>(a, b, gravity), y = rand_unif<T, O>(a, b, gravity);
-    return x <= y ? array<O, 2>{x, y} : array<O, 2>{y, x};
-}
-
-template <typename T, typename O = T> // inclusive [a,b], returns !banned
-O different(common_type_t<T> banned, common_type_t<T> a, common_type_t<T> b) {
+template <typename T, typename O = T> // ans=[a,b] except banned
+O diff_unif(common_type_t<T> banned, common_type_t<T> a, common_type_t<T> b) {
+    static_assert(is_integral_v<T>);
     assert(a != banned ? a <= b : a < b);
     if (banned < a || b < banned) {
         return rand_unif<T, O>(a, b);
@@ -121,304 +205,247 @@ O different(common_type_t<T> banned, common_type_t<T> a, common_type_t<T> b) {
     }
 }
 
-template <typename T, typename O = T> // inclusive [a,b], ordered pair u<v
-array<O, 2> different(common_type_t<T> a, common_type_t<T> b) {
-    assert(a < b);
-    auto x = rand_unif<T, O>(a, b), y = rand_unif<T, O>(a, b - 1);
-    y += y >= x;
-    return x < y ? array<O, 2>{x, y} : array<O, 2>{y, x};
-}
-
 auto rand_string(int len, char a, char b) {
-    uniform_int_distribution<char> dist(a, b);
     string str(len, '\0');
     for (int i = 0; i < len; i++) {
-        str[i] = dist(mt);
-    }
-    return str;
-}
-
-auto rand_string_wide(int len, char a, char b, int repulsion) {
-    assert(-20 <= repulsion && repulsion <= 20);
-    uniform_int_distribution<char> dist(a, b);
-    string str(len, '\0');
-    for (int i = 0; i < len; i++) {
-        str[i] = dist(mt);
-        while (repulsion > 0)
-            str[i] = max(str[i], dist(mt)), repulsion--;
-        while (repulsion < 0)
-            str[i] = min(str[i], dist(mt)), repulsion++;
+        str[i] = a + rand_unif<int>(0, b - a);
     }
     return str;
 }
 
 auto rand_strings(int n, int minlen, int maxlen, char a, char b) {
-    intd distlen(minlen, maxlen);
     vector<string> strs(n);
     for (int i = 0; i < n; i++) {
-        strs[i] = rand_string(distlen(mt), a, b);
+        strs[i] = rand_string(rand_unif<int>(minlen, maxlen), a, b);
     }
     return strs;
 }
 
 /**
  * Generate a sorted sample of k distinct integers from the range [a..b)
- * It must hold that a <= b and k <= n = b - a.
- * Complexity: O(min(n, k log k))
+ * It must hold that a<=b and k<=m=b-a.
  */
-template <typename T = int, typename I = int>
+template <typename T = int, typename I>
 auto int_sample(int k, I a, I b) {
     using sample_t = vector<T>;
-    assert(k <= 100'000'000); // don't try anything crazy
-    if (k == 0 || a >= b)
+    if (k == 0 || a >= b) {
         return sample_t();
+    }
 
-    long univ = b - a;
-    assert(univ >= 0 && 0 <= k && k <= univ);
+    long long m = b - a;
+    assert(k <= 100'000'000 && m > 0 && 1 <= k && k <= m);
 
-    // 1/5 One sample -- sample any
     if (k == 1) {
-        uniform_int_distribution<I> distn(a, b - 1);
-        sample_t sample = {distn(mt)};
+        return sample_t{rand_unif<I>(a, b - 1)};
+    }
+    if (k == m) {
+        sample_t sample(m);
+        iota(begin(sample), end(sample), a);
         return sample;
     }
-
-    // 2/5 Full sample -- run iota
-    if (k == univ) {
-        sample_t whole(univ);
-        iota(begin(whole), end(whole), a);
-        return whole;
-    }
-
-    // 3/5 Majority sample: run negative bitset sampling
-    if (k >= univ / 2) {
-        vector<bool> unsampled(univ, false);
-        int included = univ;
-        intd disti(0, univ - 1);
+    if (k >= m / 2) {
+        vector<bool> dead(m, false);
+        int included = m;
         while (included > k) {
-            int i = disti(mt);
-            included -= !unsampled[i];
-            unsampled[i] = true;
+            int i = rand_unif<int>(0, m - 1);
+            included -= !dead[i];
+            dead[i] = true;
         }
         sample_t sample(k);
-        for (int i = 0, n = 0; i < k; n++) {
-            if (!unsampled[n]) {
-                sample[i++] = a + n;
+        for (int i = 0, j = 0; j < k; i++) {
+            if (!dead[i]) {
+                sample[j++] = a + i;
             }
         }
         return sample;
     }
 
-    // 4/5 Large minority sample: run positive bitset sampling
-    if (k >= univ / 12) {
-        vector<bool> sampled(univ, false);
-        int included = 0;
-        intd disti(0, univ - 1);
-        while (included < k) {
-            int i = disti(mt);
-            included += !sampled[i];
-            sampled[i] = true;
-        }
-        sample_t sample(k);
-        for (int i = 0, n = 0; i < k; n++) {
-            if (sampled[n]) {
-                sample[i++] = a + n;
-            }
-        }
-        return sample;
-    }
-
-    // 5/5 Large sample: run repeated sampling
-    sample_t sample(k);
-    uniform_int_distribution<I> dist(a, b - 1);
+    double harmonic = 0;
     for (int i = 0; i < k; i++) {
-        sample[i] = dist(mt);
+        harmonic += 1.0 / (m - i);
     }
-    lsb_radix_sort(sample);
-    int S = unique(begin(sample), end(sample)) - begin(sample);
-    while (S < k) {
-        int M = S;
-        do {
-            for (int i = M; i < k; i++) {
-                sample[i] = dist(mt);
-            }
-            sort(begin(sample) + M, end(sample));
-            inplace_merge(begin(sample) + S, begin(sample) + M, end(sample));
-            M = unique(begin(sample) + S, end(sample)) - begin(sample);
-        } while (M < k);
+    harmonic *= m;
+    int size = ceil(harmonic);
 
-        inplace_merge(begin(sample), begin(sample) + S, end(sample));
-        S = unique(begin(sample), end(sample)) - begin(sample);
+    sample_t sample(size);
+    for (int i = 0; i < size; i++) {
+        sample[i] = rand_unif<I>(a, b - 1);
     }
+    sort(begin(sample), end(sample));
+    sample.erase(unique(begin(sample), end(sample)), end(sample));
+    int s = sample.size();
+
+    if (s > k) {
+        set<int> dead;
+        while (s - int(dead.size()) > k) {
+            int i = rand_unif<int>(0, s - 1);
+            dead.insert(i);
+        }
+        auto pos = begin(dead);
+        sample_t output(k);
+        for (int j = 0, i = 0; j < k; i++) {
+            if (pos == end(dead) || *pos != i) {
+                output[j++] = sample[i];
+            } else {
+                ++pos;
+            }
+        }
+        swap(output, sample);
+    } else if (s < k) {
+        set<T> extra;
+        while (s + int(extra.size()) < k) {
+            auto nxt = rand_unif<I>(a, b - 1);
+            if (!binary_search(begin(sample), end(sample), nxt)) {
+                extra.insert(nxt);
+            }
+        }
+        sample.insert(end(sample), begin(extra), end(extra));
+        inplace_merge(begin(sample), begin(sample) + s, end(sample));
+    }
+
     return sample;
 }
 
-template <typename T = int, typename I = int>
+template <typename T = int, typename I>
 auto int_sample_p(double p, I a, I b) {
-    long ab = b - a;
-    if (ab <= 100 || p > 0.20) {
-        boold coind(p);
+    long long m = b - a;
+    if (m <= 100 || p > 0.20) {
         vector<T> choice;
         for (auto n = a; n < b; n++)
-            if (coind(mt))
+            if (cointoss(p))
                 choice.push_back(n);
         return choice;
     }
-    return int_sample<T>(binomd(ab, p)(mt), a, b);
+    return int_sample<T, I>(binomd(m, p)(mt), a, b);
 }
 
 /**
- * Generate a sorted sample of k integer pairs (x,y) where x, y are taken from the range
- * [a..b) and x < y.
- * It must hold that a <= b and k <= (n choose 2) where n = b - a.
- * Complexity: O(min(n choose 2, k log k))
+ * Generate a sorted sample of k integer pairs (x,y) where x,y=[a..b) and x<y
+ * It must hold that a<=b and k<=m=(b-a choose 2)
  */
 template <typename T = int, typename I>
 auto choose_sample(int k, I a, I b) {
     using sample_t = vector<array<T, 2>>;
-    assert(k <= 50'000'000); // don't try anything crazy
-    if (k == 0 || a >= b - 1)
+    if (k == 0 || a >= b - 1) {
         return sample_t();
+    }
 
-    long univ = 1L * (b - a) * (b - a - 1) / 2;
-    assert(univ >= 0 && 0 <= k && k <= univ);
+    long long m = 1LL * (b - a) * (b - a - 1) / 2;
+    assert(k <= 50'000'000 && m >= 1 && 1 <= k && k <= m);
 
-    // 1/5 One sample -- sample any
+    auto advance = [&](I& x, I& y) { y == b - 1 ? y = ++x + 1 : y++; };
+
     if (k == 1) {
-        uniform_int_distribution<I> distx(a, b - 1), disty(a, b - 2);
-        I x = distx(mt), y = disty(mt);
-        tie(x, y) = minmax(x + 0, y + (y >= x));
-        sample_t sample = {{x, y}};
+        return sample_t{diff_unif<I, T>(a, b - 1)};
+    }
+    if (k == m) {
+        sample_t sample(m);
+        I x = a, y = a + 1;
+        for (int i = 0; i < m; i++) {
+            sample[i] = {x, y};
+            advance(x, y);
+        }
         return sample;
     }
-
-    // 2/5 Full sample -- run iota
-    if (k == univ) {
-        sample_t whole(univ);
-        int i = 0;
-        for (I x = a; x < b; x++) {
-            for (I y = x + 1; y < b; y++) {
-                whole[i++] = {x, y};
-            }
-        }
-        return whole;
-    }
-
-    // 3/5 Majority sample: run negative bitset sampling
-    if (k >= univ / 2) {
-        vector<bool> unsampled(univ, false);
-        int included = univ;
-        intd disti(0, univ - 1);
+    if (k >= m / 2) {
+        vector<bool> dead(m, false);
+        int included = m;
         while (included > k) {
-            int i = disti(mt);
-            included -= !unsampled[i];
-            unsampled[i] = true;
+            int i = rand_unif<int>(0, m - 1);
+            included -= !dead[i];
+            dead[i] = true;
         }
         sample_t sample(k);
         I x = a, y = a + 1;
-        for (int i = 0, n = 0; i < k; n++) {
-            if (!unsampled[n]) {
-                sample[i++] = {x, y};
+        for (int j = 0, i = 0; j < k; i++) {
+            if (!dead[i]) {
+                sample[j++] = {x, y};
             }
-            tie(x, y) = y == b - 1 ? make_pair(x + 1, x + 2) : make_pair(x, y + 1);
+            advance(x, y);
         }
         return sample;
     }
 
-    // 4/5 Large minority sample: run positive bitset sampling
-    if (k >= univ / 24) {
-        vector<bool> sampled(univ, false);
-        int included = 0;
-        intd disti(0, univ - 1);
-        while (included < k) {
-            int i = disti(mt);
-            included += !sampled[i];
-            sampled[i] = true;
-        }
-        sample_t sample(k);
-        I x = a, y = a + 1;
-        for (int i = 0, n = 0; i < k; n++) {
-            if (sampled[n]) {
-                sample[i++] = {x, y};
-            }
-            tie(x, y) = y == b - 1 ? make_pair(x + 1, x + 2) : make_pair(x, y + 1);
-        }
-        return sample;
-    }
-
-    // 5/5 Large sample: run repeated sampling
-    sample_t sample(k);
-    uniform_int_distribution<I> distx(a, b - 1), disty(a, b - 2);
+    double harmonic = 0;
     for (int i = 0; i < k; i++) {
-        I x = distx(mt), y = disty(mt);
-        tie(x, y) = minmax(x + 0, y + (y >= x));
-        assert(x < y);
-        sample[i] = {x, y};
+        harmonic += 1.0 / (m - i);
+    }
+    harmonic *= m;
+    int size = ceil(harmonic);
+
+    sample_t sample(size);
+    for (int i = 0; i < size; i++) {
+        sample[i] = diff_unif<I, T>(a, b - 1);
     }
     sort(begin(sample), end(sample));
-    int S = unique(begin(sample), end(sample)) - begin(sample);
-    while (S < k) {
-        int M = S;
-        do {
-            for (int i = M; i < k; i++) {
-                I x = distx(mt), y = disty(mt);
-                tie(x, y) = minmax(x + 0, y + (y >= x));
-                assert(x < y);
-                sample[i] = {x, y};
-            }
-            sort(begin(sample) + M, end(sample));
-            inplace_merge(begin(sample) + S, begin(sample) + M, end(sample));
-            M = unique(begin(sample) + S, end(sample)) - begin(sample);
-        } while (M < k);
+    sample.erase(unique(begin(sample), end(sample)), end(sample));
+    int s = sample.size();
 
-        inplace_merge(begin(sample), begin(sample) + S, end(sample));
-        S = unique(begin(sample), end(sample)) - begin(sample);
+    if (s > k) {
+        set<int> dead;
+        while (s - int(dead.size()) > k) {
+            int i = rand_unif<int>(0, s - 1);
+            dead.insert(i);
+        }
+        auto pos = begin(dead);
+        sample_t output(k);
+        for (int j = 0, i = 0; j < k; i++) {
+            if (pos == end(dead) || *pos != i) {
+                output[j++] = sample[i];
+            } else {
+                ++pos;
+            }
+        }
+        swap(output, sample);
+    } else if (s < k) {
+        set<array<T, 2>> extra;
+        while (s + int(extra.size()) < k) {
+            auto nxt = diff_unif<I, T>(a, b - 1);
+            if (!binary_search(begin(sample), end(sample), nxt)) {
+                extra.insert(nxt);
+            }
+        }
+        sample.insert(end(sample), begin(extra), end(extra));
+        inplace_merge(begin(sample), begin(sample) + s, end(sample));
     }
+
     return sample;
 }
 
 template <typename T = int, typename I>
 auto choose_sample_p(double p, I a, I b) {
-    long ab = 1L * (b - a) * (b - a - 1) / 2;
-    if (ab <= 100 || p > 0.20) {
-        boold coind(p);
+    long long m = 1LL * (b - a) * (b - a - 1) / 2;
+    if (m <= 100 || p > 0.20) {
         vector<array<T, 2>> choice;
         for (auto x = a; x < b; x++)
             for (auto y = x + 1; y < b; y++)
-                if (coind(mt))
+                if (cointoss(p))
                     choice.push_back({x, y});
         return choice;
     }
-    return choose_sample<T>(binomd(ab, p)(mt), a, b);
+    return choose_sample<T, I>(binomd(m, p)(mt), a, b);
 }
 
 /**
- * Generate a sorted sample of k integer pairs (x,y) where x is taken from the range
- * [a..b) and y is taken from the range [c..d).
- * It must hold that a <= b, c <= d, and k <= nm = (b - a)(d - c).
- * Complexity: O(min(nm, k log k))
+ * Generate a sorted sample of k integer pairs (x,y) where x=[a..b) and y=[c..d)
+ * It must hold that a<=b, c<=d, and k<=nm=(b-a)(d-c).
  */
 template <typename T = int, typename I>
 auto pair_sample(int k, I a, I b, I c, I d) {
     using sample_t = vector<array<T, 2>>;
-    assert(k <= 50'000'000); // don't try anything crazy
     if (k == 0 || a >= b || c >= d)
         return sample_t();
 
-    long univ = 1L * (b - a) * (d - c);
-    assert(univ >= 0 && 0 <= k && k <= univ);
+    long m = 1LL * (b - a) * (d - c);
+    assert(k <= 50'000'000 && m >= 1 && 1 <= k && k <= m);
 
-    // 1/5 One sample -- sample any
     if (k == 1) {
-        uniform_int_distribution<I> distx(a, b - 1), disty(c, d - 1);
-        I x = distx(mt), y = disty(mt);
-        sample_t sample = {{x, y}};
-        return sample;
+        auto x = rand_unif<I, T>(a, b - 1);
+        auto y = rand_unif<I, T>(c, d - 1);
+        return sample_t{{x, y}};
     }
-
-    // 2/5 Full sample -- run iota
-    if (k == univ) {
-        sample_t whole(univ);
+    if (k == m) {
+        sample_t whole(m);
         int i = 0;
         for (I x = a; x < b; x++) {
             for (I y = c; y < d; y++) {
@@ -427,80 +454,79 @@ auto pair_sample(int k, I a, I b, I c, I d) {
         }
         return whole;
     }
-
-    // 3/5 Majority sample: run negative bitset sampling
-    if (k >= univ / 2) {
-        vector<bool> unsampled(univ, false);
-        int included = univ;
-        intd disti(0, univ - 1);
+    if (k >= m / 2) {
+        vector<bool> dead(m, false);
+        int included = m;
         while (included > k) {
-            int i = disti(mt);
-            included -= !unsampled[i];
-            unsampled[i] = true;
+            int i = rand_unif<int>(0, m - 1);
+            included -= !dead[i];
+            dead[i] = true;
         }
         sample_t sample(k);
         I x = a, y = c;
-        for (int i = 0, n = 0; i < k; n++) {
-            if (!unsampled[n]) {
-                sample[i++] = {x, y};
+        for (int j = 0, i = 0; j < k; i++) {
+            if (!dead[i]) {
+                sample[j++] = {x, y};
             }
-            tie(x, y) = y == d - 1 ? make_pair(x + 1, c) : make_pair(x, y + 1);
+            y == d - 1 ? x++, y = c : y++;
         }
         return sample;
     }
 
-    // 4/5 Large minority sample: run positive bitset sampling
-    if (k >= univ / 24) {
-        vector<bool> sampled(univ, false);
-        int included = 0;
-        intd disti(0, univ - 1);
-        while (included < k) {
-            int i = disti(mt);
-            included += !sampled[i];
-            sampled[i] = true;
-        }
-        sample_t sample(k);
-        I x = a, y = c;
-        for (int i = 0, n = 0; i < k; n++) {
-            if (sampled[n]) {
-                sample[i++] = {x, y};
-            }
-            tie(x, y) = y == d - 1 ? make_pair(x + 1, c) : make_pair(x, y + 1);
-        }
-        return sample;
-    }
-
-    // 5/5 Large sample: run repeated sampling
-    sample_t sample(k);
-    uniform_int_distribution<I> distx(a, b - 1), disty(c, d - 1);
+    double harmonic = 0;
     for (int i = 0; i < k; i++) {
-        I x = distx(mt), y = disty(mt);
+        harmonic += 1.0 / (m - i);
+    }
+    harmonic *= m;
+    int size = ceil(harmonic);
+
+    sample_t sample(size);
+    for (int i = 0; i < size; i++) {
+        auto x = rand_unif<I, T>(a, b - 1);
+        auto y = rand_unif<I, T>(c, d - 1);
         sample[i] = {x, y};
     }
     sort(begin(sample), end(sample));
-    int S = unique(begin(sample), end(sample)) - begin(sample);
-    while (S < k) {
-        int M = S;
-        do {
-            for (int i = M; i < k; i++) {
-                I x = distx(mt), y = disty(mt);
-                sample[i] = {x, y};
-            }
-            sort(begin(sample) + M, end(sample));
-            inplace_merge(begin(sample) + S, begin(sample) + M, end(sample));
-            M = unique(begin(sample) + S, end(sample)) - begin(sample);
-        } while (M < k);
+    sample.erase(unique(begin(sample), end(sample)), end(sample));
+    int s = sample.size();
 
-        inplace_merge(begin(sample), begin(sample) + S, end(sample));
-        S = unique(begin(sample), end(sample)) - begin(sample);
+    if (s > k) {
+        set<int> dead;
+        while (s - int(dead.size()) > k) {
+            int i = rand_unif<int>(0, s - 1);
+            dead.insert(i);
+        }
+        auto pos = begin(dead);
+        sample_t output(k);
+        for (int j = 0, i = 0; j < k; i++) {
+            if (pos == end(dead) || *pos != i) {
+                output[j++] = sample[i];
+            } else {
+                ++pos;
+            }
+        }
+        swap(output, sample);
+    } else if (s < k) {
+        set<array<T, 2>> extra;
+        while (s + int(extra.size()) < k) {
+            auto x = rand_unif<I, T>(a, b - 1);
+            auto y = rand_unif<I, T>(c, d - 1);
+            array<T, 2> nxt = {x, y};
+            if (!binary_search(begin(sample), end(sample), nxt)) {
+                extra.insert(nxt);
+            }
+        }
+        sample.insert(end(sample), begin(extra), end(extra));
+        inplace_merge(begin(sample), begin(sample) + s, end(sample));
     }
+
     return sample;
 }
 
 template <typename T = int, typename I>
 auto pair_sample_p(double p, I a, I b, I c, I d) {
-    long ab = b - a, cd = d - c;
-    if (ab * cd <= 100 || p > 0.20) {
+    long long m = 1LL * (b - a) * (d - c);
+    if (m <= 100 || p > 0.20) {
         boold coind(p);
         vector<array<T, 2>> choice;
         for (auto x = a; x < b; x++)
@@ -509,14 +535,12 @@ auto pair_sample_p(double p, I a, I b, I c, I d) {
                     choice.push_back({x, y});
         return choice;
     }
-    return pair_sample<T>(binomd(ab * cd, p)(mt), a, b, c, d);
+    return pair_sample<T, I>(binomd(m, p)(mt), a, b, c, d);
 }
 
 /**
- * Generate an unsorted sample of k integers pairs (x,y) where x and y are taken from the
- * range [a..b) and x != y.
- * It must hold that a <= b, and k <= n(n - 1) where n = b - a.
- * Complexity: O(min(n^2, k log k))
+ * Generate an unsorted sample of k integers pairs (x,y) where x,y=[a..b) and x!=y.
+ * It must hold that a<=b, and k<=(b-a)(b-a-1).
  */
 template <typename T = int, typename I>
 auto distinct_pair_sample(int k, I a, I b) {
@@ -528,8 +552,8 @@ auto distinct_pair_sample(int k, I a, I b) {
 
 template <typename T = int, typename I>
 auto distinct_pair_sample_p(double p, I a, I b) {
-    long ab = 1L * (b - a) * (b - a - 1);
-    if (ab <= 100 || p > 0.20) {
+    long long m = 1LL * (b - a) * (b - a - 1);
+    if (m <= 100 || p > 0.20) {
         boold coind(p);
         vector<array<T, 2>> choice;
         for (auto x = a; x < b; x++)
@@ -538,33 +562,7 @@ auto distinct_pair_sample_p(double p, I a, I b) {
                     choice.push_back({x, y});
         return choice;
     }
-    return distinct_pair_sample(binomd(ab, p)(mt), a, b);
-}
-
-/**
- * Run integer selection sampling over a vector, sampling k elements.
- * Complexity: O(k) and E[mt] = 3k.
- */
-template <typename T>
-auto vec_sample(const vector<T>& univ, int k) {
-    int n = univ.size();
-    assert(0 <= k && k <= n);
-    vector<int> idx = int_sample(k, 0, n);
-    vector<T> sample(k);
-    for (int i = 0; i < k; i++)
-        sample[i] = univ[idx[i]];
-    return sample;
-}
-
-template <size_t k, typename T>
-auto array_sample(const vector<T>& univ) {
-    int n = univ.size();
-    assert(0 < k && k <= n);
-    vector<int> idx = int_sample(k, 0, n);
-    array<T, k> sample;
-    for (int i = 0; i < k; i++)
-        sample[i] = univ[idx[i]];
-    return sample;
+    return distinct_pair_sample(binomd(m, p)(mt), a, b);
 }
 
 /**
@@ -584,57 +582,45 @@ auto parent_sample(int n, int first = 0) {
 
 /**
  * Generate a random partition of n into k parts each of size between m and M.
- * It must hold that k > 0 and 0 <= m <= M and mk <= n <= Mk.
- * Complexity: faster than linear
- * Not uniform, but close if M is sufficiently restrictive
  */
 template <typename I = int>
-auto partition_sample(I n, int k, I m = 1, I M = std::numeric_limits<I>::max()) {
+auto partition_sample(I n, int k, I m, I M = numeric_limits<I>::max()) {
+    if (n == 0) {
+        return vector<I>{};
+    }
     assert(n >= 0 && k > 0 && m >= 0 && m <= n / k && (n + k - 1) / k <= M);
 
-    vector<I> parts(k, m);
-    n -= m * k--;
-    while (n > 0) {
-        I add = (n + k) / (k + 1);
-        int i = intd(0, k)(mt);
-        if (parts[i] + add >= M) {
-            n -= M - parts[i];
-            parts[i] = M;
-            swap(parts[i], parts[k--]);
-        } else {
-            n -= add;
-            parts[i] += add;
+    if (M >= n) {
+        vector<I> parts(k, m);
+        n -= m * k;
+        auto cuts = int_sample<I>(k - 1, 1, n + k);
+        cuts.insert(begin(cuts), 0), cuts.push_back(n + k);
+        for (int i = 0; i < k; i++) {
+            parts[i] += cuts[i + 1] - cuts[i] - 1;
         }
-    }
-    shuffle(begin(parts), end(parts), mt);
-    return parts;
-}
-
-// Complexity: O(n) and generates a more balanced partition, naively
-auto partition_sample_balanced(int n, int k, int m = 1, int M = INT_MAX) {
-    assert(n >= 0 && k > 0 && m >= 0 && m <= n / k && (n + k - 1) / k <= M);
-
-    vector<int> parts(k, m);
-    n -= m * k--;
-    while (n > 0) {
-        const int add = 1;
-        int i = intd(0, k)(mt);
-        if (parts[i] + add >= M) {
-            n -= M - parts[i];
-            parts[i] = M;
-            swap(parts[i], parts[k--]);
-        } else {
-            n -= add;
-            parts[i] += add;
+        return parts;
+    } else {
+        vector<I> parts(k, m);
+        n -= m * k--;
+        while (n > 0) {
+            I add = (n + k) / (k + 1);
+            int i = rand_unif<int>(0, k);
+            if (parts[i] + add >= M) {
+                n -= M - parts[i];
+                parts[i] = M;
+                swap(parts[i], parts[k--]);
+            } else {
+                n -= add;
+                parts[i] += add;
+            }
         }
+        shuffle(begin(parts), end(parts), mt);
+        return parts;
     }
-    shuffle(begin(parts), end(parts), mt);
-    return parts;
 }
 
 /**
- * Generate a partition of n into k parts each of size between m_i and M_i.
- * It must hold that k > 0 and 0 <= m_i <= M_i and SUM(m_i) <= n <= SUM(M_i)
+ * Generate a partition of n into k parts each of size between m[i] and M[i].
  * Complexity: faster than linear
  * Not uniform, but close if M is sufficiently restrictive
  */
@@ -649,31 +635,7 @@ auto partition_sample(I n, int k, const vector<I>& m, const vector<I>& M) {
     n -= accumulate(begin(parts), end(parts), I(0));
     while (n > 0) {
         I add = (n + k) / (k + 1);
-        int i = intd(0, k)(mt), j = id[i];
-        if (parts[j] + add >= M[j]) {
-            n -= M[j] - parts[j];
-            parts[j] = M[j];
-            swap(id[i], id[k--]);
-        } else {
-            n -= add;
-            parts[j] += add;
-        }
-    }
-    return parts;
-}
-
-// Complexity: O(n) and generates a more balanced partition, naively
-auto partition_sample_balanced(int n, int k, const vector<int>& m, const vector<int>& M) {
-    assert(k > 0 && k <= int(m.size()) && k <= int(M.size()));
-
-    vector<int> parts(k);
-    vector<int> id(k);
-    copy(begin(m), begin(m) + k--, begin(parts));
-    iota(begin(id), end(id), 0);
-    n -= accumulate(begin(parts), end(parts), 0);
-    while (n > 0) {
-        const int add = 1;
-        int i = intd(0, k)(mt), j = id[i];
+        int i = rand_unif<int>(0, k), j = id[i];
         if (parts[j] + add >= M[j]) {
             n -= M[j] - parts[j];
             parts[j] = M[j];
@@ -689,8 +651,8 @@ auto partition_sample_balanced(int n, int k, const vector<int>& m, const vector<
 /**
  * Like partition_sample but the first and last levels have size exactly 1.
  */
-auto partition_sample_flow(int V, int ranks, int m = 1, int M = INT_MAX) {
-    auto R = partition_sample_balanced(V - 2, ranks - 2, m, M);
+auto partition_sample_flow(int V, int ranks, int m, int M = numeric_limits<int>::max()) {
+    auto R = partition_sample(V - 2, ranks - 2, m, M);
     R.insert(R.begin(), 1);
     R.insert(R.end(), 1);
     return R;
@@ -700,7 +662,7 @@ auto partition_sample_flow(int V, int ranks, int m = 1, int M = INT_MAX) {
  * Like partition_sample but the first and last levels have size exactly 1.
  */
 auto partition_sample_flow(int V, int ranks, const vector<int>& m, const vector<int>& M) {
-    auto R = partition_sample_balanced(V - 2, ranks - 2, m, M);
+    auto R = partition_sample(V - 2, ranks - 2, m, M);
     R.insert(R.begin(), 1);
     R.insert(R.end(), 1);
     return R;
@@ -710,7 +672,7 @@ auto partition_sample_flow(int V, int ranks, const vector<int>& m, const vector<
  * Generate a supply partition with n elements whose total sum is c and minimum is m.
  */
 template <typename I = int>
-auto supply_sample(int n, int positives, int negatives, I sum, I m = 1) {
+auto supply_sample(int n, int positives, int negatives, I sum, I m) {
     assert(n && positives && negatives && sum && positives + negatives <= n);
     vector<I> vec(n, 0);
     auto pos = partition_sample(sum, positives, m);

@@ -20,7 +20,7 @@ void stress_test_xor_range() {
         print_time(now, 5s, "stress xor range ({} runs)", runs);
 
         int x = anynum(mt);
-        auto [l, r] = different<int>(0, MAX);
+        auto [l, r] = diff_unif<int>(0, MAX);
         int got = trie.count_xor_range(x, l, r);
         int exp = 0;
         for (int n : nums) {

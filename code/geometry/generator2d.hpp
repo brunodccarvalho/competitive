@@ -143,7 +143,7 @@ auto add_collinear_between(int N, Pointset& pointset, vector<Pt2>& pts) {
     int runs = 100 * N;
     assert(N == 0 || S > 1);
     while (N && runs--) {
-        auto [i, j] = different<int>(0, S - 1);
+        auto [i, j] = diff_unif<int>(0, S - 1);
         auto uv = pts[j] - pts[i];
         Pt2 point;
 
@@ -235,7 +235,7 @@ auto non_overlapping_sample(const vector<Pt2>& pts, int S,
     // Go through with ~10(n choose 2) runs
     long runs = 5LL * N * N;
     while (runs-- && S > 0) {
-        auto [u, v] = different<int>(0, N - 1);
+        auto [u, v] = diff_unif<int>(0, N - 1);
         bool accept = pts[u] != pts[v];
         for (int i = 0, B = segments.size(); accept && i < B; i++) {
             auto [a, b] = segments[i];

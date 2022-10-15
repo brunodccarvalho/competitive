@@ -33,10 +33,10 @@ auto bipartite_matching_group_sizes(int U, int V, int M, int E) {
     assert(M <= U && M <= V && M <= E && E <= bipartite_matching_max_edges(U, V, M));
     vector<int> okm = {0};
     for (int m = 1; m <= M; m++) {
-        long A = 1L * m * m - m;                   // m already matched
-        long B = 1L * (M - m) * (M - m) - (M - m); // M - m already matched
-        long C = 1L * m * (V - M);
-        long D = 1L * (M - m) * (U - M);
+        int64_t A = 1LL * m * m - m;                   // m already matched
+        int64_t B = 1LL * (M - m) * (M - m) - (M - m); // M - m already matched
+        int64_t C = 1LL * m * (V - M);
+        int64_t D = 1LL * (M - m) * (U - M);
         if (A >= 0 && B >= 0 && C >= 0 && D >= 0 && A + B + C + D >= E - M) {
             okm.push_back(m);
         }
@@ -44,12 +44,12 @@ auto bipartite_matching_group_sizes(int U, int V, int M, int E) {
 
     int S = okm.size();
     int m = okm[intd(0, S - 1)(mt)];
-    long A = 1L * m * m - m;                   // m already matched
-    long B = 1L * (M - m) * (M - m) - (M - m); // M - m already matched
-    long C = 1L * m * (V - M);
-    long D = 1L * (M - m) * (U - M);
+    int64_t A = 1LL * m * m - m;                   // m already matched
+    int64_t B = 1LL * (M - m) * (M - m) - (M - m); // M - m already matched
+    int64_t C = 1LL * m * (V - M);
+    int64_t D = 1LL * (M - m) * (U - M);
 
-    auto s = partition_sample<long>(E - M, 4, {0, 0, 0, 0}, {A, B, C, D});
+    auto s = partition_sample<int64_t>(E - M, 4, {0, 0, 0, 0}, {A, B, C, D});
     int a = s[0], b = s[1], c = s[2], d = s[3];
     return make_tuple(m, a, b, c, d);
 }

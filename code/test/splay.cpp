@@ -12,7 +12,7 @@ auto any_key() { return rand_unif<int64_t>(0, MAXKEY); }
 
 auto arr_key(const deque<int>& arr) { return arr[rand_unif<int>(0, arr.size() - 1)]; }
 
-auto key_range() { return different<int>(0, MAXKEY); }
+auto key_range() { return diff_unif<int>(0, MAXKEY); }
 
 auto rand_splay() { return new Splay(any_key()); }
 
@@ -93,7 +93,7 @@ void stress_test_splay_order() {
                 arr.push_front(arr[order]), arr.erase(begin(arr) + order + 1);
             }
             if (cointoss(0.30) && N > 1) { // * splice_item into insert_after
-                auto [a, b] = different<int>(0, N - 1);
+                auto [a, b] = diff_unif<int>(0, N - 1);
                 int c = rand_unif<int>(0, N - 1);
                 if (cointoss(0.5)) {
                     swap(a, b);

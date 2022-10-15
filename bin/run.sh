@@ -26,15 +26,15 @@ function run_tests {
 		output=${input%in}out
 		answer=${input%in}ans
 		if ! ./solver < "$input" > "$answer"; then
-			echo "$input ERROR"
+			echo "$input ERROR" >&2
 			cat "$answer"
 		elif ! test -f "$output"; then
-			echo "$input ANS"
+			echo "$input ANS" >&2
 			cat "$answer"
 		elif cmp --silent "$output" "$answer"; then
-			echo "$input OK"
+			echo "$input OK" >&2
 		else
-			echo "$input NOPE"
+			echo "$input NOPE" >&2
 			diff -y --minimal "$output" "$answer" | head -100
 			# break
 		fi

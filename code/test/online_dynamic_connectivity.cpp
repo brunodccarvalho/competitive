@@ -43,7 +43,7 @@ void random_test_dynacon() {
     // Start off with random edge additions
     for (int i = 0; i < N / 3; i++) {
         print_regular(i, N, 100, "initial edges... S,E={}", S, E);
-        auto [u, v] = different<int>(1, N);
+        auto [u, v] = diff_unif<int>(1, N);
         if (!has_edge(u, v)) {
             add_edge(u, v);
         }
@@ -60,7 +60,7 @@ void random_test_dynacon() {
 
         switch (event) {
         case LINK: {
-            auto [u, v] = different<int>(1, N);
+            auto [u, v] = diff_unif<int>(1, N);
             if (!has_edge(u, v)) {
                 add_edge(u, v);
                 label = format("[{}] LINK {}--{}", slow.num_components(), u, v);
@@ -74,7 +74,7 @@ void random_test_dynacon() {
             }
         } break;
         case LINK_CUT: {
-            auto [u, v] = different<int>(1, N);
+            auto [u, v] = diff_unif<int>(1, N);
             if (cointoss(0.5))
                 swap(u, v);
             if (has_edge(u, v)) {

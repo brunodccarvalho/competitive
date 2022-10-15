@@ -4,6 +4,142 @@
 #include "linear/matrix.hpp"
 #include "numeric/partitions.hpp"
 
+template <typename T>
+auto fmthist(const map<T, int>& cnt) {
+    int M = 0, W = 150, C = 0, m = INT_MAX;
+    vector<int> cnts;
+    for (auto [n, c] : cnt) {
+        M = max(M, c);
+        m = min(m, c);
+        C += c;
+        cnts.push_back(c);
+    }
+    int S = cnts.size();
+    string lead;
+    lead += format("M/m: {:7.4f}\n", 1.0 * M / m);
+    for (int i = 0; i + 1 < S; i++) {
+        lead += format("{:>4.3f}{}", 1.0 * cnts[i] / cnts[i + 1], " \n"[i + 2 == S]);
+    }
+    for (auto [n, c] : cnt) {
+        int w = (1LL * c * W + M / 2) / M;
+        lead += format("{:>18} {:>6.3f}% {}\n", n, 100.0 * c / C, string(w, '#'));
+    }
+    return lead;
+}
+
+auto fmthist(vector<double>& out) {
+    map<string, int> cnt;
+    for (double f : out) {
+        int n = floor(5 * f);
+        cnt[format("{:6.2f}", n / 5.0)]++;
+    }
+    return fmthist(cnt);
+}
+
+void show_distributions() {
+    auto make = [&](auto fn) {
+        map<int, int> cnt;
+        for (int runs = 0; runs < 10'000'000; runs++) {
+            cnt[fn()]++;
+        }
+        return fmthist(cnt);
+    };
+    auto makev = [&](auto fn) {
+        map<vector<int>, int> cnt;
+        for (int runs = 0; runs < 10'000'000; runs++) {
+            cnt[fn()]++;
+        }
+        return fmthist(cnt);
+    };
+    auto makevp = [&](auto fn) {
+        map<vector<array<int, 2>>, int> cnt;
+        for (int runs = 0; runs < 10'000'000; runs++) {
+            cnt[fn()]++;
+        }
+        return fmthist(cnt);
+    };
+    auto makep = [&](auto fn) {
+        map<array<int, 2>, int> cnt;
+        for (int runs = 0; runs < 10'000'000; runs++) {
+            cnt[fn()]++;
+        }
+        return fmthist(cnt);
+    };
+    auto maked = [&](auto fn) {
+        vector<double> out;
+        for (int runs = 0; runs < 10'000'000; runs++) {
+            out.push_back(fn());
+        }
+        return fmthist(out);
+    };
+
+    println("Uniform:\n{}", make([]() { return rand_unif<int>(0, 20); }));
+
+    println("Wide +1:\n{}", make([]() { return rand_wide<int>(0, 20, +1); }));
+    println("Wide +5:\n{}", make([]() { return rand_wide<int>(0, 20, +5); }));
+
+    println("Grav +5:\n{}", make([]() { return rand_grav<int>(0, 20, +5); }));
+    println("Grav +1:\n{}", make([]() { return rand_grav<int>(0, 20, +1); }));
+    println("Grav -1:\n{}", make([]() { return rand_grav<int>(0, 20, -1); }));
+    println("Grav -5:\n{}", make([]() { return rand_grav<int>(0, 20, -5); }));
+
+    println("=====================================================================");
+
+    println("Exp c=+1 0..20:\n{}", make([]() { return rand_expo<int>(0, 20, 1.0); }));
+    println("Exp c=+1 0..8:\n{}", maked([]() { return rand_expo<double>(0, 8, 1.0); }));
+    println("Exp c=-1 0..20:\n{}", make([]() { return rand_expo<int>(0, 20, -1.0); }));
+    println("Exp c=-1 0..8:\n{}", maked([]() { return rand_expo<double>(0, 8, -1.0); }));
+
+    println("Geo p=+.2 0..20:\n{}", make([]() { return rand_geom<int>(0, 20, 0.2); }));
+    println("Geo p=+.2 0..8:\n{}", maked([]() { return rand_geom<double>(0, 8, 0.2); }));
+    println("Geo p=-.2 0..20:\n{}", make([]() { return rand_geom<int>(0, 20, -0.2); }));
+    println("Geo p=-.2 0..8:\n{}", maked([]() { return rand_geom<double>(0, 8, -0.2); }));
+
+    println("=====================================================================");
+
+    double g20 = int_geom_prob_for_ratio(20, 20);
+    double g30 = real_geom_prob_for_ratio(8, 30);
+    double e40 = int_expo_base_for_ratio(20, 40);
+    double e50 = real_expo_base_for_ratio(8, 50);
+    debug(g20, g30, e40, e50);
+
+    println("Geo r=20 0..20:\n{}", make([&]() { return rand_geom<int>(0, 20, g20); }));
+    println("Geo r=30 0..8:\n{}", maked([&]() { return rand_geom<double>(0, 8, g30); }));
+
+    println("Exp r=40 0..20:\n{}", make([&]() { return rand_expo<int>(0, 20, e40); }));
+    println("Exp r=50 0..8:\n{}", maked([&]() { return rand_expo<double>(0, 8, e50); }));
+
+    double ng20 = int_geom_prob_for_ratio(20, 1. / 20);
+    double ng30 = real_geom_prob_for_ratio(8, 1. / 30);
+    double ne40 = int_expo_base_for_ratio(20, 1. / 40);
+    double ne50 = real_expo_base_for_ratio(8, 1. / 50);
+    debug(ng20, ng30, ne40, ne50);
+
+    println("Geo r=20 0..20:\n{}", make([&]() { return rand_geom<int>(0, 20, ng20); }));
+    println("Geo r=30 0..8:\n{}", maked([&]() { return rand_geom<double>(0, 8, ng30); }));
+
+    println("Exp r=40 0..20:\n{}", make([&]() { return rand_expo<int>(0, 20, ne40); }));
+    println("Exp r=50 0..8:\n{}", maked([&]() { return rand_expo<double>(0, 8, ne50); }));
+
+    println("=====================================================================");
+
+    println("Ordered pairs:\n{}", makep([&]() { return ordered_unif<int>(0, 7); }));
+    println("Distinct pairs:\n{}", makep([&]() { return diff_unif<int>(0, 7); }));
+
+    println("Triple from [1,9):\n{}", makev([&]() { return int_sample<int>(3, 1, 9); }));
+    println("Choose from [1,6):\n{}",
+            makevp([&]() { return choose_sample<int>(3, 1, 5); }));
+    println("Pair from [1,4)x[1,5):\n{}",
+            makevp([&]() { return pair_sample<int>(3, 1, 4, 1, 5); }));
+    println("Distinct pair from [1,5):\n{}",
+            makevp([&]() { return distinct_pair_sample<int>(3, 1, 5); }));
+
+    println("Partition 12 into 3:\n{}",
+            makev([&]() { return partition_sample<int>(12, 3, 1); }));
+
+    println("=====================================================================");
+}
+
 void verify_normality(vector<int>& v, bool show_histogram = false) {
     int n = v.size();
     int mi = min_element(begin(v), end(v)) - begin(v);
@@ -42,27 +178,6 @@ void verify_normality(vector<int>& v, bool show_histogram = false) {
     print("within 3 rho: {:5.2f}%\n", 100.0 * within[2] / n);
     print("within 4 rho: {:5.2f}%\n", 100.0 * within[3] / n);
     print("(remember, expected: 68.27 - 95.45 - 99.73)\n");
-}
-
-void stress_test_vec_sample(int n = 4096, int k = 37) {
-    int start = 87632;
-    vector<int> univ(n);
-    iota(begin(univ), end(univ), start);
-    shuffle(begin(univ), end(univ), mt);
-    vector<int> cnt(n, 0);
-
-    LOOP_FOR_DURATION_TRACKED (4s, now) {
-        print_time(now, 4s, "stress test vec_sample");
-
-        vector<int> sample = vec_sample(univ, k);
-        for (int m : sample) {
-            assert(start <= m && m < start + n);
-            cnt[m - start]++;
-        }
-        assert(int(sample.size()) == k);
-    }
-
-    verify_normality(cnt);
 }
 
 void stress_test_int_sample(int n = 1000) {
@@ -153,7 +268,8 @@ void stress_test_pair_sample(int n = 31, int m = 31) {
 }
 
 int main() {
-    RUN_BLOCK(stress_test_vec_sample());
+    RUN_BLOCK(show_distributions());
+    return 0;
     RUN_BLOCK(stress_test_int_sample());
     RUN_BLOCK(stress_test_choose_sample());
     RUN_BLOCK(stress_test_pair_sample());

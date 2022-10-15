@@ -14,7 +14,7 @@ auto any_key() { return rand_unif<int64_t>(0, MAXKEY); }
 
 auto arr_key(const deque<int>& arr) { return arr[rand_unif<int>(0, arr.size() - 1)]; }
 
-auto key_range() { return different<int>(0, MAXKEY); }
+auto key_range() { return diff_unif<int>(0, MAXKEY); }
 
 auto rand_treap() { return make_shared<Treap>(any_key()); }
 

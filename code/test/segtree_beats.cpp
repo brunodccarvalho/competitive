@@ -113,7 +113,7 @@ void stress_test_fullji_segtree_beats() {
                 }
             }
 
-            auto [L, R] = different<int>(0, N);
+            auto [L, R] = diff_unif<int>(0, N);
             auto node = st.query_range(L, R);
             int64_t actual_min = *min_element(begin(arr) + L, begin(arr) + R);
             int64_t actual_max = *max_element(begin(arr) + L, begin(arr) + R);

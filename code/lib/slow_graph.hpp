@@ -114,7 +114,7 @@ struct slow_graph {
     auto random_non_edge() const {
         int u, v;
         do {
-            auto [a, b] = different<int>(1, V);
+            auto [a, b] = diff_unif<int>(1, V);
             tie(u, v) = coind(mt) ? make_pair(a, b) : make_pair(b, a);
         } while (has_edge(u, v));
         return make_pair(u, v);

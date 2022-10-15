@@ -24,7 +24,7 @@ void stress_test_sum_splay_segtree() {
                 assert(got == actual);
             }
             if (cointoss(0.5)) {
-                auto [L, R] = different<int>(0, N);
+                auto [L, R] = diff_unif<int>(0, N);
                 int v = rand_unif<int>(-5, 5);
                 st.update_range(L, R, v);
                 for (int i = L; i < R; i++) {
@@ -32,7 +32,7 @@ void stress_test_sum_splay_segtree() {
                 }
             }
             if (cointoss(0.5)) {
-                auto [L, R] = different<int>(0, N);
+                auto [L, R] = diff_unif<int>(0, N);
                 int got = st.query_range(L, R).range_sum();
                 int actual = accumulate(begin(arr) + L, begin(arr) + R, 0);
                 assert(got == actual);
@@ -63,7 +63,7 @@ void stress_test_sum_affine_splay_segtree() {
 
         LOOP_FOR_DURATION (25ms) {
             if (cointoss(0.5)) {
-                auto [L, R] = different<int>(0, N);
+                auto [L, R] = diff_unif<int>(0, N);
                 num b = rand_unif<int, num>(-1000, 1000);
                 num c = rand_unif<int, num>(-1000, 1000);
 
@@ -73,7 +73,7 @@ void stress_test_sum_affine_splay_segtree() {
                 }
             }
             if (cointoss(0.5)) {
-                auto [L, R] = different<int>(0, N);
+                auto [L, R] = diff_unif<int>(0, N);
                 num got = st.query_range(L, R).range_sum();
                 num actual = accumulate(begin(arr) + L, begin(arr) + R, num(0));
                 assert(got == actual);
@@ -104,7 +104,7 @@ void stress_test_min_splay_segtree() {
 
         LOOP_FOR_DURATION (100ms) {
             if (cointoss(0.5)) {
-                auto [L, R] = different<int>(0, N);
+                auto [L, R] = diff_unif<int>(0, N);
                 int v = rand_unif<int>(-50, 50);
                 st.update_range(L, R, v);
                 for (int i = L; i < R; i++) {
@@ -112,7 +112,7 @@ void stress_test_min_splay_segtree() {
                 }
             }
             if (cointoss(0.5)) {
-                auto [L, R] = different<int>(0, N);
+                auto [L, R] = diff_unif<int>(0, N);
                 int got = st.query_range(L, R).range_min();
                 int actual = *min_element(begin(arr) + L, begin(arr) + R);
                 assert(got == actual);
@@ -130,7 +130,7 @@ void stress_test_gcd_splay_segtree() {
 
         LOOP_FOR_DURATION (20ms) {
             if (cointoss(0.5)) {
-                auto [L, R] = different<int>(0, N);
+                auto [L, R] = diff_unif<int>(0, N);
                 int v = rand_unif<int>(-3, 3);
                 st.update_range(L, R, v);
                 for (int i = L; i < R; i++) {
@@ -138,7 +138,7 @@ void stress_test_gcd_splay_segtree() {
                 }
             }
             if (cointoss(0.5)) {
-                auto [L, R] = different<int>(0, N);
+                auto [L, R] = diff_unif<int>(0, N);
                 long got = st.query_range(L, R).range_gcd();
                 long actual = 0;
                 for (int i = L; i < R; i++) {
@@ -168,7 +168,7 @@ void stress_test_affine_splay_segtree() {
                 arr[i] = {b, c};
             }
             if (cointoss(0.5)) {
-                auto [L, R] = different<int>(0, N);
+                auto [L, R] = diff_unif<int>(0, N);
                 auto got = st.query_range(L, R);
 
                 num x = rand_unif<int, num>(-100, 100);

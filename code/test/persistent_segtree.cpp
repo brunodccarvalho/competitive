@@ -86,7 +86,7 @@ void stress_test_lazy_persistent_segtree() {
             operations++;
         }
         if (cointoss(0.5)) {
-            auto [qL, qR] = different<int>(0, N);
+            auto [qL, qR] = diff_unif<int>(0, N);
             int version = rand_unif<int>(0, st.versions() - 1);
             int v = rand_unif<int>(-10, 10);
             int v1 = st.update_range(version, 0, N, qL, qR, v);
@@ -95,7 +95,7 @@ void stress_test_lazy_persistent_segtree() {
             operations++;
         }
         if (cointoss(0.5)) {
-            auto [qL, qR] = different<int>(0, N);
+            auto [qL, qR] = diff_unif<int>(0, N);
             int version = rand_unif<int>(0, st.versions() - 1);
             int u1 = st.query_range(version, 0, N, qL, qR);
             int u2 = sva.query_range(version, qL, qR);
@@ -153,7 +153,7 @@ void stress_test_linear_meld_count_nodes() {
         };
 
         LOOP_FOR_DURATION_OR_RUNS (2s, 1000) {
-            auto [L, R] = different<int>(0, M);
+            auto [L, R] = diff_unif<int>(0, M);
             int u = rand_unif<int>(0, N - 1);
             int64_t expect = query(L, R, u);
             int64_t actual = seg.query_range(version[u], 0, M, L, R).value;

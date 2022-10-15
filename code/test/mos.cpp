@@ -35,7 +35,7 @@ void stress_test_mos() {
     for (auto [N, Q] : NQs) {
         vector<array<int, 2>> queries(Q);
         for (auto& [l, r] : queries) {
-            auto [u, v] = different<int>(0, N - 1);
+            auto [u, v] = diff_unif<int>(0, N - 1);
             l = u, r = v;
         }
 

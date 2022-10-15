@@ -782,7 +782,7 @@ auto random_forest(const vector<int>& tree_sizes) {
 
 auto random_forest(int V, int trees, int min_tree_size = 1) {
     assert(V > 0 && V <= 30'000'000);
-    auto tree_sizes = partition_sample_balanced(V, trees, min_tree_size);
+    auto tree_sizes = partition_sample(V, trees, min_tree_size);
     return random_forest(tree_sizes);
 }
 
@@ -801,7 +801,7 @@ auto random_geometric_forest(const vector<int>& tree_sizes, double alpha) {
 
 auto random_geometric_forest(int V, int trees, double alpha, int min_tree_size = 1) {
     assert(V > 0 && V <= 30'000'000 && -1.0 < alpha && alpha < 1.0);
-    auto tree_sizes = partition_sample_balanced(V, trees, min_tree_size);
+    auto tree_sizes = partition_sample(V, trees, min_tree_size);
     return random_geometric_forest(tree_sizes, alpha);
 }
 
@@ -991,7 +991,7 @@ auto random_uniform_undirected_total(int V, double p) {
     }
     for (int u = 0; u < V; u++) {
         if (degree[u] == 0) {
-            int v = different<int>(u, 0, V - 1);
+            int v = diff_unif<int>(u, 0, V - 1);
             degree[v] = 1;
             u < v ? g.push_back({u, v}) : g.push_back({v, u});
         }
@@ -1007,7 +1007,7 @@ auto random_uniform_directed_total_out(int V, double p) {
     }
     for (int u = 0; u < V; u++) {
         if (degree[u] == 0) {
-            int v = different<int>(u, 0, V - 1);
+            int v = diff_unif<int>(u, 0, V - 1);
             g.push_back({u, v});
         }
     }
@@ -1022,7 +1022,7 @@ auto random_uniform_directed_total_in(int V, double p) {
     }
     for (int v = 0; v < V; v++) {
         if (degree[v] == 0) {
-            int u = different<int>(v, 0, V - 1);
+            int u = diff_unif<int>(v, 0, V - 1);
             g.push_back({u, v});
         }
     }
@@ -1201,7 +1201,7 @@ auto random_geometric_flow_connected(int V, double forward_p, double backward_p,
 
 auto random_full_level(int V, int ranks, int m = 1, bool loop = false) {
     edges_t g;
-    auto R = partition_sample_balanced(V, ranks, m);
+    auto R = partition_sample(V, ranks, m);
     link_levels_full(g, R, loop);
     add_complete_levels(g, R);
     return g;
@@ -1209,7 +1209,7 @@ auto random_full_level(int V, int ranks, int m = 1, bool loop = false) {
 
 auto random_full_level2(int V, int ranks, int m = 1, bool loop = false) {
     edges_t g;
-    auto R = partition_sample_balanced(V, ranks, m);
+    auto R = partition_sample(V, ranks, m);
     link_levels_full(g, R, loop);
     add_complete2_levels(g, R);
     return g;
@@ -1227,7 +1227,7 @@ auto random_full_level_flow(int V, int ranks, int m = 1, bool loop = false) {
 
 auto random_uniform_level(int V, double p, int ranks, int m = 1, bool loop = false) {
     edges_t g;
-    auto R = partition_sample_balanced(V, ranks, m);
+    auto R = partition_sample(V, ranks, m);
     link_levels_uniform(g, p, R, loop);
     add_complete_levels(g, R);
     return g;
@@ -1235,7 +1235,7 @@ auto random_uniform_level(int V, double p, int ranks, int m = 1, bool loop = fal
 
 auto random_uniform_level2(int V, double p, int ranks, int m = 1, bool loop = false) {
     edges_t g;
-    auto R = partition_sample_balanced(V, ranks, m);
+    auto R = partition_sample(V, ranks, m);
     link_levels_uniform(g, p, R, loop, true, true);
     add_complete2_levels(g, R);
     return g;

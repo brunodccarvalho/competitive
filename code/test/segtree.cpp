@@ -10,7 +10,7 @@ void stress_test_gcd_segtree() {
 
     LOOP_FOR_DURATION (1s) {
         if (cointoss(0.5)) {
-            auto [L, R] = different<int>(0, N);
+            auto [L, R] = diff_unif<int>(0, N);
             int v = rand_unif<int>(-50, 50);
             st.update_range(L, R, v);
             for (int i = L; i < R; i++) {
@@ -18,7 +18,7 @@ void stress_test_gcd_segtree() {
             }
         }
         if (cointoss(0.5)) {
-            auto [L, R] = different<int>(0, N);
+            auto [L, R] = diff_unif<int>(0, N);
             int got = st.query_range(L, R);
             int actual = 0;
             for (int i = L; i < R; i++) {
@@ -37,7 +37,7 @@ void stress_test_maxcount_segtree() {
 
     LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
         if (cointoss(0.5)) {
-            auto [L, R] = different<int>(0, N);
+            auto [L, R] = diff_unif<int>(0, N);
             int v = rand_unif<int>(-50, 50);
             st.update_range(L, R, v);
             for (int i = L; i < R; i++) {
@@ -45,7 +45,7 @@ void stress_test_maxcount_segtree() {
             }
         }
         if (cointoss(0.5)) {
-            auto [L, R] = different<int>(0, N);
+            auto [L, R] = diff_unif<int>(0, N);
             auto ans = st.query_range(L, R);
             auto got_max = ans.value;
             auto got_cnt = ans.count;
@@ -78,7 +78,7 @@ void stress_test_maxsubrange_segtree() {
             arr[i] += v;
         }
         if (cointoss(0.5)) {
-            auto [L, R] = different<int>(0, N);
+            auto [L, R] = diff_unif<int>(0, N);
             int got = st.query_range(L, R);
 
             int actual = INT_MIN;
@@ -109,7 +109,7 @@ void stress_test_maxsubrange_iterative_segtree() {
             arr[i] += v;
         }
         if (cointoss(0.5)) {
-            auto [L, R] = different<int>(0, N);
+            auto [L, R] = diff_unif<int>(0, N);
             int got = st.query_range(L, R);
 
             int actual = INT_MIN;
@@ -143,7 +143,7 @@ void stress_test_affine_segtree() {
             arr[i] = {b, c};
         }
         if (cointoss(0.5)) {
-            auto [L, R] = different<int>(0, N);
+            auto [L, R] = diff_unif<int>(0, N);
             auto got = st.query_range(L, R);
 
             num x = rand_unif<int, num>(0, 1'000'000);
@@ -180,7 +180,7 @@ void stress_test_polyhash_segtree() {
             arr[i] = v;
         }
         if (cointoss(0.5)) {
-            auto [L, R] = different<int>(0, N);
+            auto [L, R] = diff_unif<int>(0, N);
             num got = st.query_range(L, R);
 
             num actual = 0;
@@ -204,12 +204,12 @@ void speed_test_segtree() {
             st.update_point(i, v);
         }
         if (cointoss(0.5)) {
-            auto [L, R] = different<int>(0, N);
+            auto [L, R] = diff_unif<int>(0, N);
             int v = rand_unif<int>(-10, 10);
             st.update_range(L, R, v);
         }
         if (cointoss(0.5)) {
-            auto [L, R] = different<int>(0, N);
+            auto [L, R] = diff_unif<int>(0, N);
             [[maybe_unused]] auto got = st.query_range(L, R);
         }
     }

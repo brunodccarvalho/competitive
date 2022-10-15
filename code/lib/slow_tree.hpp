@@ -118,7 +118,7 @@ struct slow_tree {
         int r = *roots.find_by_order(i);
         if (tree_of[r] == tree) {
             assert(R > 1);
-            return tree_of[*roots.find_by_order(different<int>(i, 0, R - 1))];
+            return tree_of[*roots.find_by_order(diff_unif<int>(i, 0, R - 1))];
         } else {
             return tree_of[r];
         }
@@ -171,14 +171,14 @@ struct slow_tree {
         auto tree = tree_of[random_non_root()];
         int A = tree->size();
         assert(A > 1);
-        auto [a, b] = different<int>(0, A - 1);
+        auto [a, b] = diff_unif<int>(0, A - 1);
         return make_pair(*tree->find_by_order(a), *tree->find_by_order(b));
     }
 
     auto random_unconnected() const {
         int R = roots.size();
         assert(R > 1);
-        auto [i, j] = different<int>(0, R - 1);
+        auto [i, j] = diff_unif<int>(0, R - 1);
         int u = *roots.find_by_order(i), v = *roots.find_by_order(j);
         auto [a, b] = make_pair(random_in_tree(tree_of[u]), random_in_tree(tree_of[v]));
         if (tree_of[a] != tree_of[u] || tree_of[b] != tree_of[v]) {
@@ -195,7 +195,7 @@ struct slow_tree {
     int random_distinct_in_tree(int u) const {
         assert(tree_of[u]->size() > 1u);
         int bad = tree_of[u]->order_of_key(u);
-        int j = different<int>(bad, 0, tree_of[u]->size() - 1);
+        int j = diff_unif<int>(bad, 0, tree_of[u]->size() - 1);
         int v = *tree_of[u]->find_by_order(j);
         assert(u != v && tree_of[u] == tree_of[v]);
         return v;

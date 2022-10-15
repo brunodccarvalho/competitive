@@ -32,7 +32,7 @@ void speed_test_centroid_forest() {
         vector<long> a(R), b(R);
 
         for (int i = 0; i < R; i++) {
-            queries[i] = different<int>(0, N - 1);
+            queries[i] = diff_unif<int>(0, N - 1);
         }
 
         ADD_TIME_BLOCK(ctd) {

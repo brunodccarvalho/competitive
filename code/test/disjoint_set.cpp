@@ -81,7 +81,7 @@ void stress_test_bipartite_dsu() {
         vector<int> times;
 
         while (R > 0) {
-            auto [u, v] = different<int>(0, N - 1);
+            auto [u, v] = diff_unif<int>(0, N - 1);
             if (!edges.insert({u, v}).second) {
                 continue;
             }

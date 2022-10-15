@@ -123,7 +123,7 @@ auto rand_cube_edges(Pt3::T R = 2000) {
     auto x = rand_unif<Pt3::T>(-R, R);
     auto y = rand_unif<Pt3::T>(-R, R);
     auto z = rand_unif<Pt3::T>(-R, R);
-    auto [i, j] = different<int>(0, 2);
+    auto [i, j] = diff_unif<int>(0, 2);
     Pt3 point(x, y, z);
     point[i] = coind(mt) ? R : -R;
     point[j] = coind(mt) ? R : -R;
@@ -222,7 +222,7 @@ auto add_collinear_between(int N, Pointset& pointset, vector<Pt3>& pts) {
     int S = pts.size();
     int runs = 100 * N;
     while (N && runs-- && S > 1) {
-        auto [i, j] = different<int>(0, S - 1);
+        auto [i, j] = diff_unif<int>(0, S - 1);
         auto uv = pts[j] - pts[i];
         Pt3 point;
 
