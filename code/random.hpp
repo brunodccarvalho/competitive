@@ -4,19 +4,14 @@
 #include "algo/sort.hpp"
 #include "struct/pbds.hpp"
 
-// *****
-
 thread_local mt19937 mt(random_device{}());
 using intd = uniform_int_distribution<int>;
-using longd = uniform_int_distribution<long>;
+using longd = uniform_int_distribution<int64_t>;
 using ulongd = uniform_int_distribution<size_t>;
 using reald = uniform_real_distribution<double>;
 using binomd = binomial_distribution<long>;
-using geod = geometric_distribution<int>;
 using normald = normal_distribution<double>;
 using boold = bernoulli_distribution;
-
-// *****
 
 bool cointoss(double p) { return boold(p)(mt); }
 
@@ -81,6 +76,8 @@ T rand_geom(common_type_t<T> a, common_type_t<T> b, double p) {
         return a;
     } else if (p < 0.0) {
         return b - rand_geom<T>(a, b, -p) + a;
+    } else if (abs(p) < 1e-11) {
+        return rand_unif<T>(a, b);
     } else if constexpr (is_integral_v<T>) {
         double M_log_1_p = log1p(-p);
         double largest = 1.0 - exp(M_log_1_p * (b + 1.0 - a));
@@ -176,7 +173,7 @@ double int_expo_base_for_ratio(int64_t n, double r) {
 }
 
 template <typename T, typename O = T> // ans=[a,b]
-vector<O> rands_unif(int n, common_type_t<T> a, common_type_t<T> b) {
+auto rands_unif(int n, common_type_t<T> a, common_type_t<T> b) {
     vector<O> vec(n);
     for (int i = 0; i < n; i++) {
         vec[i] = rand_unif<T>(a, b);
@@ -185,7 +182,7 @@ vector<O> rands_unif(int n, common_type_t<T> a, common_type_t<T> b) {
 }
 
 template <typename T, typename O = T> // ans=[a,b]
-vector<O> rands_wide(int n, common_type_t<T> a, common_type_t<T> b, int draw) {
+auto rands_wide(int n, common_type_t<T> a, common_type_t<T> b, int draw) {
     vector<O> vec(n);
     for (int i = 0; i < n; i++) {
         vec[i] = rand_wide<T>(a, b, draw);
@@ -194,16 +191,16 @@ vector<O> rands_wide(int n, common_type_t<T> a, common_type_t<T> b, int draw) {
 }
 
 template <typename T, typename O = T> // ans=[a,b]
-vector<O> rands_grav(int n, common_type_t<T> a, common_type_t<T> b, int gravity) {
+auto rands_grav(int n, common_type_t<T> a, common_type_t<T> b, int grav) {
     vector<O> vec(n);
     for (int i = 0; i < n; i++) {
-        vec[i] = rand_grav<T>(a, b, gravity);
+        vec[i] = rand_grav<T>(a, b, grav);
     }
     return vec;
 }
 
 template <typename T, typename O = T> // ans=[a,b]
-vector<O> rands_expo(int n, common_type_t<T> a, common_type_t<T> b, double c) {
+auto rands_expo(int n, common_type_t<T> a, common_type_t<T> b, double c) {
     vector<O> vec(n);
     for (int i = 0; i < n; i++) {
         vec[i] = rand_expo<T>(a, b, c);
@@ -212,7 +209,7 @@ vector<O> rands_expo(int n, common_type_t<T> a, common_type_t<T> b, double c) {
 }
 
 template <typename T, typename O = T> // ans=[a,b]
-vector<O> rands_geom(int n, common_type_t<T> a, common_type_t<T> b, double p) {
+auto rands_geom(int n, common_type_t<T> a, common_type_t<T> b, double p) {
     vector<O> vec(n);
     for (int i = 0; i < n; i++) {
         vec[i] = rand_geom<T>(a, b, p);
@@ -221,8 +218,7 @@ vector<O> rands_geom(int n, common_type_t<T> a, common_type_t<T> b, double p) {
 }
 
 template <typename T, typename O = T> // ans=[a,b]
-vector<O> rands_norm(int n, common_type_t<T> a, common_type_t<T> b, double mean,
-                     double dev) {
+auto rands_norm(int n, common_type_t<T> a, common_type_t<T> b, double mean, double dev) {
     vector<O> vec(n);
     for (int i = 0; i < n; i++) {
         vec[i] = rand_norm<T>(a, b, mean, dev);
@@ -231,7 +227,7 @@ vector<O> rands_norm(int n, common_type_t<T> a, common_type_t<T> b, double mean,
 }
 
 template <typename T, typename O = T> // ans=[a,b]
-vector<O> rands_peak(int n, common_type_t<T> a, common_type_t<T> b, T peak, int grav) {
+auto rands_peak(int n, common_type_t<T> a, common_type_t<T> b, T peak, int grav) {
     vector<O> vec(n);
     for (int i = 0; i < n; i++) {
         vec[i] = rand_peak<T>(a, b, peak, grav);
@@ -654,6 +650,7 @@ auto rand_partial_partition(T sum, Fn&& gen) {
             skips--;
         }
     }
+    shuffle(begin(parts), end(parts), mt);
     return parts;
 }
 
