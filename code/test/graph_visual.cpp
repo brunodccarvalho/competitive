@@ -143,49 +143,28 @@ void visual_test_generators() {
     SHOW_D(random_binary_tree(40));
     SHOW_D(random_binary_tree(80));
 
-    SHOW_D(random_geometric_binary_tree(80, 0.1));
-    SHOW_D(random_geometric_binary_tree(80, 0.2));
-    SHOW_D(random_geometric_binary_tree(80, 0.35));
-    SHOW_D(random_geometric_binary_tree(80, 0.5));
+    SHOW_D(random_geometric_tree(50, -0.35));
+    SHOW_D(random_geometric_tree(50, -0.13));
+    SHOW_D(random_geometric_tree(50, +0.13));
+    SHOW_D(random_geometric_tree(50, +0.35));
 
-    SHOW_D(random_binary_tree(200));
-    SHOW_D(random_binary_tree(200));
-    SHOW_D(random_geometric_binary_tree(200, 0.2));
-    SHOW_D(random_geometric_binary_tree(200, 0.2));
-    SHOW_D(random_geometric_binary_tree(800, 0.12));
-    SHOW_D(random_geometric_binary_tree(800, 0.08));
+    SHOW_D(random_periodic_tree(100, 15, 0.4));
+    SHOW_D(random_periodic_tree(150, 20, 0.25));
 
-    SHOW_D(random_geometric_tree(40, -0.50));
-    SHOW_D(random_geometric_tree(40, -0.25));
-    SHOW_D(random_geometric_tree(40, -0.05));
-    SHOW_D(random_geometric_tree(40, 0.05));
-    SHOW_D(random_geometric_tree(40, 0.25));
-    SHOW_D(random_geometric_tree(40, 0.50));
+    SHOW_D(random_geometric_directed(50, 0.15, -0.35));
+    SHOW_D(random_geometric_directed(50, 0.15, -0.13));
+    SHOW_D(random_geometric_directed(50, 0.15, +0.13));
+    SHOW_D(random_geometric_directed(50, 0.15, +0.35));
 
-    SHOW_D(random_geometric_directed(30, 0.15, -0.50));
-    SHOW_D(random_geometric_directed(30, 0.15, -0.25));
-    SHOW_D(random_geometric_directed(30, 0.15, -0.12));
-    SHOW_D(random_geometric_directed(30, 0.15, -0.05));
-    SHOW_D(random_geometric_directed(30, 0.15, 0.05));
-    SHOW_D(random_geometric_directed(30, 0.15, 0.12));
-    SHOW_D(random_geometric_directed(30, 0.15, 0.25));
-    SHOW_D(random_geometric_directed(30, 0.15, 0.50));
+    SHOW_D(random_geometric_undirected(40, 0.15, -0.35));
+    SHOW_D(random_geometric_undirected(40, 0.15, -0.13));
+    SHOW_D(random_geometric_undirected(40, 0.15, +0.13));
+    SHOW_D(random_geometric_undirected(40, 0.15, +0.35));
 
-    SHOW_D(random_geometric_undirected(30, 0.15, -0.50));
-    SHOW_D(random_geometric_undirected(30, 0.15, -0.25));
-    SHOW_D(random_geometric_undirected(30, 0.15, -0.12));
-    SHOW_D(random_geometric_undirected(30, 0.15, -0.05));
-    SHOW_D(random_geometric_undirected(30, 0.15, 0.05));
-    SHOW_D(random_geometric_undirected(30, 0.15, 0.12));
-    SHOW_D(random_geometric_undirected(30, 0.15, 0.25));
-    SHOW_D(random_geometric_undirected(30, 0.15, 0.50));
-
-    SHOW_D(random_geometric_undirected_connected(30, 0.2, -0.50));
-    SHOW_D(random_geometric_undirected_connected(30, 0.2, -0.25));
-    SHOW_D(random_geometric_undirected_connected(30, 0.2, -0.05));
-    SHOW_D(random_geometric_undirected_connected(30, 0.2, 0.05));
-    SHOW_D(random_geometric_undirected_connected(30, 0.2, 0.25));
-    SHOW_D(random_geometric_undirected_connected(30, 0.2, 0.50));
+    SHOW_D(random_geometric_undirected_connected(40, 0.2, -0.35));
+    SHOW_D(random_geometric_undirected_connected(40, 0.2, -0.13));
+    SHOW_D(random_geometric_undirected_connected(40, 0.2, +0.13));
+    SHOW_D(random_geometric_undirected_connected(40, 0.2, +0.35));
 
     SHOW_D(path_graph(10));
     SHOW_D(cycle_graph(10));
@@ -196,10 +175,10 @@ void visual_test_generators() {
 
     SHOW_D(random_tree(40));
     SHOW_D(random_forest(50, 4));
-    SHOW_D(random_geometric_tree(40, -0.55));
-    SHOW_D(random_geometric_tree(40, -0.30));
-    SHOW_D(random_geometric_tree(40, 0.30));
-    SHOW_D(random_geometric_tree(40, 0.55));
+    SHOW_D(random_geometric_tree(40, -0.35));
+    SHOW_D(random_geometric_tree(40, -0.13));
+    SHOW_D(random_geometric_tree(40, +0.13));
+    SHOW_D(random_geometric_tree(40, +0.35));
 
     SHOW_D(disjoint_complete_graph(5, 4));
     SHOW_D(disjoint_complete2_graph(5, 4));

@@ -293,43 +293,6 @@ auto random_geometric_tree(int V, double alpha) {
     return g;
 }
 
-auto random_forest(const vector<int>& tree_sizes) {
-    edges_t g;
-    g.reserve(accumulate(begin(tree_sizes), end(tree_sizes), 0));
-    int T = tree_sizes.size();
-    for (int i = 0, s = 0; i < T; s += tree_sizes[i++]) {
-        for (auto [u, v] : random_tree(tree_sizes[i])) {
-            g.push_back({u + s, v + s});
-        }
-    }
-    return g;
-}
-
-auto random_forest(int V, int trees, int min_tree_size = 1) {
-    assert(V > 0 && V <= 30'000'000);
-    auto tree_sizes = partition_sample(V, trees, min_tree_size);
-    return random_forest(tree_sizes);
-}
-
-auto random_geometric_forest(const vector<int>& tree_sizes, double alpha) {
-    assert(-1.0 < alpha && alpha < 1.0);
-    edges_t g;
-    g.reserve(accumulate(begin(tree_sizes), end(tree_sizes), 0));
-    int T = tree_sizes.size();
-    for (int i = 0, s = 0; i < T; s += tree_sizes[i++]) {
-        for (auto [u, v] : random_geometric_tree(T, alpha)) {
-            g.push_back({u + s, v + s});
-        }
-    }
-    return g;
-}
-
-auto random_geometric_forest(int V, int trees, double alpha, int min_tree_size = 1) {
-    assert(V > 0 && V <= 30'000'000 && -1.0 < alpha && alpha < 1.0);
-    auto tree_sizes = partition_sample(V, trees, min_tree_size);
-    return random_geometric_forest(tree_sizes, alpha);
-}
-
 auto random_binary_tree(int L) {
     vector<int> leader(L);
     iota(begin(leader), end(leader), 0);
@@ -370,6 +333,54 @@ auto random_geometric_binary_tree(int L, double alpha) {
     }
     reverse(begin(g), end(g));
     return g;
+}
+
+auto random_periodic_tree(int V, int period, double alpha, double beta = 0.75) {
+    edges_t g;
+    double off = rand_unif<double>(0.0, period);
+    int sub = max<int>(2, ceil(period * beta));
+    for (int u = 1; u < V; u++) {
+        double p = cos((u + off) * 2.0 * M_PI / period) * alpha;
+        g.push_back({rand_geom<int>(max(0, u - sub), u - 1, p), u});
+    }
+    return g;
+}
+
+auto random_forest(const vector<int>& tree_sizes) {
+    edges_t g;
+    g.reserve(accumulate(begin(tree_sizes), end(tree_sizes), 0));
+    int T = tree_sizes.size();
+    for (int i = 0, s = 0; i < T; s += tree_sizes[i++]) {
+        for (auto [u, v] : random_tree(tree_sizes[i])) {
+            g.push_back({u + s, v + s});
+        }
+    }
+    return g;
+}
+
+auto random_forest(int V, int trees, int min_tree_size = 1) {
+    assert(V > 0 && V <= 30'000'000);
+    auto tree_sizes = partition_sample(V, trees, min_tree_size);
+    return random_forest(tree_sizes);
+}
+
+auto random_geometric_forest(const vector<int>& tree_sizes, double alpha) {
+    assert(-1.0 < alpha && alpha < 1.0);
+    edges_t g;
+    g.reserve(accumulate(begin(tree_sizes), end(tree_sizes), 0));
+    int T = tree_sizes.size();
+    for (int i = 0, s = 0; i < T; s += tree_sizes[i++]) {
+        for (auto [u, v] : random_geometric_tree(T, alpha)) {
+            g.push_back({u + s, v + s});
+        }
+    }
+    return g;
+}
+
+auto random_geometric_forest(int V, int trees, double alpha, int min_tree_size = 1) {
+    assert(V > 0 && V <= 30'000'000 && -1.0 < alpha && alpha < 1.0);
+    auto tree_sizes = partition_sample(V, trees, min_tree_size);
+    return random_geometric_forest(tree_sizes, alpha);
 }
 
 // *****
