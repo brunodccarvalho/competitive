@@ -136,9 +136,9 @@ auto rand_incremental_vector_matroid(int n, int S = 0, int B = 0) {
     vector<vector<T>> basis(B);
     for (int i = 0; i < B; i++) {
         basis[i].resize(S);
-        basis[i][msb[i]] = rand_unif<U, T>(1, MAX);
+        basis[i][msb[i]] = rand_unif<U>(1, MAX);
         for (int k = msb[i] + 1; k < S; k++) {
-            basis[i][k] = rand_wide<U, T>(0, MAX, -1);
+            basis[i][k] = rand_wide<U>(0, MAX, -1);
         }
     }
 
@@ -149,7 +149,7 @@ auto rand_incremental_vector_matroid(int n, int S = 0, int B = 0) {
         space[i].resize(S);
         for (int j = 0; j < B; j++) {
             if (coind(mt)) {
-                auto m = rand_unif<U, T>(1, MAX);
+                auto m = rand_unif<U>(1, MAX);
                 for (int k = 0; k < S; k++) {
                     space[i][k] += m * basis[j][k];
                 }

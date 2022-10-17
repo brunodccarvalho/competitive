@@ -19,10 +19,10 @@ void stress_test_bitree() {
         bit.combine(r, v);
         arr[r] ^= v;
 
-        r = rand_unif<int>(0, N - 1);
+        r = rand_unif<int>(1, N);
         int x = bit.prefix(r);
         int y = 0;
-        for (int i = 0; i <= r; i++) {
+        for (int i = 0; i < r; i++) {
             y ^= arr[i];
         }
         assert(x == y);
@@ -50,12 +50,12 @@ void stress_test_bitree2d() {
         bit.combine(r, c, v);
         arr[r][c] ^= v;
 
-        r = rand_unif<int>(0, N - 1);
-        c = rand_unif<int>(0, M - 1);
+        r = rand_unif<int>(1, N);
+        c = rand_unif<int>(1, M);
         int x = bit.prefix(r, c);
         int y = 0;
-        for (int i = 0; i <= r; i++) {
-            for (int j = 0; j <= c; j++) {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < c; j++) {
                 y ^= arr[i][j];
             }
         }

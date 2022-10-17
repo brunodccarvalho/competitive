@@ -3,8 +3,8 @@
 #include "lib/graph_generator.hpp"
 
 void speed_test_mincost_flow() {
-    vector<int> Vs = {100, 300, 600, 1000, 2000, 5000, 10000 /*, 20000, 30000 */};
-    vector<double> pVs = {2.0, 5.0, 8.0, 12.0, 20.0};
+    vector<int> Vs = {2000, 5000, 10000, 25000};
+    vector<double> pVs = {2.0, 5.0, 12.0, 20.0};
     vector<double> as = {-.35, -.15, -.05, -.01, -.001, 0, +.001, +.01, +.05, +.15, +.35};
 
     vector<tuple<int, double, double>> inputs;
@@ -25,8 +25,8 @@ void speed_test_mincost_flow() {
     auto make_graph = [](int V, double p, double alpha) {
         auto [g, s, t] = random_geometric_flow_dag_connected(V, p, alpha);
         int E = g.size();
-        auto cost = rands_wide<int>(E, 1, 100'000'000, -1);
-        auto cap = rands_wide<int>(E, 1, 100'000'000, -1);
+        auto cost = rands_wide<int>(E, 1, 10'000'000, -1);
+        auto cap = rands_wide<int>(E, 1, 10'000'000, -1);
         return make_tuple(E, g, s, t, cost, cap);
     };
 
@@ -42,7 +42,7 @@ void speed_test_mincost_flow() {
             auto [E, g, s, t, cost, cap] = make_graph(V, p, alpha);
 
             ADD_TIME_BLOCK(mcmf) {
-                mcmflow<int, int, long, long> g0(V);
+                mcmflow<int, int, int64_t, int64_t> g0(V);
                 for (int i = 0; i < E; i++) {
                     g0.add(g[i][0], g[i][1], cap[i], cost[i]);
                 }

@@ -19,24 +19,30 @@ struct kahan {
     friend bool operator<=(kahan a, kahan b) { return a.sum <= b.sum; }
     friend bool operator>=(kahan a, kahan b) { return a.sum >= b.sum; }
 
+    kahan& set(D x) { return sum = x, c = 0, *this; }
+
     friend kahan& operator+=(kahan& k, kahan add) {
         D y = add.sum + k.c - add.c, t = k.sum + y;
         k.c = (t - k.sum) - y, k.sum = t;
+        return k;
     }
     friend kahan& operator-=(kahan& k, kahan sub) {
         D y = sub.sum - k.c - sub.c, t = k.sum - y;
         k.c = (t - k.sum) + y, k.sum = t;
+        return k;
     }
     friend kahan& operator+=(kahan& k, D add) {
         D y = add + k.c, t = k.sum + y;
         k.c = (t - k.sum) - y, k.sum = t;
+        return k;
     }
     friend kahan& operator-=(kahan& k, D sub) {
         D y = sub - k.c, t = k.sum - y;
         k.c = (t - k.sum) + y, k.sum = t;
+        return k;
     }
-    friend kahan& operator*=(kahan& k, D mul) { k.sum *= mul, k.c *= mul; }
-    friend kahan& operator/=(kahan& k, D div) { k.sum /= div, k.c /= div; }
+    friend kahan& operator*=(kahan& k, D mul) { return k.sum *= mul, k.c *= mul, k; }
+    friend kahan& operator/=(kahan& k, D div) { return k.sum /= div, k.c /= div, k; }
     friend kahan operator+(kahan k, D add) { return k += add; }
     friend kahan operator-(kahan k, D sub) { return k -= sub; }
     friend kahan operator*(kahan k, D mul) { return k *= mul; }

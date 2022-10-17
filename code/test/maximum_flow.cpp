@@ -22,9 +22,9 @@ auto mid_cap(int V, const edges_t& g, T low, T high, int repulsion) {
     for (int e = 0; e < E; e++) {
         auto [u, v] = g[e];
         int spread = min(abs(u - V / 2) + abs(v - V / 2), V);
-        double factor = (1L * spread * spread) / (V * V);
+        double factor = 1.0 * spread * spread / V / V;
         T actual_high = low + llround(factor * high);
-        cap[e] = rand_wide<T, O>(low, actual_high, repulsion);
+        cap[e] = rand_wide<T>(low, actual_high, repulsion);
     }
     return cap;
 }
@@ -105,7 +105,7 @@ void speed_test_max_flow() {
         }
     }
 
-    const auto runtime = 600'000ms / inputs.size();
+    const auto runtime = 360'000ms / inputs.size();
     map<tuple<pair<int, double>, int, string>, stringable> table;
 
     for (auto [V, pV, alpha] : inputs) {

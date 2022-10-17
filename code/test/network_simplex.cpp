@@ -130,8 +130,8 @@ void stress_test_network_simplex() {
 }
 
 void speed_test_network_simplex() {
-    vector<int> Vs = {100, 300, 600, 1000, 2000, 5000, 10000, 20000, 30000};
-    vector<double> pVs = {2.0, 5.0, 8.0, 12.0, 20.0};
+    vector<int> Vs = {2000, 5000, 10000, 25000, 60000};
+    vector<double> pVs = {2.0, 5.0, 12.0, 20.0};
     vector<double> as = {-.35, -.15, -.05, -.01, -.001, 0, +.001, +.01, +.05, +.15, +.35};
 
     vector<tuple<int, double, double>> inputs;
@@ -146,7 +146,7 @@ void speed_test_network_simplex() {
         }
     }
 
-    const auto runtime = 300'000ms / inputs.size();
+    const auto runtime = 240'000ms / inputs.size();
     map<tuple<pair<double, double>, int, stringable>, stringable> table;
 
     auto make_graph = [](int V, double p, double alpha) {
@@ -163,7 +163,7 @@ void speed_test_network_simplex() {
     for (auto [V, pV, alpha] : inputs) {
         double p = pV / V;
         START_ACC(network);
-        int64_t Es = 0, Exp = 0;
+        int64_t Es = 0, Exp = pV * V;
 
         LOOP_FOR_DURATION_TRACKED_RUNS (runtime, now, runs) {
             print_time(now, runtime, "speed net simplex V={} E={} a={:.3f} ({} runs)", V,

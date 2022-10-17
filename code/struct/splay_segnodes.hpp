@@ -264,9 +264,7 @@ struct gcd_segnode {
     }
 
     void pushup(const gcd_segnode& lhs, const gcd_segnode& rhs, ipos) {
-        diff = gcd(lhs.diff, rhs.diff);
-        diff = lhs.self ? gcd(diff, self - lhs.self) : diff;
-        diff = rhs.self ? gcd(diff, self - rhs.self) : diff;
+        diff = gcd(gcd(lhs.diff, rhs.diff), gcd(self - lhs.self, self - rhs.self));
         subt = gcd(self, diff);
     }
 

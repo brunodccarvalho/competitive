@@ -144,7 +144,7 @@ void stress_test_disjoint_sparse_table_2d() {
 }
 
 void speed_test_sparse_table_2d() {
-    vector<int> Ns = {60, 100, 150, 220, 300, 400, 500};
+    vector<int> Ns = {60, 100, 150, 220, 300, 400};
 
     vector<pair<int, int>> inputs;
     for (int N : Ns) {

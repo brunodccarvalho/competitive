@@ -8,22 +8,22 @@ using edges_t = vector<array<int, 2>>;
 // Each variable in the canonical solution is true with probability true_p
 // Both variables in each edge are true with probability both_p
 edges_t generate_twosat(int N, int E, double true_p = 0.5, double both_p = 0.1) {
-    boold distp(true_p), bothd(both_p), coind(0.5);
     intd distv(0, N - 1);
     vector<int> hidden_solution(N);
     for (auto& v : hidden_solution) {
-        v = distp(mt);
+        v = cointoss(true_p);
     }
     edges_t g(E);
     for (auto& [u, v] : g) {
-        u = distv(mt), v = distv(mt);
+        u = rand_unif<int>(0, N - 1);
+        v = rand_unif<int>(0, N - 1);
         u = hidden_solution[u] ? u : ~u; // 'left' node is true
-        if (bothd(mt)) {
+        if (cointoss(both_p)) {
             v = hidden_solution[v] ? v : ~v;
         } else {
             v = hidden_solution[v] ? ~v : v;
         }
-        if (coind(mt)) {
+        if (cointoss(0.5)) {
             swap(u, v);
         }
     }

@@ -98,8 +98,8 @@ void stress_test_affine_segtree() {
     LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
         if (cointoss(0.5)) {
             int i = rand_unif<int>(0, N - 1);
-            num b = rand_unif<int, num>(0, 500);
-            num c = rand_unif<int, num>(-1000, 1000);
+            num b = rand_unif<int>(0, 500);
+            num c = rand_unif<int>(-1000, 1000);
             st.update_point(root, 0, N, i, Data{b, c});
             arr[i] = {b, c};
         }
@@ -107,7 +107,7 @@ void stress_test_affine_segtree() {
             auto [L, R] = ordered_unif<int>(0, N);
             auto got = st.query_range(root, 0, N, L, R);
 
-            num x = rand_unif<int, num>(1, 73);
+            num x = rand_unif<int>(1, 73);
             auto got_lmr = got.eval_lmr(x);
             auto got_rml = got.eval_rml(x);
 
@@ -202,15 +202,15 @@ void speed_test_affine_dynamic_segtree() {
     LOOP_FOR_DURATION_TRACKED_RUNS (3s, now, runs) {
         if (cointoss(0.5)) {
             int i = rand_unif<int>(0, N - 1);
-            num b = rand_unif<int, num>(0, 500);
-            num c = rand_unif<int, num>(-1000, 1000);
+            num b = rand_unif<int>(0, 500);
+            num c = rand_unif<int>(-1000, 1000);
             st.update_point(root, 0, N, i, Data{b, c});
         }
         if (cointoss(0.5)) {
             auto [L, R] = ordered_unif<int>(0, N);
             auto got = st.query_range(root, 0, N, L, R);
 
-            num x = rand_unif<int, num>(1, 73);
+            num x = rand_unif<int>(1, 73);
             got.eval_lmr(x);
             got.eval_rml(x);
         }

@@ -11,7 +11,7 @@ void speed_test_polynomial() {
     vector<int> inputs = Ns;
 
     const int FIXED = 5;
-    const auto runtime = 1200'000ms / inputs.size();
+    const auto runtime = 1'200'000ms / inputs.size();
     map<pair<stringable, int>, stringable> table;
 
     for (int N : inputs) {

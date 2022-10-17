@@ -64,8 +64,8 @@ void stress_test_sum_affine_splay_segtree() {
         LOOP_FOR_DURATION (25ms) {
             if (cointoss(0.5)) {
                 auto [L, R] = diff_unif<int>(0, N);
-                num b = rand_unif<int, num>(-1000, 1000);
-                num c = rand_unif<int, num>(-1000, 1000);
+                num b = rand_unif<int>(-1000, 1000);
+                num c = rand_unif<int>(-1000, 1000);
 
                 st.update_range(L, R, make_pair(b, c));
                 for (int i = L; i < R; i++) {
@@ -79,8 +79,8 @@ void stress_test_sum_affine_splay_segtree() {
                 assert(got == actual);
             }
             if (cointoss(0.5)) {
-                num b = rand_unif<int, num>(-1000, 1000);
-                num c = rand_unif<int, num>(-1000, 1000);
+                num b = rand_unif<int>(-1000, 1000);
+                num c = rand_unif<int>(-1000, 1000);
                 st.update_all(make_pair(b, c));
                 for (int i = 0; i < N; i++) {
                     arr[i] = b * arr[i] + c;
@@ -121,35 +121,6 @@ void stress_test_min_splay_segtree() {
     }
 }
 
-void stress_test_gcd_splay_segtree() {
-    constexpr int N = 15;
-
-    LOOP_FOR_DURATION (25s) {
-        vector<long> arr(N, 0);
-        splay_segtree<gcd_segnode<long>> st(0, N);
-
-        LOOP_FOR_DURATION (20ms) {
-            if (cointoss(0.5)) {
-                auto [L, R] = diff_unif<int>(0, N);
-                int v = rand_unif<int>(-3, 3);
-                st.update_range(L, R, v);
-                for (int i = L; i < R; i++) {
-                    arr[i] += v;
-                }
-            }
-            if (cointoss(0.5)) {
-                auto [L, R] = diff_unif<int>(0, N);
-                long got = st.query_range(L, R).range_gcd();
-                long actual = 0;
-                for (int i = L; i < R; i++) {
-                    actual = gcd(actual, arr[i]);
-                }
-                assert(got == actual);
-            }
-        }
-    }
-}
-
 void stress_test_affine_splay_segtree() {
     constexpr int N = 200;
     using num = modnum<998244353>;
@@ -162,8 +133,8 @@ void stress_test_affine_splay_segtree() {
         LOOP_FOR_DURATION_TRACKED_RUNS (100ms, now, runs) {
             if (cointoss(0.5)) {
                 int i = rand_unif<int>(0, N - 1);
-                num b = rand_unif<int, num>(-1000, 1000);
-                num c = rand_unif<int, num>(-1000, 1000);
+                num b = rand_unif<int>(-1000, 1000);
+                num c = rand_unif<int>(-1000, 1000);
                 st.update_point(i, Data{b, c});
                 arr[i] = {b, c};
             }
@@ -171,7 +142,7 @@ void stress_test_affine_splay_segtree() {
                 auto [L, R] = diff_unif<int>(0, N);
                 auto got = st.query_range(L, R);
 
-                num x = rand_unif<int, num>(-100, 100);
+                num x = rand_unif<int>(-100, 100);
                 auto got_lmr = got.eval_lmr(x);
                 auto got_rml = got.eval_rml(x);
 
@@ -191,7 +162,6 @@ void stress_test_affine_splay_segtree() {
 }
 
 int main() {
-    RUN_BLOCK(stress_test_gcd_splay_segtree());
     RUN_BLOCK(stress_test_sum_splay_segtree());
     RUN_BLOCK(stress_test_sum_affine_splay_segtree());
     RUN_BLOCK(stress_test_min_splay_segtree());

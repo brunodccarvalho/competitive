@@ -137,8 +137,8 @@ void stress_test_affine_segtree() {
     LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
         if (cointoss(0.5)) {
             int i = rand_unif<int>(0, N - 1);
-            num b = rand_unif<int, num>(0, 1'000'000);
-            num c = rand_unif<int, num>(-1000, 1000);
+            num b = rand_unif<int>(0, 1'000'000);
+            num c = rand_unif<int>(-1000, 1000);
             st.update_point(i, Data{b, c});
             arr[i] = {b, c};
         }
@@ -146,7 +146,7 @@ void stress_test_affine_segtree() {
             auto [L, R] = diff_unif<int>(0, N);
             auto got = st.query_range(L, R);
 
-            num x = rand_unif<int, num>(0, 1'000'000);
+            num x = rand_unif<int>(0, 1'000'000);
             auto got_lmr = got.eval_lmr(x);
             auto got_rml = got.eval_rml(x);
 
@@ -175,7 +175,7 @@ void stress_test_polyhash_segtree() {
     LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
         if (cointoss(0.5)) {
             int i = rand_unif<int>(0, N - 1);
-            num v = rand_unif<int, num>(0, 70000);
+            num v = rand_unif<int>(0, 70000);
             st.update_point(i, v);
             arr[i] = v;
         }

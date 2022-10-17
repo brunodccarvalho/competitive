@@ -131,6 +131,7 @@ void stress_test_linear_meld_count_nodes() {
         vector<int> version(N), parent(N, -1);
 
         y_combinator([&](auto self, int u, int p) -> void {
+            version[u] = seg.update_point(root, 0, M, as[u], u);
             for (int v : tree[u]) {
                 if (v != p) {
                     parent[v] = u;

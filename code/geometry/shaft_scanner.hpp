@@ -52,7 +52,7 @@ struct shaft_scanner {
         if (auto cpu = cross(p - pts[a], pts[b] - pts[a])) {
             return cpu > 0;
         } else {
-            return dot(p - pts[b], pts[a] - pts[b]) < 0;
+            return dot(p - pts[b], pts[b] - pts[a]) > 0;
         }
     }
 };
@@ -105,8 +105,8 @@ struct live_sweep_scanner {
         if (auto ab = dot(b - a, forward)) {
             return ab > 0;
         } else {
-            return cross(b - a, forward) > 0; // left to right along CW(forward)
-            // return cross(a - b, forward) > 0; // right to left along CW(forward)
+            // return cross(b - a, forward) < 0; // left to right along CW(forward)
+            return cross(b - a, forward) > 0; // right to left along CW(forward)
         }
     }
 
@@ -165,7 +165,7 @@ struct live_angle_scanner {
             return ab > 0;
         } else {
             return dot(a - pivot, b - a) > 0; // facing away from pivot
-            // return dot(a - pivot, a - b) > 0; // facing into pivot
+            // return dot(a - pivot, b - a) < 0; // facing into pivot
         }
     }
 

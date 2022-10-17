@@ -36,12 +36,12 @@ void stress_test_line_scanner() {
 
         vector<int> head(N, -1), head_next(S, -1);
         vector<int> tail(N, -1), tail_next(S, -1);
-        vector<int> initial;
 
         for (int i = 0; i < S; i++) {
             auto& [u, v] = segments[i];
             assert(u != v);
             if (!scanner.oriented(Ray::through(pts[u], pts[v]))) {
+                assert(rank[u] > rank[v]);
                 swap(u, v);
                 assert(scanner.oriented(Ray::through(pts[u], pts[v])));
             }
@@ -57,21 +57,18 @@ void stress_test_line_scanner() {
 
         // Populate scanset in order and verify insertions and deletions
         set<Ray, live_sweep_scanner> scanset(scanner);
-        set<Ray> before;
 
         for (int loop = 0; loop < 4; loop++) {
             for (int u : index) {
                 for (int i = tail[u]; i != -1; i = tail_next[i]) {
                     auto erased = scanset.erase(lines[i]);
                     assert(erased == 1);
-                    before.insert(lines[i]);
                 }
                 for (int i = head[u]; i != -1; i = head_next[i]) {
                     bool inserted = scanset.insert(lines[i]).second;
                     assert(inserted);
                 }
             }
-            before.clear();
             assert(scanset.empty());
         }
 
