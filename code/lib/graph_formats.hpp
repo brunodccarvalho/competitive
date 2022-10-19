@@ -98,7 +98,7 @@ string simple_dot(const edges_t& g, int8_t directed) {
         }
     }
     for (auto [u, v] : g) {
-        s += format(" {0}{2}{1};\n", u, v + offset, a);
+        s += format("  {0}{2}{1};\n", u, v + offset, a);
     }
     return s + "}\n";
 }

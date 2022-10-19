@@ -101,8 +101,7 @@ void print_graphs() {
 void stress_test_geometric() {
     static vector<int> Vs = {50, 100, 200, 400, 600, 1000};
     static vector<double> ps = {.01, .05, .20, .60};
-    static vector<double> as = {-.95,  -.75, -.40, -.10, -.01, -.001, 0,
-                                +.001, +.01, +.10, +.40, +.75, +.95};
+    static vector<double> as = {-.25, -.10, -.01, -.001, 0, +.001, +.01, +.10, +.25};
     const auto runtime = 30000ms / (Vs.size() * ps.size() * as.size());
     map<tuple<pair<int, double>, double, string>, stringable> times;
 
@@ -147,9 +146,6 @@ void visual_test_generators() {
     SHOW_D(random_geometric_tree(50, -0.13));
     SHOW_D(random_geometric_tree(50, +0.13));
     SHOW_D(random_geometric_tree(50, +0.35));
-
-    SHOW_D(random_periodic_tree(100, 15, 0.4));
-    SHOW_D(random_periodic_tree(150, 20, 0.25));
 
     SHOW_D(random_geometric_directed(50, 0.15, -0.35));
     SHOW_D(random_geometric_directed(50, 0.15, -0.13));

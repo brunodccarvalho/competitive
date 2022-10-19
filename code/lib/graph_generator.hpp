@@ -335,17 +335,6 @@ auto random_geometric_binary_tree(int L, double alpha) {
     return g;
 }
 
-auto random_periodic_tree(int V, int period, double alpha, double beta = 0.75) {
-    edges_t g;
-    double off = rand_unif<double>(0.0, period);
-    int sub = max<int>(2, ceil(period * beta));
-    for (int u = 1; u < V; u++) {
-        double p = cos((u + off) * 2.0 * M_PI / period) * alpha;
-        g.push_back({rand_geom<int>(max(0, u - sub), u - 1, p), u});
-    }
-    return g;
-}
-
 auto random_forest(const vector<int>& tree_sizes) {
     edges_t g;
     g.reserve(accumulate(begin(tree_sizes), end(tree_sizes), 0));
