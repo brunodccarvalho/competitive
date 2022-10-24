@@ -1,6 +1,7 @@
 #pragma once
 
 #include "random.hpp"
+#include "hash.hpp"
 #include "geometry/geometry2d.hpp"
 #include "geometry/utils2d.hpp"
 #include "numeric/quot.hpp"

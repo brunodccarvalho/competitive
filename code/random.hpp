@@ -1,8 +1,18 @@
 #pragma once
 
-#include "hash.hpp"
-#include "algo/sort.hpp"
-#include "struct/pbds.hpp"
+#include <bits/stdc++.h>
+#include <ext/pb_ds/assoc_container.hpp>
+#include <ext/pb_ds/tree_policy.hpp>
+
+using namespace std;
+namespace gnu = __gnu_pbds;
+
+template <typename Key, typename Value, typename CompareFn = less<Key>>
+using ordered_map = gnu::tree<Key, Value, CompareFn, gnu::rb_tree_tag,
+                              gnu::tree_order_statistics_node_update>;
+
+template <typename T, typename CompareFn = less<T>>
+using ordered_set = ordered_map<T, gnu::null_type, CompareFn>;
 
 thread_local mt19937 mt(random_device{}());
 using intd = uniform_int_distribution<int>;
@@ -60,7 +70,7 @@ T rand_expo(common_type_t<T> a, common_type_t<T> b, double c) {
     } else if (c < 0) {
         return b - rand_expo<T>(a, b, -c) + a;
     } else if constexpr (is_integral_v<T>) {
-        double e = rand_unif<double>(log(c), log(b - a + c + 1.0));
+        double e = rand_unif<double>(log(c), log(b + 1.0 - a + c));
         return clamp(T(a + exp(e) - c), T(a), T(b));
     } else if constexpr (is_floating_point_v<T>) {
         double e = rand_unif<double>(log(c), log(b - a + c));
@@ -96,9 +106,9 @@ T rand_geom(common_type_t<T> a, common_type_t<T> b, double p) {
 template <typename T> // ans=[a,b], normal, round towards nearest
 T rand_norm(common_type_t<T> a, common_type_t<T> b, double mean, double dev) {
     if constexpr (is_integral_v<T>) {
-        assert(.25 * dev <= (b - a + 1) && a - dev <= mean && mean <= b + dev);
+        assert(.25 * dev <= (b + 1 - a) && a - dev <= mean && mean <= b + dev);
         long long x;
-        normal_distribution dist(mean, dev);
+        normal_distribution<double> dist(mean, dev);
         do {
             x = llround(dist(mt));
         } while (x < a || b < x);
@@ -106,7 +116,7 @@ T rand_norm(common_type_t<T> a, common_type_t<T> b, double mean, double dev) {
     } else if constexpr (is_floating_point_v<T>) {
         assert(.25 * dev <= (b - a) && a - dev <= mean && mean <= b + dev);
         double x;
-        normal_distribution dist(mean, dev);
+        normal_distribution<double> dist(mean, dev);
         do {
             x = dist(mt);
         } while (x < a || b < x);
@@ -154,22 +164,6 @@ double int_expo_base_for_ratio(double b) {
 double int_geom_prob_for_ratio(int64_t n, double r) {
     assert(r > 0);
     return n <= 0 ? 0.5 : r > 1 ? 1.0 - pow(r, -1.0 / n) : -(1.0 - pow(1 / r, -1.0 / n));
-}
-
-// Find c for rand_expo<int>(0,n,c) so that freq(0)/freq(n)=r
-double int_expo_base_for_ratio(int64_t n, double r) {
-    assert(r > 0);
-    if (n <= 0) {
-        return 1.0;
-    }
-    double t = max(r, 1 / r), L = 0, R = 1e5;
-    for (int runs = 60; runs; runs--) {
-        double c = (L + R) / 2;
-        double f = log1p(1.0 / c) / log1p(1.0 / (c + n));
-        f >= t ? L = c : R = c;
-    }
-    double c = (L + R) / 2;
-    return r > 1 ? c : -c;
 }
 
 template <typename T, typename O = T> // ans=[a,b]
@@ -337,7 +331,7 @@ auto int_sample(int k, T a, T b) {
     for (int i = 0; i < size; i++) {
         sample[i] = rand_unif<T>(a, b - 1);
     }
-    lsb_radix_sort(sample);
+    sort(begin(sample), end(sample));
     sample.erase(unique(begin(sample), end(sample)), end(sample));
     int s = sample.size();
 
@@ -732,26 +726,6 @@ auto partition_sample(T n, int k, const vector<T>& m, const vector<T>& M) {
         }
     }
     return parts;
-}
-
-/**
- * Like partition_sample but the first and last levels have size exactly 1.
- */
-auto partition_sample_flow(int V, int ranks, int m, int M = numeric_limits<int>::max()) {
-    auto R = partition_sample(V - 2, ranks - 2, m, M);
-    R.insert(R.begin(), 1);
-    R.insert(R.end(), 1);
-    return R;
-}
-
-/**
- * Like partition_sample but the first and last levels have size exactly 1.
- */
-auto partition_sample_flow(int V, int ranks, const vector<int>& m, const vector<int>& M) {
-    auto R = partition_sample(V - 2, ranks - 2, m, M);
-    R.insert(R.begin(), 1);
-    R.insert(R.end(), 1);
-    return R;
 }
 
 /**

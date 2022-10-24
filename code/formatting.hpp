@@ -628,6 +628,10 @@ template <typename... T>
 std::string to_string(const std::tuple<T...>& tup) {
     return to_string(tup, gen_indices<sizeof...(T)>{});
 }
+template <typename... T>
+ostream& operator<<(ostream& o, const std::tuple<T...>& tup) {
+    return o << to_string(tup);
+}
 
 } // namespace std
 

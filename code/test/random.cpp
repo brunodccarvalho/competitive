@@ -4,25 +4,26 @@
 #include "linear/matrix.hpp"
 #include "numeric/partitions.hpp"
 
-template <typename T>
-auto fmthist(const map<T, int>& cnt) {
+template <typename T, typename U>
+auto fmthist(const vector<pair<T, U>>& cnt) {
     const int W = 150;
-    int64_t M = 0, C = 0, m = INT64_MAX;
-    vector<int> cnts;
+    using V = conditional_t<is_integral_v<U>, int64_t, double>;
+    V M = 0, C = 0, m = numeric_limits<U>::max();
+    vector<U> cnts;
     for (auto [n, c] : cnt) {
-        M = max<int64_t>(M, c);
-        m = min<int64_t>(m, c);
+        M = max<V>(M, c);
+        m = min<V>(m, c);
         C += c;
         cnts.push_back(c);
     }
     int S = cnts.size();
     string lead;
-    lead += format("C={}, M/m={:f}\n", C, 1.0 * M / m);
-    for (int i = 0; i + 1 < S && S <= 50; i++) {
+    lead += format("C={}, S={}, M/m={:f}\n", C, S, 1.0 * M / m);
+    for (int i = 0; i + 1 < S && S <= 40; i++) {
         lead += format("{:>4.3f}{}", 1.0 * cnts[i] / cnts[i + 1], " \n"[i + 2 == S]);
     }
     for (auto [n, c] : cnt) {
-        int w = (1LL * c * W + M / 2) / M;
+        int w = floor((1.0 * c * W + M / 2) / M);
         double p = 100.0 * c / C;
         lead += format("{:>18} {:>6.3f}% {}\n", n, p, string(w, '#'));
     }
@@ -30,82 +31,68 @@ auto fmthist(const map<T, int>& cnt) {
 }
 
 template <typename T>
-auto fmthistweighted(const map<T, int>& cnt) {
-    int W = 150;
-    int64_t C = 0, M = 0, m = INT64_MAX;
-    vector<int64_t> cnts;
-    for (auto [n, c] : cnt) {
-        M = max<int64_t>(M, 1LL * c * n);
-        m = min<int64_t>(m, 1LL * c * n);
-        C += 1LL * c * n;
-        cnts.push_back(1LL * c * n);
-    }
-    int S = cnts.size();
-    string lead;
-    lead += format("M/m: {:7.4f}\n", 1.0 * M / m);
-    for (int i = 0; i + 1 < S && S <= 40; i++) {
-        lead += format("{:>4.3f}{}", 1.0 * cnts[i] / cnts[i + 1], " \n"[i + 2 == S]);
-    }
-    for (auto [n, c] : cnt) {
-        int w = (1LL * c * n * W + M / 2) / M;
-        double p = 100.0 * c * n / C;
-        lead += format("{:>18} {:>6.3f}% {}\n", n, p, string(w, '#'));
-    }
-    return lead;
-}
-
-template <typename T>
-auto fmthist(const vector<T>& out) {
-    if constexpr (is_floating_point_v<T>) {
-        map<string, int> cnt;
-        for (double f : out) {
-            int n = floor(5 * f);
-            cnt[format("{:6.2f}", n / 5.0)]++;
-        }
-        return fmthist(cnt);
-    } else {
-        map<T, int> cnt;
-        for (const auto& f : out) {
-            cnt[f]++;
-        }
-        return fmthist(cnt);
-    }
-}
-
-template <typename T>
-auto fmthistweighted(const vector<T>& out) {
+auto group(const vector<T>& out, int d = 5) {
     if constexpr (is_floating_point_v<T>) {
         map<double, int> cnt;
         for (double f : out) {
-            int n = floor(5 * f);
-            cnt[n / 5.0]++;
+            cnt[round(f * d) / d]++;
         }
-        return fmthistweighted(cnt);
+        vector<pair<string, int>> cnts;
+        for (auto [f, c] : cnt) {
+            cnts.emplace_back(format("{:+6.2f}", f), c);
+        }
+        return fmthist(cnts);
     } else {
         map<T, int> cnt;
         for (const auto& f : out) {
             cnt[f]++;
         }
-        return fmthistweighted(cnt);
+        vector<pair<T, int>> cnts(begin(cnt), end(cnt));
+        return fmthist(cnts);
+    }
+}
+
+template <typename T>
+auto groupw(const vector<T>& out, int d = 5) {
+    if constexpr (is_floating_point_v<T>) {
+        map<double, double> cnt;
+        for (double f : out) {
+            cnt[round(f * d) / d] += abs(f);
+        }
+        vector<pair<string, double>> cnts;
+        for (auto [f, c] : cnt) {
+            cnts.emplace_back(format("{:+6.2f}", f), c);
+        }
+        return fmthist(cnts);
+    } else {
+        map<T, int64_t> cnt;
+        for (T f : out) {
+            cnt[f] += f;
+        }
+        vector<pair<T, int64_t>> cnts;
+        for (auto [f, c] : cnt) {
+            cnts.emplace_back(f, c);
+        }
+        return fmthist(cnts);
     }
 }
 
 template <typename T, typename Fn>
-auto make(Fn&& fn) {
+auto make(Fn&& fn, int d = 5) {
     vector<T> cnt;
     for (int runs = 0; runs < 10'000'000; runs++) {
         cnt.push_back(fn());
     }
-    return fmthist(cnt);
+    return group(cnt, d);
 }
 
 template <typename T, typename Fn>
-auto makew(Fn&& fn) {
+auto makew(Fn&& fn, int d = 5) {
     vector<T> cnt;
     for (int runs = 0; runs < 10'000'000; runs++) {
         cnt.push_back(fn());
     }
-    return fmthistweighted(cnt);
+    return groupw(cnt, d);
 }
 
 void show_single_distributions() {
@@ -163,61 +150,6 @@ void show_single_distributions() {
 }
 
 void show_weight_distributions() {
-    double g20 = int_geom_prob_for_ratio(20, 20);
-    double g30 = real_geom_prob_for_ratio(5, 30);
-    double e40 = int_expo_base_for_ratio(20, 40);
-    double e50 = real_expo_base_for_ratio(5, 50);
-    debug(g20, g30, e40, e50);
-
-    println("Geo r=20 0..20:\n{}", //
-            make<int>([&]() { return rand_geom<int>(0, 20, g20); }));
-    println("Geo r=30 0..5:\n{}", //
-            make<double>([&]() { return rand_geom<double>(0, 5, g30); }));
-
-    println("Exp r=40 0..20:\n{}", //
-            make<int>([&]() { return rand_expo<int>(0, 20, e40); }));
-    println("Exp r=50 0..5:\n{}", //
-            make<double>([&]() { return rand_expo<double>(0, 5, e50); }));
-
-    double ng20 = int_geom_prob_for_ratio(20, 1. / 20);
-    double ng30 = real_geom_prob_for_ratio(5, 1. / 30);
-    double ne40 = int_expo_base_for_ratio(20, 1. / 40);
-    double ne50 = real_expo_base_for_ratio(5, 1. / 50);
-    debug(ng20, ng30, ne40, ne50);
-
-    println("Geo r=1/20 0..20:\n{}", //
-            make<int>([&]() { return rand_geom<int>(0, 20, ng20); }));
-    println("Geo r=1/30 0..5:\n{}", //
-            make<double>([&]() { return rand_geom<double>(0, 5, ng30); }));
-
-    println("Exp r=1/40 0..20:\n{}", //
-            make<int>([&]() { return rand_expo<int>(0, 20, ne40); }));
-    println("Exp r=1/50 0..5:\n{}", //
-            make<double>([&]() { return rand_expo<double>(0, 5, ne50); }));
-
-    for (int64_t n : {2LL, 10LL, 1000LL, 100000LL, 10'000'000LL, 1'000'000'000'000LL}) {
-        double r = int_expo_base_for_ratio(n);
-        println("int_expo_base(n) for n={:<13} {:.7f}", n, r);
-    }
-
-    double r40 = int_expo_base_for_ratio(40, 40);
-    double g40 = int_geom_prob_for_ratio(40, 40);
-    debug(r40, g40);
-
-    println("Exponential weight 1..40, ratio 40:\n{}", //
-            makew<int>([&]() { return rand_expo<int>(1, 40, r40); }));
-    println("Geometric weight 1..40, ratio 40:\n{}", //
-            makew<int>([&]() { return rand_geom<int>(1, 40, g40); }));
-
-    double e5030 = int_expo_base_for_ratio(20, 50. / 30.);
-    double e2012 = real_expo_base_for_ratio(8, 20. / 12.);
-    debug(e5030, e2012);
-
-    println("Exp r=50/30 30..50:\n{}", //
-            makew<int>([&]() { return rand_expo<int>(30, 50, e5030); }));
-    println("Exp r=20/12 12..20:\n{}", //
-            makew<double>([&]() { return rand_expo<double>(12, 20, e2012); }));
-
     double rk1 = 1 / (M_E - 1);
     double rk3 = int_expo_base_for_ratio(3);
     double rk7 = int_expo_base_for_ratio(7);
@@ -260,15 +192,15 @@ void show_partition_distributions() {
     double rk1 = int_expo_base_for_ratio(1);
 
     println("Partial exponential partition:\n{}", //
-            fmthist(rand_partial_partition(2'000'000, [&](int t) {
+            group(rand_partial_partition(2'000'000, [&](int t) {
                 return rand_expo<int>(1, min(t, 100'000), rk1);
             })));
     println("Partial normal partition:\n{}", //
-            fmthist(rand_partial_partition(2'000'000, [&](int) {
+            group(rand_partial_partition(2'000'000, [&](int) {
                 return rand_norm<int>(1, 100'000, 10'000, 6'000);
             })));
     println("Partial geometric partition:\n{}", //
-            fmthist(rand_partial_partition(2'000'000, [&](int t) {
+            group(rand_partial_partition(2'000'000, [&](int t) {
                 return rand_geom<int>(1, min(t, 100'000), 0.02);
             })));
 }

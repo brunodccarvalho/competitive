@@ -1,6 +1,7 @@
 #pragma once
 
 #include "random.hpp"
+#include "hash.hpp"
 #include "geometry/geometry3d.hpp"
 #include "geometry/utils3d.hpp"
 
