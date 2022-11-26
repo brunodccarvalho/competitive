@@ -285,6 +285,13 @@ auto rand_strings(int n, int minlen, int maxlen, char a, char b) {
     return strs;
 }
 
+auto rand_perm(int n, int start, int skip = 0) {
+    vector<int> perm(n + skip);
+    iota(begin(perm) + skip, end(perm), start);
+    shuffle(begin(perm) + skip, end(perm), mt);
+    return perm;
+}
+
 /**
  * Generate a sorted sample of k distinct integers from the range [a..b)
  * It must hold that a<=b and k<=m=b-a.
@@ -615,7 +622,7 @@ auto compound_sample(int k, T a, T b, Fn&& gen) {
 template <typename T>
 auto geom_sample(int k, T a, T b, double p) {
     return compound_sample(k, a, b, [p](T n) { //
-        return rand_geom<T>(1, n, p);
+        return n == 0 ? 0 : rand_geom<T>(1, n, p);
     });
 }
 

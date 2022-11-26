@@ -356,10 +356,9 @@ auto random_forest(int V, int trees, int min_tree_size = 1) {
 auto random_geometric_forest(const vector<int>& tree_sizes, double alpha) {
     assert(-1.0 < alpha && alpha < 1.0);
     edges_t g;
-    g.reserve(accumulate(begin(tree_sizes), end(tree_sizes), 0));
     int T = tree_sizes.size();
     for (int i = 0, s = 0; i < T; s += tree_sizes[i++]) {
-        for (auto [u, v] : random_geometric_tree(T, alpha)) {
+        for (auto [u, v] : random_geometric_tree(tree_sizes[i], alpha)) {
             g.push_back({u + s, v + s});
         }
     }
@@ -420,6 +419,56 @@ auto random_uniform_directed(int V, double p) {
 auto random_uniform_bipartite(int U, int V, double p) {
     assert(0.0 < p && p <= 1.0);
     return pair_sample_p(p, 0, U, 0, V); //
+}
+
+auto random_uniform_bipartite_same(int U, int V, double p) {
+    assert(0.0 < p && p <= 1.0);
+    auto G1 = pair_sample_p(p, 0, U, 0, V);
+    edges_t g;
+    for (auto [u, v] : G1) {
+        g.push_back({u, v + U});
+    }
+    return g;
+}
+
+auto random_uniform_tripartite_same(int U, int V, int W, double p) {
+    assert(U >= 1 && V >= 1 && W >= 1);
+    auto G1 = pair_sample_p(p, 0, U, 0, V);
+    auto G2 = pair_sample_p(p, 0, V, 0, W);
+    edges_t g;
+    for (auto [u, v] : G1) {
+        g.push_back({u, v + U});
+    }
+    for (auto [u, v] : G2) {
+        g.push_back({u + U, v + U + V});
+    }
+    return g;
+}
+
+auto random_bipartite(int V, double p) {
+    assert(V >= 2 && 0.0 < p && p <= 1.0);
+    auto parts = partition_sample(V, 2, 1);
+    int a = parts[0], b = parts[1];
+    return random_uniform_bipartite_same(a, b, p);
+}
+
+auto random_tripartite(int V, double p) {
+    assert(V >= 3 && 0.0 < p && p <= 1.0);
+    auto parts = partition_sample(V, 3, 1);
+    int a = parts[0], b = parts[1], c = parts[2];
+    return random_uniform_tripartite_same(a, b, c, p);
+}
+
+auto random_paths(int V, int P) {
+    assert(V >= P && P >= 1);
+    auto parts = partition_sample(V, P, 1);
+    edges_t g;
+    for (int i = 0, s = 0; i < P; s += parts[i++]) {
+        for (int u = 0; u + 1 < parts[i]; u++) {
+            g.push_back({u + s, u + s + 1});
+        }
+    }
+    return g;
 }
 
 // *****
@@ -547,6 +596,7 @@ auto random_exact_directed(int V, int E) {
 auto random_exact_bipartite(int U, int V, int E) {
     return pair_sample(E, 0, U, 0, V); //
 }
+
 
 // *****
 

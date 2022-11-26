@@ -82,3 +82,72 @@ struct hash<modnum<MOD>> {
 };
 
 } // namespace std
+
+struct dmodnum {
+    // change these if you need another size of integers
+    static inline uint32_t MOD = 0;
+    using u32 = uint32_t;
+    using u64 = uint64_t;
+    using i32 = int32_t;
+    using i64 = int64_t;
+
+    u32 n;
+
+    dmodnum() : n(0) {}
+    dmodnum(u64 v) : n(v >= MOD ? v % MOD : v) {}
+    dmodnum(u32 v) : n(v >= MOD ? v % MOD : v) {}
+    dmodnum(i64 v) : dmodnum(v >= 0 ? u64(v) : u64(MOD + v % int(MOD))) {}
+    dmodnum(i32 v) : dmodnum(v >= 0 ? u32(v) : u32(MOD + v % int(MOD))) {}
+    explicit operator i32() const { return n; }
+    explicit operator u32() const { return n; }
+    explicit operator bool() const { return n != 0; }
+
+    static u32 fit(u32 x) { return x >= MOD ? x - MOD : x; }
+    static int modinv(u32 x) {
+        int nx = 1, ny = 0;
+        u32 y = MOD;
+        while (x) {
+            auto k = y / x;
+            y = y % x;
+            ny = ny - k * nx;
+            swap(x, y), swap(nx, ny);
+        }
+        return ny < 0 ? MOD + ny : ny;
+    }
+    friend dmodnum modpow(dmodnum b, int64_t e) {
+        dmodnum p = 1;
+        while (e > 0) {
+            if (e & 1)
+                p = p * b;
+            if (e >>= 1)
+                b = b * b;
+        }
+        return p;
+    }
+
+    dmodnum inv() const { return modinv(n); }
+    dmodnum operator-() const { return n == 0 ? n : MOD - n; }
+    dmodnum operator+() const { return *this; }
+    dmodnum operator++(int) { return n = fit(n + 1), *this - 1; }
+    dmodnum operator--(int) { return n = fit(MOD + n - 1), *this + 1; }
+    dmodnum &operator++() { return n = fit(n + 1), *this; }
+    dmodnum &operator--() { return n = fit(MOD + n - 1), *this; }
+    dmodnum &operator+=(dmodnum v) { return n = fit(n + v.n), *this; }
+    dmodnum &operator-=(dmodnum v) { return n = fit(MOD + n - v.n), *this; }
+    dmodnum &operator*=(dmodnum v) { return n = (u64(n) * v.n) % MOD, *this; }
+    dmodnum &operator/=(dmodnum v) { return *this *= v.inv(); }
+
+    friend dmodnum operator+(dmodnum lhs, dmodnum rhs) { return lhs += rhs; }
+    friend dmodnum operator-(dmodnum lhs, dmodnum rhs) { return lhs -= rhs; }
+    friend dmodnum operator*(dmodnum lhs, dmodnum rhs) { return lhs *= rhs; }
+    friend dmodnum operator/(dmodnum lhs, dmodnum rhs) { return lhs /= rhs; }
+
+    friend string to_string(dmodnum v) { return to_string(v.n); }
+    friend bool operator==(dmodnum lhs, dmodnum rhs) { return lhs.n == rhs.n; }
+    friend bool operator!=(dmodnum lhs, dmodnum rhs) { return lhs.n != rhs.n; }
+    friend ostream &operator<<(ostream &out, dmodnum v) { return out << v.n; }
+    friend istream &operator>>(istream &in, dmodnum &v) {
+        i64 n;
+        return in >> n, v = dmodnum(n), in;
+    }
+};

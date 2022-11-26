@@ -370,6 +370,7 @@ void debugger(const char* vars, Ts&&... args) {
     cerr << endl;
 }
 #define debug(...) debugger(#__VA_ARGS__, __VA_ARGS__)
+#define show(...) eputln(__VA_ARGS__)
 
 template <typename T>
 auto transpose(const vector<vector<T>>& mat) {

@@ -72,17 +72,31 @@
     1e+14 35.22ms 81.44ms 179.62ms 361.59ms 764.06ms    1.72s    4.09s    3.61s
     1e+15 39.73ms 85.40ms 196.47ms 392.20ms 815.65ms    1.77s    3.87s    3.90s
 =====
+===== Plus Convolution
+                  6000    15000    30000    50000   100000   200000  300000  500000   800000
+       border  21.26us  54.26us 110.55us 202.05us 423.75us   1.01ms  1.65ms  2.85ms   4.54ms
+ concave-1d1d 464.12us   1.33ms   2.92ms   5.32ms  11.45ms  24.53ms 39.21ms 70.93ms 126.05ms
+  convex-1d1d 425.70us   1.21ms   2.70ms   5.01ms  10.50ms  22.73ms 35.57ms 66.05ms 122.25ms
+convex-1d1d-a  44.13us  98.25us 191.74us 319.96us 624.42us   1.16ms  1.89ms  3.12ms   6.12ms
+convex-1d1d-b 233.15us 576.63us   1.14ms   2.00ms   3.99ms   7.85ms 11.84ms 19.92ms  30.91ms
+    minkowski  59.51us 150.31us 314.80us 558.64us   1.02ms   2.27ms  3.29ms  5.66ms   8.29ms
+        smawk 577.25us   1.52ms   3.32ms   6.15ms  12.75ms  27.07ms 41.92ms 73.48ms 122.47ms
+      smawk-a  31.22us  63.69us 136.45us 244.54us 484.10us 901.16us  1.54ms  2.97ms   5.01ms
+      smawk-b 466.13us   1.23ms   2.68ms   4.99ms  10.23ms  22.10ms 34.82ms 60.26ms 102.46ms
+=====
 ===== Convolution
-                      4096     8192    16384    32768   65536   131072   262144   524288  1048576
-              and  89.49us 166.04us 298.76us 657.68us  1.72ms   3.30ms   7.29ms  15.33ms  30.69ms
-              exp   1.49ms   3.41ms   6.98ms  17.00ms 42.89ms  87.88ms 192.09ms 420.33ms 959.02ms
-          inverse   1.95ms   4.36ms   8.85ms  21.61ms 54.53ms 108.83ms 238.70ms 541.39ms    1.21s
-              log   1.52ms   3.44ms   7.08ms  17.15ms 44.47ms  87.78ms 202.72ms 426.65ms 948.00ms
-               or  91.32us 164.63us 305.04us 675.57us  1.76ms   3.49ms   7.53ms  15.43ms  29.82ms
-      sos subsets  52.19us  99.90us 192.84us 454.85us  1.12ms   2.24ms   5.06ms  10.30ms  21.09ms
-    sos supersets  50.82us  99.14us 191.14us 447.49us  1.09ms   2.09ms   4.67ms   9.30ms  21.66ms
-           subset   1.96ms   4.35ms   8.81ms  21.09ms 53.52ms 106.85ms 244.15ms 535.24ms    1.20s
-              xor 150.84us 297.94us 528.26us   1.14ms  2.90ms   5.74ms  11.47ms  23.73ms  49.25ms
+                  4096     8192    16384    32768    65536   131072   262144   524288  1048576
+          and  52.14us 104.41us 212.09us 437.33us 864.17us   1.81ms   3.76ms   8.36ms  24.46ms
+          exp   1.36ms   3.15ms   7.22ms  16.28ms  37.00ms  83.79ms 188.10ms 416.16ms 944.33ms
+          gcd  56.31us 113.78us 232.93us 476.64us 962.83us   2.01ms   4.18ms   9.33ms  27.89ms
+      inverse   1.13ms   2.53ms   5.75ms  13.00ms  29.13ms  64.68ms 143.58ms 323.83ms 817.23ms
+          lcm  58.26us 117.70us 248.85us 510.13us   1.04ms   2.18ms   4.69ms  10.52ms  34.63ms
+          log 901.45us   2.07ms   4.62ms  10.45ms  23.41ms  52.56ms 117.42ms 257.53ms 600.47ms
+           or  62.40us 125.14us 253.81us 513.26us   1.02ms   2.13ms   4.41ms   9.67ms  27.28ms
+  sos subsets  27.27us  58.52us 126.75us 274.83us 588.86us   1.35ms   2.81ms   6.53ms  15.54ms
+sos supersets  27.56us  59.74us 130.99us 282.79us 610.54us   1.37ms   2.79ms   6.50ms  14.42ms
+       subset   1.75ms   4.02ms   9.12ms  20.73ms  46.56ms 104.27ms 230.32ms 519.12ms    1.26s
+          xor 155.17us 310.77us 632.25us   1.28ms   2.54ms   5.19ms  10.62ms  22.31ms  54.86ms
 =====
 ===== Bipartite matching
                              6000             15000             30000               50000              100000              200000              300000              500000              800000
