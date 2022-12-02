@@ -1,8 +1,14 @@
 #pragma once
 
-#include "struct/integer_lists.hpp"
+#include <bits/stdc++.h>
+using namespace std;
 
 // Maximum general matching in O(E√V) with good constant. ~1.2s for V=500K and E=2M.
+// Usage:
+//   micali_vazirani mv(V);             or mv(V, G)
+//   ... add edges ...
+//   int mm = mv.max_matching();
+//   auto edges = mv.extract_edge_mates();
 struct micali_vazirani {
     int V, E = 0;
     vector<int> mate;
@@ -123,6 +129,55 @@ struct micali_vazirani {
 
     static inline constexpr int inf = INT_MAX / 2;
 
+    struct linked_lists {
+        int L, N;
+        vector<int> next, prev;
+
+        // L: lists are [0...L), N: integers are [0...N)
+        explicit linked_lists(int L = 0, int N = 0) { assign(L, N); }
+
+        int rep(int l) const { return l + N; }
+        int head(int l) const { return next[rep(l)]; }
+        int tail(int l) const { return prev[rep(l)]; }
+        bool empty(int l) const { return next[rep(l)] == rep(l); }
+
+        void push_front(int l, int n) { meet(rep(l), n, head(l)); }
+        void push_back(int l, int n) { meet(tail(l), n, rep(l)); }
+        void erase(int n) { meet(prev[n], next[n]); }
+
+        void clear() {
+            iota(begin(next) + N, end(next), N);
+            iota(begin(prev) + N, end(prev), N);
+        }
+        void assign(int L, int N) {
+            this->L = L, this->N = N;
+            next.resize(N + L), prev.resize(N + L), clear();
+        }
+
+      private:
+        inline void meet(int u, int v) { next[u] = v, prev[v] = u; }
+        inline void meet(int u, int v, int w) { meet(u, v), meet(v, w); }
+    };
+
+    struct forward_lists {
+        int L, N;
+        vector<int> next;
+
+        // L: lists are [0...L), N: integers are [0...N)
+        explicit forward_lists(int L = 0, int N = 0) { assign(L, N); }
+
+        int rep(int l) const { return l + N; }
+        int head(int l) const { return next[rep(l)]; }
+        bool empty(int l) const { return head(l) == -1; }
+
+        void push(int l, int n) { insert(rep(l), n); }
+        void insert(int i, int n) { next[n] = next[i], next[i] = n; }
+        void pop(int l) { assert(head(l) != -1), next[rep(l)] = next[head(l)]; }
+
+        void clear() { fill(begin(next) + N, end(next), -1); }
+        void assign(int L, int N) { this->L = L, this->N = N, next.assign(L + N, -1); }
+    };
+
     struct link_t {
         int hi = -1, lo = -1;
     };
@@ -226,7 +281,8 @@ struct micali_vazirani {
             return true;
 
         bool parity = phase % 2;
-        FOR_EACH_IN_LINKED_LIST (u, phase, phaselist) {
+        for (int u = phaselist.head(phase); u != phaselist.rep(phase);
+             u = phaselist.next[u]) {
             pending--;
             if (node[u].erased)
                 continue;
@@ -323,7 +379,8 @@ struct micali_vazirani {
 
     int MAX() {
         int augmentations = 0;
-        FOR_EACH_IN_LINKED_LIST (peak, phase, bridges) {
+        for (int peak = bridges.head(phase); peak != bridges.rep(phase);
+             peak = bridges.next[peak]) {
             auto [red, blue] = edge[peak];
             if (node[red].erased || node[blue].erased)
                 continue;
