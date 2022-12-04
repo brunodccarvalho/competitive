@@ -12,6 +12,53 @@
 // If the query lies on an input segment then you choose which vector the segment goes:
 static constexpr int HIT_IGNORE = 0, HIT_ABOVE = 1, HIT_BELOW = 2;
 
+bool simple_polygon(vector<Pt2> pts) {
+    int N = pts.size();
+    pts.push_back(pts[0]);
+
+    live_sweep_scanner scanner(Pt2(1, 0));
+
+    vector<int> index(N), rank(N);
+    iota(begin(index), end(index), 0);
+    sort(begin(index), end(index), [&](int i, int j) { return pts[i] < pts[j]; });
+
+    for (int i = 0; i < N; i++) {
+        rank[index[i]] = i;
+    }
+
+    vector<vector<Ray>> open(N), close(N); // |open[u]|+|close[u]|=2
+    for (int i = 0; i < N; i++) {
+        int j = (i + 1) % N;
+        if (rank[i] < rank[j]) {
+            Ray l = Ray::through(pts[i], pts[j]);
+            open[i].push_back(l);
+            close[j].push_back(l);
+        } else {
+            Ray l = Ray::through(pts[j], pts[i]);
+            close[i].push_back(l);
+            open[j].push_back(l);
+        }
+    }
+
+    auto isect = [&](Ray l, Ray g) { return segments_intersect(l.p, l.q(), g.p, g.q()); };
+    set<Ray, live_sweep_scanner> shafts(scanner);
+
+    for (int i : index) {
+        for (Ray l : close[i]) {
+            shafts.erase(l);
+        }
+        for (Ray l : open[i]) {
+            auto after = shafts.lower_bound(l.p);
+            if (after != end(shafts) && isect(l, *after)) return false;
+            if (after != begin(shafts) && isect(l, *prev(after))) return false;
+            shafts.emplace_hint(after, l);
+        }
+    }
+
+    assert(shafts.empty());
+    return true;
+}
+
 auto offline_point_location(const vector<Pt2>& pts, const vector<array<int, 2>>& segments,
                             int hit_location = HIT_IGNORE, Pt2 forward = Pt2(1, 0)) {
     int N = pts.size(), S = segments.size();

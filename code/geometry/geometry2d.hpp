@@ -11,7 +11,6 @@ struct Pt2 {
     using T = int64_t;    // points, vectors, coefs, manh -- integer/frac/quot
     using L = int64_t;    // crosses, dotes, dist2, norm2 -- integer/frac/quot
     using H = __int128_t; // huge (circle predicates) -- int128/double
-    static constexpr bool FLOAT = false;
 
     T x, y;
     Pt2() : x(0), y(0) {}
@@ -30,11 +29,7 @@ struct Pt2 {
     bool boxed(Pt2 lo, Pt2 hi) const {
         return lo.x <= x && x <= hi.x && lo.y <= y && y <= hi.y;
     }
-    friend auto min(Pt2 a, Pt2 b) { return Pt2(min(a.x, b.x), min(a.y, b.y)); }
-    friend auto max(Pt2 a, Pt2 b) { return Pt2(max(a.x, b.x), max(a.y, b.y)); }
 
-    T& operator[](int i) { return *(&x + i); }
-    T operator[](int i) const { return *(&x + i); }
     Pt2 operator-() const { return Pt2(-x, -y); }
     Pt2 operator+() const { return Pt2(x, y); }
     friend Pt2 operator+(Pt2 u, Pt2 v) { return Pt2(u.x + v.x, u.y + v.y); }

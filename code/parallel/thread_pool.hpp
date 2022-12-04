@@ -133,9 +133,9 @@ struct thread_pool {
         state = cancelled;
         cv.notify_all();
         guard.unlock();
-        for (thread& worker : threads)
+        for (thread& worker : threads) {
             assert(worker.joinable()), worker.join();
-
+        }
         state = invalid;
     }
 

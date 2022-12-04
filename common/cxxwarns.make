@@ -14,7 +14,7 @@ WARNS += -Wpessimizing-move -Wredundant-move
 WARNS += -Wdate-time
 
 # GCC https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html
-ifeq ($(COMPILER),gcc)
+ifeq ($(CC),g++)
 	WARNS += -fmax-errors=5
 
 	WARNS += -Wrestrict
@@ -33,7 +33,7 @@ ifeq ($(COMPILER),gcc)
 endif
 
 # Clang https://clang.llvm.org/docs/DiagnosticsReference.html
-ifeq ($(COMPILER),clang)
+ifeq ($(CC),clang++)
 	WARNS += -ferror-limit=5
 	WARNS += -Qunused-arguments
     WARNS += -Wno-float-conversion

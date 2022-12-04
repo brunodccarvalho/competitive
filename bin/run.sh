@@ -55,7 +55,7 @@ function run_valgrind_tests {
 		else
 			echo "$input NOPE"
 			diff -y --minimal "$output" "$answer" | head -100
-			break
+			# break
 		fi
 	done
 }
@@ -210,11 +210,11 @@ function main {
 			fi
 		;;
 		fbvalid)
-			echo "COPY:" $DOWNLOADS/*input.txt
+			echo "COPY: $DOWNLOADS/*input.txt"
 			mv $DOWNLOADS/*input.txt .
 		;;
 		fbfinal)
-			echo "COPY:" $DOWNLOADS/*input.zip
+			echo "COPY: $DOWNLOADS/*input.zip"
 			mv $DOWNLOADS/*input.zip .
 		;;
 		fbout*)

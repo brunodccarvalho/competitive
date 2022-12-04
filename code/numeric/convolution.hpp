@@ -609,7 +609,7 @@ auto min_plus_concave_one(const vector<V>& a, const vector<V>& b) {
         solve_suffix(K, K + M);
     }
 
-    return move(c);
+    return c;
 }
 
 // Compute min plus convolution c[k] = min{i+j=k}(a[i]+b[j]) for convex b. O(N log M + M)
@@ -699,7 +699,7 @@ auto min_plus_convex_one(const vector<V>& a, const vector<V>& b) {
         solve_suffix(K, K + M);
     }
 
-    return move(c);
+    return c;
 }
 
 // Compute max plus convolution c[k] = max{i+j=k}(a[i]+b[j]) for convex b. O(N log M + M)
@@ -785,7 +785,7 @@ auto max_plus_convex_one(const vector<V>& a, const vector<V>& b) {
         solve_suffix(K, K + M);
     }
 
-    return move(c);
+    return c;
 }
 
 // Compute max plus convolution c[k] = max{i+j=k}(a[i]+b[j]) for concave b. O(N log M + M)
@@ -875,5 +875,5 @@ auto max_plus_concave_one(const vector<V>& a, const vector<V>& b) {
         solve_suffix(K, K + M);
     }
 
-    return move(c);
+    return c;
 }

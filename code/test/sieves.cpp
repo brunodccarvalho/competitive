@@ -43,11 +43,6 @@ void speed_test_sieves() {
         modinv_sieve(N, 1'000'000'007);
         TIME(modinv);
         table[{"modinv", N}] = FORMAT_TIME(modinv);
-
-        START(logfac);
-        logfac_sieve(N);
-        TIME(logfac);
-        table[{"modinv", N}] = FORMAT_TIME(logfac);
     }
 
     print_time_table(table, "Sieves");

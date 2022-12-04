@@ -241,7 +241,7 @@ struct dachull {
     auto solve() const { return recurse(0, index.size()).second; }
 
     static Wedge* compute(const vector<Pt3>& pts) {
-        assert(!Pt3::FLOAT && "Only for integer points");
+        assert(is_integral_v<Pt3::T> && "Only for integer points");
         dachull solver(pts);
         Wedge::use_temporary_pool();
         return Wedge::clone_all(solver.solve(), true);

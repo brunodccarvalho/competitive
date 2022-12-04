@@ -104,3 +104,240 @@ struct forward_lists {
 
 #define FOR_EACH_IN_FORWARD_LIST(i, l, lists) \
     for (int i = lists.head(l); i != -1; i = lists.next[i])
+
+// A fast vector-based hashset (chinese doubly linked list)
+struct fast_set {
+    int N = 0, S = 0;
+    vector<int> next, prev;
+
+    fast_set() = default;
+    fast_set(int N) : N(N), next(N + 1, -1), prev(N + 1, -1) { prev[N] = next[N] = N; }
+
+    int head() const { return next[N]; }
+    int tail() const { return prev[N]; }
+    int front() const { return assert(next[N] != N), next[N]; }
+    int back() const { return assert(prev[N] != N), prev[N]; }
+
+    int add_front(int n) { //
+        return next[n] == -1 ? meet(N, n, next[N]), S++, 1 : 0;
+    }
+    int add_back(int n) { //
+        return next[n] == -1 ? meet(prev[N], n, N), S++, 1 : 0;
+    }
+    int del(int n) { //
+        return next[n] != -1 ? meet(prev[n], next[n]), clr(n), S--, 1 : 0;
+    }
+
+    void add_before(int n, int pos) {
+        assert(next[n] == -1 && next[pos] != -1);
+        meet(prev[pos], n, pos), S++;
+    }
+    void add_after(int n, int pos) {
+        assert(next[n] == -1 && next[pos] != -1);
+        meet(pos, n, next[pos]), S++;
+    }
+    int del_after(int n) {
+        assert(next[n] != -1);
+        int k = next[n];
+        return meet(prev[n], next[n]), clr(n), S--, k;
+    }
+
+    int pop_front() {
+        int u = front();
+        return del(u), u;
+    }
+    int pop_back() {
+        int u = back();
+        return del(u), u;
+    }
+
+    bool has(int n) const { return next[n] != -1; }
+    int size() const { return S; }
+    int universe() const { return N; }
+    bool empty() const { return S == 0; }
+
+    void clear() {
+        while (next[N] != N) {
+            int u = next[N];
+            meet(N, next[u]);
+            clr(u), S--;
+        }
+    }
+
+    auto to_vec() const {
+        vector<int> us;
+        for (int u = next[N]; u != N; u = next[u]) {
+            us.push_back(u);
+        }
+        return us;
+    }
+
+  private:
+    void meet(int u, int v) { next[u] = v, prev[v] = u; }
+    void meet(int u, int v, int w) { meet(u, v), meet(v, w); }
+    void clr(int u) { prev[u] = next[u] = -1; }
+};
+
+#define LOOP_FAST_SET(u, set) for (int u = set.head(); u != set.N; u = set.next[u])
+
+#define LOOP_FAST_SET_DEL(u, set) \
+    for (int u = set.head(), ahead##u = set.next[u]; u != set.N; u = ahead##u, ahead##u = set.next[u])
+
+// A fast vector-based hashset (chinese doubly linked list) with global hash tracking
+struct fast_hashing_set {
+    int N = 0, S = 0;
+    uint64_t H = 0;
+    vector<int> next, prev;
+
+    fast_hashing_set() = default;
+    fast_hashing_set(int N) : N(N), next(N + 1, -1), prev(N + 1, -1) {
+        prev[N] = next[N] = N;
+    }
+
+    int head() const { return next[N]; }
+    int tail() const { return prev[N]; }
+    int front() const { return assert(next[N] != N), next[N]; }
+    int back() const { return assert(prev[N] != N), prev[N]; }
+
+    int add_front(int n) { //
+        return next[n] == -1 ? meet(N, n, next[N]), S++, H ^= nhash[n], 1 : 0;
+    }
+    int add_back(int n) { //
+        return next[n] == -1 ? meet(prev[N], n, N), S++, H ^= nhash[n], 1 : 0;
+    }
+    int del(int n) { //
+        return next[n] != -1 ? meet(prev[n], next[n]), clr(n), S--, H ^= nhash[n], 1 : 0;
+    }
+
+    void add_before(int n, int pos) {
+        assert(next[n] == -1 && next[pos] != -1);
+        meet(prev[pos], n, pos), S++, H ^= nhash[n];
+    }
+    void add_after(int n, int pos) {
+        assert(next[n] == -1 && next[pos] != -1);
+        meet(pos, n, next[pos]), S++, H ^= nhash[n];
+    }
+    int del_after(int n) {
+        assert(next[n] != -1);
+        int k = next[n];
+        return meet(prev[n], next[n]), clr(n), S--, H ^= nhash[n], k;
+    }
+
+    int pop_front() {
+        int u = front();
+        return del(u), u;
+    }
+    int pop_back() {
+        int u = back();
+        return del(u), u;
+    }
+
+    bool has(int n) const { return next[n] != -1; }
+    int size() const { return S; }
+    int universe() const { return N; }
+    bool empty() const { return S == 0; }
+    uint64_t hash() const { return H; }
+
+    void clear() {
+        while (next[N] != N) {
+            int u = next[N];
+            meet(N, next[u]);
+            clr(u), H ^= nhash[u], S--;
+        }
+    }
+
+    auto to_vec() const {
+        vector<int> us;
+        for (int u = next[N]; u != N; u = next[u]) {
+            us.push_back(u);
+        }
+        return us;
+    }
+
+    static void prepare_hashes(int S) {
+        mt19937_64 rng(std::chrono::system_clock::now().time_since_epoch().count());
+        uniform_int_distribution<uint64_t> dist(0, UINT64_MAX);
+        nhash.resize(S + 1);
+        for (int i = 0; i <= S; i++) {
+            nhash[i] = dist(rng);
+        }
+    }
+
+  private:
+    static inline vector<uint64_t> nhash;
+    void meet(int u, int v) { next[u] = v, prev[v] = u; }
+    void meet(int u, int v, int w) { meet(u, v), meet(v, w); }
+    void clr(int u) { prev[u] = next[u] = -1; }
+};
+
+// Maintain an incremental set of elements without duplicates in a vector. Very low memory overhead
+template <typename T>
+struct incremental_vector_set {
+    static constexpr inline int B = 32;
+    array<vector<T>, B> store = {};
+
+    explicit incremental_vector_set(size_t reserved = 0) {
+        for (int i = 0; i < B && reserved > 0; i++) {
+            size_t here = min(reserved, 1ul << i);
+            reserved -= here;
+            store[i].reserve(1ul << i);
+        }
+    }
+
+    bool has(const T& val) {
+        for (int i = B - 1; i >= 0; i--) {
+            if (binary_search(begin(store[i]), end(store[i]), val)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    auto build() {
+        int b = B - 1;
+        while (b > 0 && store[b].empty()) {
+            b--;
+        }
+        vector<size_t> sizes;
+        for (int i = 0; i <= b; i++) {
+            if (store[i].size()) {
+                sizes.push_back(store[i].size());
+            }
+        }
+        for (int i = b - 1; i >= 0; i--) {
+            store[b].insert(end(store[b]), begin(store[i]), end(store[i]));
+            store[i].clear();
+            store[i].shrink_to_fit();
+        }
+        int C = sizes.size();
+        size_t R = C ? sizes[0] : 0;
+        for (int i = 1; i < C; i++) {
+            size_t L = sizes[i];
+            inplace_merge(end(store[b]) - L - R, end(store[b]) - R, end(store[b]));
+            R += L;
+        }
+        assert(is_sorted(begin(store[b]), end(store[b])));
+        return move(store[b]);
+    }
+
+    bool insert(const T& val) {
+        if (has(val)) {
+            return false;
+        }
+        int b = 0;
+        while (store[b].size()) {
+            b++;
+        }
+        for (int i = b - 1; i >= 0; i--) {
+            store[b].insert(end(store[b]), begin(store[i]), end(store[i]));
+            store[i].clear();
+        }
+        store[b].push_back(val);
+        size_t K = 1;
+        for (int i = 0; i < b; i++, K += K) {
+            inplace_merge(end(store[b]) - 2 * K, end(store[b]) - K, end(store[b]));
+        }
+        assert(is_sorted(begin(store[b]), end(store[b])));
+        return true;
+    }
+};

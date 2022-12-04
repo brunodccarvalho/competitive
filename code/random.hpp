@@ -63,18 +63,18 @@ T rand_grav(common_type_t<T> a, common_type_t<T> b, int grav) {
     return ans;
 }
 
-template <typename T> // ans=[a,b], exponential, slope 1/(c+i), c!=0
-T rand_expo(common_type_t<T> a, common_type_t<T> b, double c) {
+template <typename T> // ans=[a,b], standard exponential
+T rand_expo(common_type_t<T> a, common_type_t<T> b) {
+    assert(a > 0 && b > 0);
     if (a >= b) {
         return a;
-    } else if (c < 0) {
-        return b - rand_expo<T>(a, b, -c) + a;
     } else if constexpr (is_integral_v<T>) {
+        double c = 1 / expm1(1.0 / a);
         double e = rand_unif<double>(log(c), log(b + 1.0 - a + c));
         return clamp(T(a + exp(e) - c), T(a), T(b));
     } else if constexpr (is_floating_point_v<T>) {
-        double e = rand_unif<double>(log(c), log(b - a + c));
-        return clamp(T(a + exp(e) - c), T(a), T(b));
+        double e = rand_unif<double>(log(a), log(b));
+        return clamp(exp(e), T(a), T(b));
     } else {
         assert(false);
     }
@@ -84,10 +84,10 @@ template <typename T> // ans=[a,b], geometric, slope 1-p, -1<p<1, p!=0
 T rand_geom(common_type_t<T> a, common_type_t<T> b, double p) {
     if (a >= b) {
         return a;
-    } else if (p < 0.0) {
-        return b - rand_geom<T>(a, b, -p) + a;
     } else if (abs(p) < 1e-11) {
         return rand_unif<T>(a, b);
+    } else if (p < 0.0) {
+        return b - rand_geom<T>(a, b, -p) + a;
     } else if constexpr (is_integral_v<T>) {
         double M_log_1_p = log1p(-p);
         double largest = 1.0 - exp(M_log_1_p * (b + 1.0 - a));
@@ -127,7 +127,7 @@ T rand_norm(common_type_t<T> a, common_type_t<T> b, double mean, double dev) {
 }
 
 template <typename T> // ans=[a,b], gravitate towards peak
-T rand_peak(common_type_t<T> a, common_type_t<T> b, T peak, int grav) {
+T rand_peak(common_type_t<T> a, common_type_t<T> b, common_type_t<T> peak, int grav) {
     assert(-20 <= grav && grav <= 20);
     auto ans = rand_unif<T>(a, b);
     while (grav > 0) {
@@ -141,23 +141,10 @@ T rand_peak(common_type_t<T> a, common_type_t<T> b, T peak, int grav) {
     return ans;
 }
 
-// Find c for rand_expo<real>(0,n,c) so that freq(0)/freq(n)=r
-// To get freq(b)/freq(n)=n/b when n goes to infinity pick c=b
-double real_expo_base_for_ratio(double n, double r) {
-    assert(r > 0);
-    return n <= 0 ? 1.0 : r > 1 ? n / (r - 1) : n * r / (r - 1);
-}
-
 // Find p for rand_geom<real>(0,n,c) so that freq(0)/freq(n)=r
 double real_geom_prob_for_ratio(double n, double r) {
     assert(r > 0);
     return n <= 0 ? 0.5 : r > 1 ? 1.0 - pow(r, -1.0 / n) : -(1.0 - pow(1 / r, -1.0 / n));
-}
-
-// Find c for rand_expo<int>(b,n,c) so that freq(b)/freq(n)=n/b when n goes to infinity
-double int_expo_base_for_ratio(double b) {
-    assert(b > 0);
-    return 1 / expm1(1.0 / b);
 }
 
 // Find p for rand_geom<int>(0,n,c) so that freq(0)/freq(n)=r
@@ -172,6 +159,7 @@ auto rands_unif(int n, common_type_t<T> a, common_type_t<T> b) {
     for (int i = 0; i < n; i++) {
         vec[i] = rand_unif<T>(a, b);
     }
+    shuffle(rbegin(vec), rend(vec), mt);
     return vec;
 }
 
@@ -181,6 +169,7 @@ auto rands_wide(int n, common_type_t<T> a, common_type_t<T> b, int draw) {
     for (int i = 0; i < n; i++) {
         vec[i] = rand_wide<T>(a, b, draw);
     }
+    shuffle(rbegin(vec), rend(vec), mt);
     return vec;
 }
 
@@ -190,15 +179,17 @@ auto rands_grav(int n, common_type_t<T> a, common_type_t<T> b, int grav) {
     for (int i = 0; i < n; i++) {
         vec[i] = rand_grav<T>(a, b, grav);
     }
+    shuffle(rbegin(vec), rend(vec), mt);
     return vec;
 }
 
 template <typename T, typename O = T> // ans=[a,b]
-auto rands_expo(int n, common_type_t<T> a, common_type_t<T> b, double c) {
+auto rands_expo(int n, common_type_t<T> a, common_type_t<T> b) {
     vector<O> vec(n);
     for (int i = 0; i < n; i++) {
-        vec[i] = rand_expo<T>(a, b, c);
+        vec[i] = rand_expo<T>(a, b);
     }
+    shuffle(rbegin(vec), rend(vec), mt);
     return vec;
 }
 
@@ -208,6 +199,7 @@ auto rands_geom(int n, common_type_t<T> a, common_type_t<T> b, double p) {
     for (int i = 0; i < n; i++) {
         vec[i] = rand_geom<T>(a, b, p);
     }
+    shuffle(rbegin(vec), rend(vec), mt);
     return vec;
 }
 
@@ -217,6 +209,7 @@ auto rands_norm(int n, common_type_t<T> a, common_type_t<T> b, double mean, doub
     for (int i = 0; i < n; i++) {
         vec[i] = rand_norm<T>(a, b, mean, dev);
     }
+    shuffle(rbegin(vec), rend(vec), mt);
     return vec;
 }
 
@@ -226,6 +219,7 @@ auto rands_peak(int n, common_type_t<T> a, common_type_t<T> b, T peak, int grav)
     for (int i = 0; i < n; i++) {
         vec[i] = rand_peak<T>(a, b, peak, grav);
     }
+    shuffle(rbegin(vec), rend(vec), mt);
     return vec;
 }
 
@@ -283,13 +277,6 @@ auto rand_strings(int n, int minlen, int maxlen, char a, char b) {
         strs[i] = rand_string(rand_unif<int>(minlen, maxlen), a, b);
     }
     return strs;
-}
-
-auto rand_perm(int n, int start, int skip = 0) {
-    vector<int> perm(n + skip);
-    iota(begin(perm) + skip, end(perm), start);
-    shuffle(begin(perm) + skip, end(perm), mt);
-    return perm;
 }
 
 /**
@@ -661,9 +648,8 @@ auto rand_partial_partition(T sum, Fn&& gen) {
 template <typename T>
 auto rand_expo_partition(T sum, T maximum) {
     static_assert(is_integral_v<T>);
-    const double c = int_expo_base_for_ratio(1); // 0.581977
     return rand_partial_partition(sum, [&](T cur) {
-        return rand_expo<T>(1, min(cur, maximum), c);
+        return rand_expo<T>(1, min(cur, maximum));
     });
 }
 

@@ -11,20 +11,20 @@ bool cout_is_terminal() {
 
 auto& log_destination() { return cout_is_terminal() ? std::cout : std::cerr; }
 
-void clear_line() { cout_is_terminal() ? print("\r\033[2K") : (void)fflush(stdout); }
+void clear_line() { cout_is_terminal() ? fmt::print("\r\033[2K") : (void)fflush(stdout); }
 
 template <typename... Ts>
 void printcl(Ts&&... args) {
     auto& dest = log_destination();
-    print(dest, "\r\033[2K");
-    print(dest, forward<Ts>(args)...);
+    fmt::print(dest, "\r\033[2K");
+    fmt::print(dest, forward<Ts>(args)...);
     flush(dest);
 }
 
 template <typename... Ts>
 void putcln(Ts&&... args) {
     auto& dest = log_destination();
-    print(dest, "\r\003[2K");
+    fmt::print(dest, "\r\003[2K");
     putln(dest, forward<Ts>(args)...);
     flush(dest);
 }
@@ -39,13 +39,13 @@ template <typename T>
 void print_progress(long i, long N, T&& content) {
     double percent = 100.0 * (i + 1) / N;
     int digits = to_string(N).size();
-    string txt = format("{}", forward<T>(content));
+    string txt = fmt::format("{}", forward<T>(content));
     printcl("{:5.1f}% {:>{}}/{} {}", percent, i + 1, digits, N, txt);
 }
 
 template <typename... Ts>
 void print_progress(long i, long N, string_view fmt, Ts&&... args) {
-    return print_progress(i, N, format(fmt, forward<Ts>(args)...));
+    return print_progress(i, N, fmt::format(fmt, forward<Ts>(args)...));
 }
 
 template <typename... Ts>
@@ -58,14 +58,14 @@ void print_regular(long i, long N, long step, Ts&&... args) {
 template <typename T1, typename T2, typename T>
 void print_time_view(T1 now, T2 duration, T&& content) {
     double percent = 100.0 * now / duration;
-    auto txt = format("{}", forward<T>(content));
+    auto txt = fmt::format("{}", forward<T>(content));
     printcl("{:5.1f}% {}", percent, txt);
 }
 
 template <typename T1, typename T2, typename... Ts>
 void print_time_view(T1 now, T2 duration, string_view fmt, Ts&&... args) {
     double percent = 100.0 * now / duration;
-    auto txt = format(fmt, forward<Ts>(args)...);
+    auto txt = fmt::format(fmt, forward<Ts>(args)...);
     printcl("{:5.1f}% {}", percent, txt);
 }
 
@@ -81,7 +81,7 @@ void print_time(T1 now, T2 duration, Ts&&... args) {
 
 template <typename... Ts>
 [[noreturn]] void fail(Ts&&... args) {
-    print(log_destination(), "\n"), clear_line();
-    print(log_destination(), "Error: {}", format(forward<Ts>(args)...));
+    fmt::print(log_destination(), "\n"), clear_line();
+    fmt::print(log_destination(), "Error: {}", fmt::format(forward<Ts>(args)...));
     exit(1);
 }

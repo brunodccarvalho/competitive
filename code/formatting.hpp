@@ -1,12 +1,11 @@
 #pragma once
 
+#define FMT_HEADER_ONLY
 #include <bits/stdc++.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
 
 using namespace std;
-using fmt::print;
-using fmt::format;
 
 string repeat(int n, const string& pat) {
     string s;
@@ -25,20 +24,20 @@ string make_format_string(int n) { return repeat(n, "{}", " "); }
 
 template <typename... Ts>
 auto putln(Ts&&... args) {
-    return print(cout, make_format_string(sizeof...(Ts)) + "\n",
-                 std::forward<Ts>(args)...);
+    return fmt::print(cout, make_format_string(sizeof...(Ts)) + "\n",
+                      std::forward<Ts>(args)...);
 }
 
 template <typename... Ts>
 auto putln(ostream& out, Ts&&... args) {
-    return print(out, make_format_string(sizeof...(Ts)) + "\n",
-                 std::forward<Ts>(args)...);
+    return fmt::print(out, make_format_string(sizeof...(Ts)) + "\n",
+                      std::forward<Ts>(args)...);
 }
 
 template <typename... Ts>
 auto putln(ofstream& out, Ts&&... args) {
-    return print(out, make_format_string(sizeof...(Ts)) + "\n",
-                 std::forward<Ts>(args)...);
+    return fmt::print(out, make_format_string(sizeof...(Ts)) + "\n",
+                      std::forward<Ts>(args)...);
 }
 
 template <typename... Ts>
@@ -48,12 +47,12 @@ auto eputln(Ts&&... args) {
 
 template <typename... Ts>
 auto println(string fmt, Ts&&... args) {
-    return print(cout, fmt + "\n", std::forward<Ts>(args)...);
+    return fmt::print(cout, std::move(fmt) + "\n", std::forward<Ts>(args)...);
 }
 
 template <typename... Ts>
 auto println(ostream& out, string fmt, Ts&&... args) {
-    return print(out, fmt + "\n", std::forward<Ts>(args)...);
+    return fmt::print(out, std::move(fmt) + "\n", std::forward<Ts>(args)...);
 }
 
 template <typename... Ts>
@@ -63,7 +62,7 @@ auto eprintln(Ts&&... args) {
 
 template <typename... Ts>
 auto eprint(Ts&&... args) {
-    return print(cerr, std::forward<Ts>(args)...);
+    return fmt::print(cerr, std::forward<Ts>(args)...);
 }
 
 template <typename Seq>
@@ -113,6 +112,64 @@ string build_aligned_string(const vector<vector<string>>& mat) {
     return s;
 }
 
+string build_wrapped_aligned_string(int W, const vector<vector<string>>& mat) {
+    if (mat.empty())
+        return "";
+    vector<int> width;
+    for (int i = 0, N = mat.size(); i < N; i++) {
+        width.resize(max(width.size(), mat[i].size()));
+        for (int j = 0, M = mat[i].size(); j < M; j++) {
+            width[j] = max<int>(width[j], mat[i][j].size());
+        }
+    }
+    if (width.empty())
+        return "";
+    int B = width.size(), A = accumulate(begin(width), end(width), 0) + B;
+    int P = (A + W - 1) / W, S = (A + P - 1) / P;
+    vector<int> breaks = {0};
+    for (int w = 0, i = 0; i < B; i++) {
+        w += width[i];
+        if (w >= S) {
+            breaks.push_back(i + 1), w = 0;
+        }
+    }
+    if (breaks.back() != B) {
+        breaks.push_back(B);
+    }
+    string s;
+    for (int C = breaks.size(), N = mat.size(), k = 0; k + 1 < C; k++) {
+        for (int l = breaks[k], r = breaks[k + 1], i = 0; i < N; i++) {
+            for (int j = l, M = mat[i].size(); j < r; j++) {
+                string pad(width[j] - mat[i][j].size(), ' ');
+                s += pad + mat[i][j] + " \n"[j + 1 == r];
+            }
+        }
+    }
+    return s;
+}
+
+string build_aligned_string_colored(const vector<vector<string>>& mat,
+                                    const vector<vector<string>>& mods) {
+    vector<size_t> width;
+    for (int i = 0, N = mat.size(); i < N; i++) {
+        width.resize(max(width.size(), mat[i].size()));
+        for (int j = 0, M = mat[i].size(); j < M; j++) {
+            width[j] = max(width[j], mat[i][j].size());
+        }
+    }
+    string s;
+    for (int i = 0, N = mat.size(); i < N; i++) {
+        for (int j = 0, M = mat[i].size(), B = mods[i].size(); j < M; j++) {
+            string block = string(width[j] - mat[i][j].size(), ' ') + mat[i][j];
+            if (j < B && mods[i][j].size() && mat[i][j].size()) {
+                block = mods[i][j] + block + "\033[0m";
+            }
+            s += block + " \n"[j + 1 == M];
+        }
+    }
+    return s;
+}
+
 template <typename Mat>
 string mat_to_string(const Mat& v) {
     vector<vector<string>> string_matrix;
@@ -128,6 +185,23 @@ string mat_to_string(const Mat& v) {
         }
     }
     return build_aligned_string(string_matrix);
+}
+
+template <typename Mat>
+string wrapped_mat_to_string(int W, const Mat& v) {
+    vector<vector<string>> string_matrix;
+    for (const auto& row : v) {
+        string_matrix.emplace_back();
+        for (const auto& col : row) {
+            if constexpr (std::is_same<decltype(col), const string&>::value) {
+                string_matrix.back().push_back(col);
+            } else {
+                using std::to_string;
+                string_matrix.back().push_back(to_string(col));
+            }
+        }
+    }
+    return build_wrapped_aligned_string(W, string_matrix);
 }
 
 template <typename Mat>
@@ -154,13 +228,13 @@ string mat_to_string_indices(const Mat& v) {
 }
 
 template <typename U, typename V, typename String>
-string format_pair_map(const map<pair<U, V>, String>& times) {
-    if (times.empty()) {
+string format_pair_map(const map<pair<U, V>, String>& tab) {
+    if (tab.empty()) {
         return "";
     }
     set<U> rowset;
     set<V> colset;
-    for (const auto& [key, time] : times) {
+    for (const auto& [key, time] : tab) {
         rowset.insert(key.first);
         colset.insert(key.second);
     }
@@ -170,11 +244,11 @@ string format_pair_map(const map<pair<U, V>, String>& times) {
     vector<vector<string>> string_matrix(R + 1, vector<string>(C + 1));
     for (int r = 0; r < R; r++) {
         for (int c = 0; c < C; c++) {
-            if (times.count({rows[r], cols[c]})) {
+            if (tab.count({rows[r], cols[c]})) {
                 if constexpr (is_same<String, string>::value) {
-                    string_matrix[r + 1][c + 1] = times.at({rows[r], cols[c]});
+                    string_matrix[r + 1][c + 1] = tab.at({rows[r], cols[c]});
                 } else {
-                    string_matrix[r + 1][c + 1] = to_string(times.at({rows[r], cols[c]}));
+                    string_matrix[r + 1][c + 1] = to_string(tab.at({rows[r], cols[c]}));
                 }
             }
         }
@@ -196,6 +270,56 @@ string format_pair_map(const map<pair<U, V>, String>& times) {
         }
     }
     return build_aligned_string(string_matrix);
+}
+
+template <typename U, typename V, typename String>
+string format_pair_map(const map<pair<U, V>, String>& tab,
+                       const map<pair<U, V>, string>& mod) {
+    if (tab.empty()) {
+        return "";
+    }
+    set<U> rowset;
+    set<V> colset;
+    for (const auto& [key, time] : tab) {
+        rowset.insert(key.first);
+        colset.insert(key.second);
+    }
+    vector<U> rows(begin(rowset), end(rowset));
+    vector<V> cols(begin(colset), end(colset));
+    int R = rows.size(), C = cols.size();
+    vector<vector<string>> string_matrix(R + 1, vector<string>(C + 1));
+    vector<vector<string>> mod_matrix(R + 1, vector<string>(C + 1));
+    for (int r = 0; r < R; r++) {
+        for (int c = 0; c < C; c++) {
+            if (tab.count({rows[r], cols[c]})) {
+                if constexpr (is_same<String, string>::value) {
+                    string_matrix[r + 1][c + 1] = tab.at({rows[r], cols[c]});
+                } else {
+                    string_matrix[r + 1][c + 1] = to_string(tab.at({rows[r], cols[c]}));
+                }
+                if (mod.count({rows[r], cols[c]})) {
+                    mod_matrix[r + 1][c + 1] = mod.at({rows[r], cols[c]});
+                }
+            }
+        }
+    }
+    for (int r = 0; r < R; r++) {
+        using std::to_string;
+        if constexpr (is_same<U, string>::value) {
+            string_matrix[r + 1][0] = rows[r];
+        } else {
+            string_matrix[r + 1][0] = to_string(rows[r]);
+        }
+    }
+    for (int c = 0; c < C; c++) {
+        using std::to_string;
+        if constexpr (is_same<V, string>::value) {
+            string_matrix[0][c + 1] = cols[c];
+        } else {
+            string_matrix[0][c + 1] = to_string(cols[c]);
+        }
+    }
+    return build_aligned_string_colored(string_matrix, mod_matrix);
 }
 
 template <typename U, typename V, typename W, typename String>
@@ -370,18 +494,20 @@ void debugger(const char* vars, Ts&&... args) {
     cerr << endl;
 }
 #define debug(...) debugger(#__VA_ARGS__, __VA_ARGS__)
-#define show(...) eputln(__VA_ARGS__)
 
 template <typename T>
 auto transpose(const vector<vector<T>>& mat) {
-    int n = mat.size(), m = n ? mat[0].size() : 0;
-    vector<vector<T>> tra(m, vector<T>(n));
+    int n = mat.size(), m = 0;
     for (int i = 0; i < n; i++) {
-        for (int j = 0; j < m; j++) {
-            tra[j][i] = mat[i][j];
+        m = max<int>(m, mat[i].size());
+    }
+    vector<vector<T>> transposed(m, vector<T>(n));
+    for (int i = 0; i < n; i++) {
+        for (uint j = 0; j < mat[i].size(); j++) {
+            transposed[j][i] = mat[i][j];
         }
     }
-    return tra;
+    return transposed;
 }
 
 auto format_hist_grid(const vector<vector<int>>& hist, int x0, int x1, int y0, int y1) {

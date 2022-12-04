@@ -2,9 +2,9 @@
 
 #include "geometry/geometry3d.hpp"
 
-auto extract_points(const vector<vector<int>>& facets, const vector<P>& pts) {
+auto extract_points(const vector<vector<int>>& facets, const vector<Pt3>& pts) {
     int F = facets.size();
-    vector<vector<P>> ans(F);
+    vector<vector<Pt3>> ans(F);
     for (int f = 0; f < F; f++) {
         int N = facets[f].size();
         ans[f].resize(N);
@@ -15,8 +15,8 @@ auto extract_points(const vector<vector<int>>& facets, const vector<P>& pts) {
     return ans;
 }
 
-auto area3d(const vector<vector<int>>& facets, const vector<P>& pts) {
-    P::D hull_area = 0;
+auto area3d(const vector<vector<int>>& facets, const vector<Pt3>& pts) {
+    Pt3::L hull_area = 0;
     for (const auto& face : facets) {
         for (int i = 1, F = face.size(); i + 1 < F; i++) {
             const auto &a = pts[face[0]], b = pts[face[i]], c = pts[face[i + 1]];
@@ -26,8 +26,8 @@ auto area3d(const vector<vector<int>>& facets, const vector<P>& pts) {
     return hull_area / 2.0;
 }
 
-auto volume3d(const vector<vector<int>>& facets, const vector<P>& pts) {
-    P::D hull_volume = 0;
+auto volume3d(const vector<vector<int>>& facets, const vector<Pt3>& pts) {
+    Pt3::L hull_volume = 0;
     for (const auto& face : facets) {
         for (int i = 1, F = face.size(); i + 1 < F; i++) {
             const auto &a = pts[face[0]], b = pts[face[i]], c = pts[face[i + 1]];
@@ -37,15 +37,16 @@ auto volume3d(const vector<vector<int>>& facets, const vector<P>& pts) {
     return hull_volume / 6.0;
 }
 
-auto centroid3d(const vector<vector<int>>& facets, const vector<P>& pts) {
-    P::DP ans = {};
+auto centroid3d(const vector<vector<int>>& facets, const vector<Pt3>& pts) {
+    array<Pt3::L, 3> ans = {};
+    auto sq = [](const Pt3::L& x) { return x * x; };
     for (const auto& face : facets) {
         for (int i = 1, F = face.size(); i + 1 < F; i++) {
             const auto &a = pts[face[0]], b = pts[face[i]], c = pts[face[i + 1]];
             auto n = cross(a, b, c);
-            ans[0] += n.x * (pow(a.x + b.x, 2) + pow(b.x + c.x, 2) + pow(c.x + a.x, 2));
-            ans[1] += n.y * (pow(a.y + b.y, 2) + pow(b.y + c.y, 2) + pow(c.y + a.y, 2));
-            ans[2] += n.z * (pow(a.z + b.z, 2) + pow(b.z + c.z, 2) + pow(c.z + a.z, 2));
+            ans[0] += n.x * (sq(a.x + b.x) + sq(b.x + c.x) + sq(c.x + a.x));
+            ans[1] += n.y * (sq(a.y + b.y) + sq(b.y + c.y) + sq(c.y + a.y));
+            ans[2] += n.z * (sq(a.z + b.z) + sq(b.z + c.z) + sq(c.z + a.z));
         }
     }
     auto V = volume3d(facets, pts);

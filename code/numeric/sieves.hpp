@@ -80,13 +80,13 @@ auto num_divisors_sieve(int N) {
 
 // Compute the sum of divisors of all n<=N, including trivial divisors. O(N log log N)
 auto sum_divisors_sieve(int N) {
-    vector<long> sum_divisors;
+    vector<int64_t> sum_divisors;
     sum_divisors.assign(N + 1, 1);
     sum_divisors[0] = 0;
 
     for (int n = 2; n <= N; n++) {
         if (sum_divisors[n] == 1) {
-            for (long m = n, k = 1 + n; m <= N; m *= n, k += m) {
+            for (int64_t m = n, k = 1 + n; m <= N; m *= n, k += m) {
                 for (int i = 1; i * m <= N; i++) {
                     for (int b = 1; b < n && i * m <= N; i++, b++) {
                         sum_divisors[i * m] *= k;
@@ -128,20 +128,6 @@ auto modinv_sieve(int N, int mod) {
     }
 
     return inv;
-}
-
-// Compute log(n!) of all n<=N. O(N)
-template <typename D = double>
-auto logfac_sieve(int N) {
-    vector<D> logfac;
-    logfac.resize(N + 1);
-    logfac[0] = logfac[1] = 1;
-
-    for (int n = 2; n <= N; n++) {
-        logfac[n] = logfac[n - 1] + log(D(n));
-    }
-
-    return logfac;
 }
 
 // Count primes in the range [L,R], both inclusive. Requires sieving first, such that

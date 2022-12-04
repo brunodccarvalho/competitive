@@ -74,6 +74,15 @@ struct tensor {
     }
     bool operator!=(const tensor& o) const { return !(*this == o); }
 
+    auto to_matrix() const {
+        static_assert(NDIMS == 2);
+        vector<vector<T>> mat(shape[0], vector<T>(shape[1]));
+        for (int i = 0; i < shape[0]; i++)
+            for (int j = 0; j < shape[1]; j++)
+                mat[i][j] = data[i * shape[1] + j];
+        return mat;
+    }
+
   private:
     template <size_t D>
     int flatten_index(array<int, D> idx) const {

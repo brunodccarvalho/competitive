@@ -7,6 +7,19 @@ using int128_t = __int128_t;
 int128_t gcd(int128_t a, int128_t b) { return b == 0 ? a : gcd(b, a % b); }
 int128_t lcm(int128_t a, int128_t b) { return (a / gcd(a, b)) * b; }
 
+int128_t to_int128(const string& s) {
+    int128_t val = 0;
+    int S = s.size();
+    for (int i = 0; i < S; i++) {
+        if ('0' <= s[i] && s[i] <= '9') {
+            val = 10 * val + (s[i] - '0');
+        } else {
+            break;
+        }
+    }
+    return val;
+}
+
 namespace std {
 string to_string(int128_t x) {
     if (x == 0)
@@ -29,6 +42,10 @@ string to_string(int128_t x) {
 }
 
 ostream& operator<<(ostream& o, int128_t x) { return o << to_string(x); }
+istream& operator>>(istream& o, int128_t& x) {
+    string s;
+    return o >> s, x = to_int128(s), o;
+}
 } // namespace std
 
 struct Int128Hasher {

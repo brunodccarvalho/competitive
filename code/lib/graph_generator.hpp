@@ -274,12 +274,18 @@ auto random_tournament(int V, double forward_bias = 0.5) {
 
 // *****
 
-auto random_tree(int V) {
+auto random_rooted_tree(int V) {
     assert(V > 0 && V <= 30'000'000);
     edges_t g;
     for (int u = 1; u < V; u++) {
-        int p = intd(0, u - 1)(mt);
+        int p = min(rand_unif<int>(0, V - 1), u - 1);
         g.push_back({p, u});
+    }
+    random_relabel_graph_inplace(V, g);
+    for (auto& [p, u] : g) {
+        if (p > u) {
+            swap(p, u);
+        }
     }
     return g;
 }
@@ -340,7 +346,7 @@ auto random_forest(const vector<int>& tree_sizes) {
     g.reserve(accumulate(begin(tree_sizes), end(tree_sizes), 0));
     int T = tree_sizes.size();
     for (int i = 0, s = 0; i < T; s += tree_sizes[i++]) {
-        for (auto [u, v] : random_tree(tree_sizes[i])) {
+        for (auto [u, v] : random_rooted_tree(tree_sizes[i])) {
             g.push_back({u + s, v + s});
         }
     }

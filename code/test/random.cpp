@@ -6,7 +6,7 @@
 
 template <typename T, typename U>
 auto fmthist(const vector<pair<T, U>>& cnt) {
-    const int W = 150;
+    const int max_bars = 150;
     using V = conditional_t<is_integral_v<U>, int64_t, double>;
     V M = 0, C = 0, m = numeric_limits<U>::max();
     vector<U> cnts;
@@ -23,9 +23,9 @@ auto fmthist(const vector<pair<T, U>>& cnt) {
         lead += format("{:>4.3f}{}", 1.0 * cnts[i] / cnts[i + 1], " \n"[i + 2 == S]);
     }
     for (auto [n, c] : cnt) {
-        int w = floor((1.0 * c * W + M / 2) / M);
+        int bars = floor((1.0 * c * max_bars + M / 2) / M);
         double p = 100.0 * c / C;
-        lead += format("{:>18} {:>6.3f}% {}\n", n, p, string(w, '#'));
+        lead += format("{:>18} {:>6.3f}% {}\n", n, p, string(bars, '#'));
     }
     return lead;
 }
@@ -120,19 +120,19 @@ void show_single_distributions() {
     println("Normal (5.5,5) for [-12,+12]:\n{}", //
             make<int>([]() { return rand_norm<int>(-12, +12, 5.5, 5); }));
 
+    println("Peak 5 [0,25], +1:\n{}", //
+            make<int>([]() { return rand_peak<int>(0, 25, 5, +1); }));
+    println("Peak 9 [0,25], -1:\n{}", //
+            make<int>([]() { return rand_peak<int>(0, 25, 9, -1); }));
     println("Peak 5 [0,20], +2:\n{}", //
             make<int>([]() { return rand_peak<int>(0, 20, 5, +2); }));
     println("Peak 5 [0,20], -2:\n{}", //
             make<int>([]() { return rand_peak<int>(0, 20, 5, -2); }));
 
-    println("Exp c=+1 0..20:\n{}", //
-            make<int>([]() { return rand_expo<int>(0, 20, 1.0); }));
-    println("Exp c=+1 0..5:\n{}", //
-            make<double>([]() { return rand_expo<double>(0, 5, 1.0); }));
-    println("Exp c=-1 0..20:\n{}", //
-            make<int>([]() { return rand_expo<int>(0, 20, -1.0); }));
-    println("Exp c=-1 0..5:\n{}", //
-            make<double>([]() { return rand_expo<double>(0, 5, -1.0); }));
+    println("Exp 1..20:\n{}", //
+            make<int>([]() { return rand_expo<int>(1, 20); }));
+    println("Exp 1..5:\n{}", //
+            make<double>([]() { return rand_expo<double>(1, 5); }));
 
     println("Geo p=+.2 0..20:\n{}", //
             make<int>([]() { return rand_geom<int>(0, 20, 0.2); }));
@@ -150,23 +150,14 @@ void show_single_distributions() {
 }
 
 void show_weight_distributions() {
-    double rk1 = 1 / (M_E - 1);
-    double rk3 = int_expo_base_for_ratio(3);
-    double rk7 = int_expo_base_for_ratio(7);
-    double rk10000 = int_expo_base_for_ratio(10000);
-    println("converged for b=1: {}", rk1);
-    println("converged for b=3: {}", rk3);
-    println("converged for b=7: {}", rk7);
-    println("converged for b=10000: {}\n", rk10000);
-
-    println("Exp r={:.6f} 1..20:\n{}", rk1, //
-            makew<int>([&]() { return rand_expo<int>(1, 20, rk1); }));
-    println("Exp r={:.6f} 3..20:\n{}", rk3, //
-            makew<int>([&]() { return rand_expo<int>(3, 20, rk3); }));
-    println("Exp r={:.6f} 7..20:\n{}", rk7, //
-            makew<int>([&]() { return rand_expo<int>(7, 20, rk7); }));
-    println("Exp r={:.6f} 10000..10020:\n{}", rk10000, //
-            makew<int>([&]() { return rand_expo<int>(10000, 10020, rk10000); }));
+    println("Exp 1..20:\n{}", //
+            makew<int>([&]() { return rand_expo<int>(1, 20); }));
+    println("Exp 3..20:\n{}", //
+            makew<int>([&]() { return rand_expo<int>(3, 20); }));
+    println("Exp 7..20:\n{}", //
+            makew<int>([&]() { return rand_expo<int>(7, 20); }));
+    println("Exp 200..230:\n{}", //
+            makew<int>([&]() { return rand_expo<int>(200, 230); }));
 }
 
 void show_sample_distributions() {
@@ -189,11 +180,9 @@ void show_sample_distributions() {
 }
 
 void show_partition_distributions() {
-    double rk1 = int_expo_base_for_ratio(1);
-
     println("Partial exponential partition:\n{}", //
             group(rand_partial_partition(2'000'000, [&](int t) {
-                return rand_expo<int>(1, min(t, 100'000), rk1);
+                return rand_expo<int>(1, min(t, 100'000));
             })));
     println("Partial normal partition:\n{}", //
             group(rand_partial_partition(2'000'000, [&](int) {
@@ -263,7 +252,9 @@ void speed_test_sampling() {
 }
 
 int main() {
+    RUN_BLOCK(show_single_distributions());
+    RUN_BLOCK(show_weight_distributions());
+    RUN_BLOCK(show_partition_distributions());
     RUN_BLOCK(speed_test_sampling());
-    RUN_BLOCK(show_compound_distributions());
     return 0;
 }
