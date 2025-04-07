@@ -139,7 +139,7 @@ string build_wrapped_aligned_string(int W, const vector<vector<string>>& mat) {
     string s;
     for (int C = breaks.size(), N = mat.size(), k = 0; k + 1 < C; k++) {
         for (int l = breaks[k], r = breaks[k + 1], i = 0; i < N; i++) {
-            for (int j = l, M = mat[i].size(); j < r; j++) {
+            for (int j = l; j < r; j++) {
                 string pad(width[j] - mat[i][j].size(), ' ');
                 s += pad + mat[i][j] + " \n"[j + 1 == r];
             }
@@ -488,7 +488,8 @@ map<T, int> make_amortized_histogram(const vector<T>& occurrences, int rows) {
 template <typename... Ts>
 void debugger(const char* vars, Ts&&... args) {
     cout.flush(), cerr.flush();
-    cerr << ">> [" << vars << "]: ";
+    cerr << ">> ";
+    // cerr << "[" << vars << "]: ";
     const char* delim = "";
     (..., (cerr << delim << args, delim = ", "));
     cerr << endl;
@@ -544,7 +545,6 @@ auto format_hist_grid(const vector<vector<int>>& hist, int x0, int x1, int y0, i
 }
 
 auto format_point_hist_grid(const vector<pair<int, int>>& pts, int width, int height) {
-    static auto ceildiv = [](int a, int b) { return (a + b - 1) / b; };
     int xmin = INT_MAX, ymin = INT_MAX;
     int xmax = INT_MIN, ymax = INT_MIN;
     for (auto [x, y] : pts) {
