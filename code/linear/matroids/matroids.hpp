@@ -234,7 +234,7 @@ struct incremental_graphic_matroid {
 
     incremental_graphic_matroid(int V, vector<array<int, 2>> g) : g(move(g)), dsu(V) {}
 
-    incremental_graphic_matroid(int V, vector<array<int, 2>> g,
+    incremental_graphic_matroid(int, vector<array<int, 2>> g,
                                 const disjoint_set_rollback& initial)
         : g(move(g)), dsu(initial), start(dsu.time()) {}
 

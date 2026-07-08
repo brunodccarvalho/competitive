@@ -14,6 +14,6 @@ for file in bin/*; do
 	if test "$FOUND" -ne 1; then continue; fi
 	file=${file#bin/}
 	echo ===== "$file"
-	/usr/bin/time -f "# %es $file" "./bin/$file"
+	env time -f "# %es $file" "./bin/$file"
 	sleep 1s
 done

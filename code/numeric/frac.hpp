@@ -123,10 +123,10 @@ Frac stofrac(const string& s) {
         }
         return n ? Frac(integer, denom) : Frac(integer);
     } else if (j < S && s[j] == '.') {
-        int n = 0, k = j + 1;
+        int k = j + 1;
         typename Frac::unit_type decimal = 0, ten = 1;
         while (k < S && '0' <= s[k] && s[k] <= '9') {
-            decimal = 10 * decimal + (s[k] - '0'), ten *= 10, n++, k++; // read digits
+            decimal = 10 * decimal + (s[k] - '0'), ten *= 10, k++; // read digits
         }
         decimal = neg ? -decimal : decimal;
         return Frac(integer * ten + decimal, ten);

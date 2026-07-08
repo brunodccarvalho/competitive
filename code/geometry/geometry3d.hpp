@@ -3,14 +3,13 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-__int128_t abs(__int128_t x) { return x >= 0 ? x : -x; }
-
 // For 3D computational geometry problems.
 
 struct Pt3 {
     using T = int64_t;    // points, vectors, crosses, coefs, manh -- integer/frac/quot
     using L = __int128_t; // dots, norm2, dist2 -- integer/frac/quot
     using H = double;     // huge (sphere predicates) -- int128/double
+    static constexpr bool FLOAT = false;
 
     T x, y, z;
     Pt3() : x(0), y(0), z(0) {}

@@ -81,7 +81,8 @@ auto gcd(int64_t a, int64_t b, int64_t& x, int64_t& y) {
 }
 
 auto invmod(int64_t a, int64_t m) {
-    int64_t x, y, g = gcd(a, m, x, y);
+    int64_t x, y;
+    gcd(a, m, x, y);
     x = x % m;
     return x < 0 ? x + m : x;
 }

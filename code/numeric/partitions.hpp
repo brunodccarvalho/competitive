@@ -3,12 +3,6 @@
 #include "hash.hpp"
 #include "random.hpp"
 
-vector<int> first_choice(int n, int k, int s) {
-    vector<int> comb(k);
-    iota(begin(comb), end(comb), 1), (void)n;
-    return comb;
-}
-
 bool next_choice(vector<int>& comb, int n, int s) {
     for (int k = comb.size(), i = k - 1; i >= 0; i--) {
         if (comb[i] <= n - k + i + s) {

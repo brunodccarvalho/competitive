@@ -1,5 +1,5 @@
+EXTRA_WARNS := -Wno-stringop-overflow
 include ../../common/Makefile
-# DEBUG += $(SANIT)
 
 BIN_DIR := ./bin
 DEP_DIR := ./dep

@@ -14,10 +14,10 @@ auto bounding_box_size(const vector<Pt2>& pts) {
     }
     Pt2 a = pts[0], b = pts[0];
     for (int i = 1; i < N; i++) {
-        for (int j = 0; j < 2; j++) {
-            a[j] = min(a[j], pts[i][j]);
-            b[j] = max(b[j], pts[i][j]);
-        }
+        a.x = min(a.x, pts[i].x);
+        a.y = min(a.y, pts[i].y);
+        b.x = max(b.x, pts[i].x);
+        b.y = max(b.y, pts[i].y);
     }
     return b - a;
 }

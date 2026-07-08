@@ -34,9 +34,6 @@ void stress_test_wavelet_tree() {
                     for (int y = x; y <= MAX; y++) {
                         int c = x < y ? cnt[y - 1] - cnt[x - 1] : 0;
                         int d = wvl.count_within(l, r, x, y);
-                        if (c != d) {
-                            debug(l, r, MIN, MAX, x, y, c, d);
-                        }
                         assert(c == d);
                     }
                 }

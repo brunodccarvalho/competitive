@@ -119,7 +119,7 @@ auto build_gray_code_per_size(int n) {
     for (remove_const<decltype(mask)>::type z##bit = (mask), bit = z##bit & -z##bit, \
                                             i = __builtin_ctz(bit);                  \
          z##bit;                                                                     \
-         z##bit ^= bit, z##bit && (bit = z##bit & -z##bit, i = __builtin_ctz(bit)))
+         z##bit ^= bit, z##bit && (bit = z##bit & -z##bit, (i = __builtin_ctz(bit))))
 
 /**
  * Format bit strings

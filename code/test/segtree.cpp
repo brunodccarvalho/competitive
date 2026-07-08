@@ -35,7 +35,7 @@ void stress_test_maxcount_segtree() {
     vector<int> arr(N, 0);
     segtree<maxcount_segnode> st(N, 0);
 
-    LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
+    LOOP_FOR_DURATION (1s) {
         if (cointoss(0.5)) {
             auto [L, R] = diff_unif<int>(0, N);
             int v = rand_unif<int>(-50, 50);
@@ -70,7 +70,7 @@ void stress_test_maxsubrange_segtree() {
     vector<int> arr(N, 0);
     segtree<maxsubrange_segnode> st(N, 0);
 
-    LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
+    LOOP_FOR_DURATION (1s) {
         if (cointoss(0.5)) {
             int i = rand_unif<int>(0, N - 1);
             int v = rand_unif<int>(-50, 50);
@@ -101,7 +101,7 @@ void stress_test_maxsubrange_iterative_segtree() {
     vector<int> arr(N, 0);
     segtree<maxsubrange_segnode> st(N, 0);
 
-    LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
+    LOOP_FOR_DURATION (1s) {
         if (cointoss(0.5)) {
             int i = rand_unif<int>(0, N - 1);
             int v = rand_unif<int>(-50, 50);
@@ -134,7 +134,7 @@ void stress_test_affine_segtree() {
     vector<Data> arr(N, {1, 0});
     segtree<affine_segnode> st(N, Data{1, 0});
 
-    LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
+    LOOP_FOR_DURATION (1s) {
         if (cointoss(0.5)) {
             int i = rand_unif<int>(0, N - 1);
             num b = rand_unif<int>(0, 1'000'000);
@@ -172,7 +172,7 @@ void stress_test_polyhash_segtree() {
     segtree<polyhash_segnode> st(N, num(0));
     vector<num> arr(N, 0);
 
-    LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
+    LOOP_FOR_DURATION (1s) {
         if (cointoss(0.5)) {
             int i = rand_unif<int>(0, N - 1);
             num v = rand_unif<int>(0, 70000);

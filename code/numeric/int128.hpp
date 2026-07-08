@@ -1,6 +1,9 @@
 #pragma once
 
-#include "hash.hpp"
+#include <algorithm>
+#include <string>
+
+using namespace std;
 
 using int128_t = __int128_t;
 
@@ -46,24 +49,4 @@ istream& operator>>(istream& o, int128_t& x) {
     string s;
     return o >> s, x = to_int128(s), o;
 }
-} // namespace std
-
-struct Int128Hasher {
-    size_t operator()(__uint128_t x) const noexcept {
-        array<uint64_t, 2>* arr = reinterpret_cast<array<uint64_t, 2>*>(&x);
-        return Hasher{}(*arr);
-    }
-    size_t operator()(int128_t x) const noexcept {
-        array<uint64_t, 2>* arr = reinterpret_cast<array<uint64_t, 2>*>(&x);
-        return Hasher{}(*arr);
-    }
-};
-
-namespace std {
-
-template <>
-struct hash<int128_t> : Int128Hasher {};
-template <>
-struct hash<__uint128_t> : Int128Hasher {};
-
 } // namespace std

@@ -1,7 +1,7 @@
 #include "test_utils.hpp"
-#include "../bstree/bs_map.hpp"
-#include "../bstree/bs_set.hpp"
-#include "../bstree/bs_tree_debug.hpp"
+#include "bstree/bs_map.hpp"
+#include "bstree/bs_set.hpp"
+#include "bstree/bs_tree_debug.hpp"
 
 using namespace std;
 

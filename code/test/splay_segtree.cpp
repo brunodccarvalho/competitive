@@ -130,7 +130,7 @@ void stress_test_affine_splay_segtree() {
         vector<Data> arr(N, {1, 0});
         splay_segtree<affine_segnode<num>> st(0, N);
 
-        LOOP_FOR_DURATION_TRACKED_RUNS (100ms, now, runs) {
+        LOOP_FOR_DURATION (100ms) {
             if (cointoss(0.5)) {
                 int i = rand_unif<int>(0, N - 1);
                 num b = rand_unif<int>(-1000, 1000);

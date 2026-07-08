@@ -61,7 +61,7 @@ void stress_test_maxsubrange_segtree() {
     dynamic_segtree<maxsubrange_segnode> st;
     int root = st.build_sparse({0}, false);
 
-    LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
+    LOOP_FOR_DURATION (1s) {
         if (cointoss(0.5)) {
             int i = rand_unif<int>(0, N - 1);
             int v = rand_unif<int>(-50, 50);
@@ -95,7 +95,7 @@ void stress_test_affine_segtree() {
     dynamic_segtree<affine_segnode> st;
     int root = st.build_sparse(Data{1, 0}, false);
 
-    LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
+    LOOP_FOR_DURATION (1s) {
         if (cointoss(0.5)) {
             int i = rand_unif<int>(0, N - 1);
             num b = rand_unif<int>(0, 500);
@@ -161,7 +161,7 @@ void stress_test_maxcount_segtree() {
     dynamic_segtree<maxcount_segnode> st;
     int root = st.build_array(N, arr, false);
 
-    LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
+    LOOP_FOR_DURATION (1s) {
         if (cointoss(0.5)) {
             auto [L, R] = ordered_unif<int>(0, N);
             int v = rand_unif<int>(-50, 50);

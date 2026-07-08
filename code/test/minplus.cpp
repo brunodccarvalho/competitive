@@ -1,6 +1,6 @@
 #include "test_utils.hpp"
-#include "../numeric/convolution.hpp"
-#include "../algo/optimization.hpp"
+#include "numeric/convolution.hpp"
+#include "algo/optimization.hpp"
 
 auto naive_min_plus_tracked(const vector<int>& a, const vector<int>& b) {
     int N = a.size(), M = b.size();

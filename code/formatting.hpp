@@ -4,6 +4,7 @@
 #include <bits/stdc++.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
+#include <fmt/ranges.h>
 
 using namespace std;
 
@@ -22,22 +23,62 @@ string repeat(int n, const string& pat, const string& sep) {
 
 string make_format_string(int n) { return repeat(n, "{}", " "); }
 
+template <typename T>
+decltype(auto) fmt_arg(T&& value) {
+    using U = remove_cvref_t<T>;
+    if constexpr (fmt::is_formattable<U, char>::value) {
+        return forward<T>(value);
+    } else {
+        return fmt::streamed(forward<T>(value));
+    }
+}
+
+template <typename... Ts>
+string format(const char* fmtstr, Ts&&... args) {
+    return fmt::format(fmt::runtime(fmtstr), fmt_arg(forward<Ts>(args))...);
+}
+
+template <typename... Ts>
+string format(string_view fmtstr, Ts&&... args) {
+    return fmt::format(fmt::runtime(fmtstr), fmt_arg(forward<Ts>(args))...);
+}
+
+template <typename... Ts>
+auto print(const char* fmtstr, Ts&&... args) {
+    return fmt::print(cout, fmt::runtime(fmtstr), fmt_arg(forward<Ts>(args))...);
+}
+
+template <typename... Ts>
+auto print(string_view fmtstr, Ts&&... args) {
+    return fmt::print(cout, fmt::runtime(fmtstr), fmt_arg(forward<Ts>(args))...);
+}
+
+template <typename... Ts>
+auto print(ostream& out, const char* fmtstr, Ts&&... args) {
+    return fmt::print(out, fmt::runtime(fmtstr), fmt_arg(forward<Ts>(args))...);
+}
+
+template <typename... Ts>
+auto print(ostream& out, string_view fmtstr, Ts&&... args) {
+    return fmt::print(out, fmt::runtime(fmtstr), fmt_arg(forward<Ts>(args))...);
+}
+
 template <typename... Ts>
 auto putln(Ts&&... args) {
-    return fmt::print(cout, make_format_string(sizeof...(Ts)) + "\n",
-                      std::forward<Ts>(args)...);
+    return fmt::print(cout, fmt::runtime(make_format_string(sizeof...(Ts)) + "\n"),
+                      fmt_arg(std::forward<Ts>(args))...);
 }
 
 template <typename... Ts>
 auto putln(ostream& out, Ts&&... args) {
-    return fmt::print(out, make_format_string(sizeof...(Ts)) + "\n",
-                      std::forward<Ts>(args)...);
+    return fmt::print(out, fmt::runtime(make_format_string(sizeof...(Ts)) + "\n"),
+                      fmt_arg(std::forward<Ts>(args))...);
 }
 
 template <typename... Ts>
 auto putln(ofstream& out, Ts&&... args) {
-    return fmt::print(out, make_format_string(sizeof...(Ts)) + "\n",
-                      std::forward<Ts>(args)...);
+    return fmt::print(out, fmt::runtime(make_format_string(sizeof...(Ts)) + "\n"),
+                      fmt_arg(std::forward<Ts>(args))...);
 }
 
 template <typename... Ts>
@@ -46,13 +87,27 @@ auto eputln(Ts&&... args) {
 }
 
 template <typename... Ts>
+auto println(const char* fmt, Ts&&... args) {
+    return fmt::print(cout, fmt::runtime(string(fmt) + "\n"),
+                      fmt_arg(std::forward<Ts>(args))...);
+}
+
+template <typename... Ts>
 auto println(string fmt, Ts&&... args) {
-    return fmt::print(cout, std::move(fmt) + "\n", std::forward<Ts>(args)...);
+    return fmt::print(cout, fmt::runtime(std::move(fmt) + "\n"),
+                      fmt_arg(std::forward<Ts>(args))...);
+}
+
+template <typename... Ts>
+auto println(ostream& out, const char* fmt, Ts&&... args) {
+    return fmt::print(out, fmt::runtime(string(fmt) + "\n"),
+                      fmt_arg(std::forward<Ts>(args))...);
 }
 
 template <typename... Ts>
 auto println(ostream& out, string fmt, Ts&&... args) {
-    return fmt::print(out, std::move(fmt) + "\n", std::forward<Ts>(args)...);
+    return fmt::print(out, fmt::runtime(std::move(fmt) + "\n"),
+                      fmt_arg(std::forward<Ts>(args))...);
 }
 
 template <typename... Ts>
@@ -60,9 +115,18 @@ auto eprintln(Ts&&... args) {
     return println(cerr, std::forward<Ts>(args)...);
 }
 
+inline auto eprint(const char* s) { return fmt::print(cerr, "{}", s); }
+
+inline auto eprint(const string& s) { return fmt::print(cerr, "{}", s); }
+
 template <typename... Ts>
-auto eprint(Ts&&... args) {
-    return fmt::print(cerr, std::forward<Ts>(args)...);
+auto eprint(const char* fmt, Ts&&... args) {
+    return fmt::print(cerr, fmt::runtime(fmt), fmt_arg(std::forward<Ts>(args))...);
+}
+
+template <typename... Ts>
+auto eprint(const string& fmt, Ts&&... args) {
+    return fmt::print(cerr, fmt::runtime(fmt), fmt_arg(std::forward<Ts>(args))...);
 }
 
 template <typename Seq>
@@ -413,12 +477,7 @@ string format_row_list(const vector<K>& keys, const vector<int>& freqs) {
     if (N == 0) {
         return "{empty}\n";
     }
-    long sum = 0;
-    int max_frequency = 0;
-    for (int i = 0; i < N; i++) {
-        sum += freqs[i];
-        max_frequency = max(max_frequency, freqs[i]);
-    }
+    int max_frequency = *max_element(begin(freqs), end(freqs));
     assert(max_frequency > 0);
     constexpr int BARS = 60;
     vector<vector<string>> table;
@@ -442,10 +501,8 @@ string format_histogram(const map<U, int>& hist) {
     if (hist.empty()) {
         return "{empty}\n";
     }
-    long sum = 0;
     int max_frequency = 0;
     for (const auto& [key, frequency] : hist) {
-        sum += frequency;
         max_frequency = max(max_frequency, frequency);
     }
     assert(max_frequency > 0);
@@ -486,7 +543,7 @@ map<T, int> make_amortized_histogram(const vector<T>& occurrences, int rows) {
 }
 
 template <typename... Ts>
-void debugger(const char* vars, Ts&&... args) {
+void debugger([[maybe_unused]] const char* vars, Ts&&... args) {
     cout.flush(), cerr.flush();
     cerr << ">> ";
     // cerr << "[" << vars << "]: ";

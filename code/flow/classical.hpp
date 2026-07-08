@@ -380,6 +380,7 @@ auto matrix_rounding(const vector<vector<double>>& A) {
     circ.add(t, s, -inf, inf);
 
     auto [ok, flow] = circ.feasible_circulation();
+    assert(ok);
 
     vector<vector<int64_t>> R(N, vector<int64_t>(M));
     for (int i = 0, e = 0; i < N; i++) {

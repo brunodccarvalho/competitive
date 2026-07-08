@@ -91,7 +91,7 @@ struct Pd2 {
     }
 
     friend auto signed_linedist(Pd2 a, Pd2 u, Pd2 v) {
-        return double(cross(a, u, v)) / dist(u, v);
+        return cross(a, u, v) / dist(u, v);
     }
     friend auto linedist(Pd2 a, Pd2 u, Pd2 v) { return abs(signed_linedist(a, u, v)); }
     friend auto raydist(Pd2 a, Pd2 u, Pd2 v) {

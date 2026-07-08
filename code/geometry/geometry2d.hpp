@@ -3,18 +3,19 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-__int128_t abs(__int128_t x) { return x >= 0 ? x : -x; }
-
 // For 2D computational geometry problems
 
 struct Pt2 {
     using T = int64_t;    // points, vectors, coefs, manh -- integer/frac/quot
     using L = int64_t;    // crosses, dotes, dist2, norm2 -- integer/frac/quot
     using H = __int128_t; // huge (circle predicates) -- int128/double
+    static constexpr bool FLOAT = false;
 
     T x, y;
     Pt2() : x(0), y(0) {}
     Pt2(T x, T y) : x(x), y(y) {}
+    T operator[](int i) const { return *(&x + i); }
+    T& operator[](int i) { return *(&x + i); }
 
     auto paired() const { return make_pair(x, y); }
     friend bool operator==(Pt2 a, Pt2 b) { return a.paired() == b.paired(); }

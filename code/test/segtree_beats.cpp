@@ -8,7 +8,7 @@ void stress_test_minupdate_segtree_beats() {
     using Op = setmin_sum_segnode::Operation;
     vector<long> arr(N, 73);
 
-    LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
+    LOOP_FOR_DURATION (1s) {
         if (cointoss(0.5)) {
             auto [L, R] = ordered_unif<int>(0, N);
             int v = rand_unif<int>(1, 1'000'000);
@@ -51,7 +51,7 @@ void stress_test_modupdate_segtree_beats() {
     vector<int> arr = rands_unif<int>(N, 0, MAX);
     segtree<setmod_sum_segnode> st(N, arr);
 
-    LOOP_FOR_DURATION_TRACKED_RUNS (1s, now, runs) {
+    LOOP_FOR_DURATION (1s) {
         if (cointoss(0.5)) {
             auto [L, R] = ordered_unif<int>(0, N);
             int v = rand_wide<int>(X, MAX, -5);

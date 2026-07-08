@@ -1,5 +1,5 @@
 #include "test_utils.hpp"
-#include "../struct/pwlc.hpp"
+#include "struct/pwlc.hpp"
 
 void unit_test_pwlc() {
     using LP = LinPoints<int64_t>;

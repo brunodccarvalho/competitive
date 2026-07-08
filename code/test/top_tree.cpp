@@ -1,12 +1,12 @@
 #include "test_utils.hpp"
-#include "../struct/top_tree.hpp"
-#include "../numeric/modnum.hpp"
-#include "../struct/hld_forest.hpp"
-#include "../struct/segtree.hpp"
-#include "../struct/segtree_nodes.hpp"
-#include "../struct/segtree_nodes.hpp"
-#include "../lib/graph_generator.hpp"
-#include "../lib/tree_action.hpp"
+#include "struct/top_tree.hpp"
+#include "numeric/modnum.hpp"
+#include "struct/hld_forest.hpp"
+#include "struct/segtree.hpp"
+#include "struct/segtree_nodes.hpp"
+#include "struct/segtree_nodes.hpp"
+#include "lib/graph_generator.hpp"
+#include "lib/tree_action.hpp"
 
 using namespace tree_testing;
 

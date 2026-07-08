@@ -290,6 +290,9 @@ auto random_rooted_tree(int V) {
     return g;
 }
 
+// Backward-compatible alias used by older tests.
+auto random_tree(int V) { return random_rooted_tree(V); }
+
 auto random_geometric_tree(int V, double alpha) {
     assert(V > 0 && V <= 30'000'000 && -1.0 < alpha && alpha < 1.0);
     edges_t g;

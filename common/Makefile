@@ -1,7 +1,7 @@
 # C++ template (COMPILER=(gcc or clang), CC=(executable name/path, e.g. g++ or clang++))
-COMPILER := gcc
-CC := g++
-CPP_STANDARD := c++17
+COMPILER = gcc
+CC = g++
+CPP_STANDARD := c++23
 EXTRA_CXXFLAGS := -DLOCAL
 LIBS := -lfmt
 
@@ -16,9 +16,9 @@ export USE_GLIBS_DEBUG := -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC
 export USE_GCH := -I$(GCH_ROOT)
 
 export INCLUDES := -I$(GIT_ROOT)/code
-export CXXFLAGS := $(WARNS) $(CXXFLAGS) $(EXTRA_CXXFLAGS) $(LIBS) $(INCLUDES)
-export OPTIM := -g -O3 -flto -funroll-loops -ftree-vectorize
-export DEBUG := -g -Og -ggdb $(USE_GLIBS_DEBUG)
+export CXXFLAGS = $(WARNS) $(EXTRA_WARNS) $(EXTRA_CXXFLAGS) $(LIBS) $(INCLUDES)
+export OPTIM = -g -O3 -flto -funroll-loops -ftree-vectorize
+export DEBUG = -g -Og -ggdb $(USE_GLIBS_DEBUG)
 
 .PHONY: debug perfm clean
 

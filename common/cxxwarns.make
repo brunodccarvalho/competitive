@@ -6,7 +6,7 @@ WARNS += -Wno-unused-function
 
 # Type casting
 WARNS += -Wcast-align -Wcast-qual -Wold-style-cast
-WARNS += -Wsign-compare -Wfloat-equal -Wno-double-promotion
+WARNS += -Wsign-compare -Wno-double-promotion
 
 WARNS += -Wformat
 WARNS += -Woverloaded-virtual -Wnon-virtual-dtor
@@ -20,9 +20,7 @@ ifeq ($(CC),g++)
 	WARNS += -Wrestrict
 	WARNS += -Wduplicated-cond
 	WARNS += -Wduplicated-branches
-	WARNS += -Wuseless-cast
 	WARNS += -Wlogical-op
-	WARNS += -Wshadow=local
 	WARNS += -Wformat-signedness
 	WARNS += -Wformat-truncation
 	WARNS += -Wtrampolines

@@ -1,5 +1,5 @@
 #include "test_utils.hpp"
-#include "../struct/slopy.hpp"
+#include "struct/slopy.hpp"
 
 void unit_test_slopy() {
     auto test_slopes = [&](const vector<array<int, 2>>& slopes) {

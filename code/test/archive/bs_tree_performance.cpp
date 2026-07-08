@@ -1,7 +1,7 @@
 #define NDEBUG
 #include "test_utils.hpp"
-#include "../bstree/bs_map.hpp"
-#include "../bstree/bs_set.hpp"
+#include "bstree/bs_map.hpp"
+#include "bstree/bs_set.hpp"
 
 using namespace std;
 
